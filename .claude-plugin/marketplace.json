@@ -1,0 +1,19 @@
+{
+  "name": "pepper",
+  "owner": {
+    "name": "Rishiidev",
+    "url": "https://github.com/Rishiidev"
+  },
+  "metadata": {
+    "description": "Cuts browser memory usage by 90% and restores workspaces in 1 click.",
+    "version": "1.0.0",
+    "repository": "https://github.com/Rishiidev/pepper"
+  },
+  "plugins": [
+    {
+      "name": "pepper",
+      "description": "Save browser windows into clean workspaces, search tabs sub-10ms with Dexie, and restore instantly.",
+      "source": "./"
+    }
+  ]
+}

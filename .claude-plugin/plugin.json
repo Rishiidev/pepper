@@ -1,0 +1,10 @@
+{
+  "name": "pepper",
+  "description": "Cuts browser memory usage by 90% and restores workspaces in 1 click.",
+  "version": "1.0.0",
+  "author": { "name": "Rishiidev" },
+  "homepage": "https://Rishiidev.github.io/pepper",
+  "repository": "https://github.com/Rishiidev/pepper",
+  "license": "MIT",
+  "skills": "./skills"
+}

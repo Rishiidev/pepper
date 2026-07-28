@@ -1,0 +1,21 @@
+name: Validate
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install dependencies
+        run: npm ci || npm install
+      - name: TypeScript Compile Check
+        run: npm run compile
+      - name: WXT Build Check
+        run: npm run build
+      - name: Lint JSON files
+        run: |
+          for f in $(find . -name "*.json" -not -path "*/node_modules/*" -not -path "*/.output/*"); do
+            python3 -c "import json,sys; json.load(open('$f'))" && echo "✓ $f valid" || exit 1
+          done
