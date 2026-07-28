@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useIntelligenceSettingsStore } from '../stores/intelligence-settings-store';
 import { ProviderConfigModal } from './ProviderConfigModal';
+import { HealthDashboardModal } from './HealthDashboardModal';
 import { keyVaultRepo, ProviderConfigsMap } from '../storage/repositories/key-vault-repo';
-import { Cpu, Zap, Database, Terminal, ShieldCheck, Activity, RefreshCw, Key, CheckCircle, Sliders } from 'lucide-react';
+import { Cpu, Zap, Database, Terminal, ShieldCheck, Activity, RefreshCw, Key, CheckCircle, Sliders, HeartPulse } from 'lucide-react';
 
 export const IntelligenceSettings: React.FC = () => {
   const {
@@ -21,6 +22,7 @@ export const IntelligenceSettings: React.FC = () => {
 
   const [savedConfigs, setSavedConfigs] = useState<ProviderConfigsMap>({});
   const [selectedProvider, setSelectedProvider] = useState<{ id: string; name: string; isLocal?: boolean } | null>(null);
+  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
 
   const fetchConfigs = async () => {
     const configs = await keyVaultRepo.getAll();
@@ -53,6 +55,9 @@ export const IntelligenceSettings: React.FC = () => {
         />
       )}
 
+      {/* Health Diagnostic Modal */}
+      <HealthDashboardModal isOpen={isHealthModalOpen} onClose={() => setIsHealthModalOpen(false)} />
+
       {/* Header Banner */}
       <div className="flex items-center justify-between pb-4 border-b border-border">
         <div className="flex items-center gap-3">
@@ -72,22 +77,32 @@ export const IntelligenceSettings: React.FC = () => {
           </div>
         </div>
 
-        {/* Master AI Toggle */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <span className="text-xs font-semibold text-text-secondary">AI Master Switch</span>
-          <div
-            onClick={() => toggleAI(!aiEnabled)}
-            className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-              aiEnabled ? 'bg-pepper-500' : 'bg-border'
-            }`}
+        {/* Diagnostic Panel & Master AI Toggle */}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsHealthModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 font-bold text-xs transition-colors"
           >
+            <HeartPulse className="w-4 h-4" />
+            <span>Health Check Panel</span>
+          </button>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <span className="text-xs font-semibold text-text-secondary">AI Master Switch</span>
             <div
-              className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
-                aiEnabled ? 'left-6' : 'left-1'
+              onClick={() => toggleAI(!aiEnabled)}
+              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
+                aiEnabled ? 'bg-pepper-500' : 'bg-border'
               }`}
-            />
-          </div>
-        </label>
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
+                  aiEnabled ? 'left-6' : 'left-1'
+                }`}
+              />
+            </div>
+          </label>
+        </div>
       </div>
 
       {/* Metrics Summary */}
