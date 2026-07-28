@@ -9,26 +9,43 @@ export interface IntelligenceFeatureFlags {
 }
 
 export const DEFAULT_INTELLIGENCE_FLAGS: IntelligenceFeatureFlags = {
-  aiEnabled: false, // Default off until user enables or configures provider
+  aiEnabled: false,
   semanticSearch: false,
   embeddings: false,
   experimentalProviders: false,
   localModels: false,
-  autoSummarize: false,
-  autoTagging: false,
+  autoSummarize: true,
+  autoTagging: true,
 };
 
 export class FeatureFlagsManager {
   private static instance: FeatureFlagsManager;
   private flags: IntelligenceFeatureFlags = { ...DEFAULT_INTELLIGENCE_FLAGS };
+  private readonly STORAGE_KEY = 'pepper_v2_intelligence_flags';
 
-  private constructor() {}
+  private constructor() {
+    this.hydrateFromStorage();
+  }
 
   static getInstance(): FeatureFlagsManager {
     if (!FeatureFlagsManager.instance) {
       FeatureFlagsManager.instance = new FeatureFlagsManager();
     }
     return FeatureFlagsManager.instance;
+  }
+
+  async hydrateFromStorage(): Promise<IntelligenceFeatureFlags> {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        const res = await chrome.storage.local.get(this.STORAGE_KEY);
+        if (res[this.STORAGE_KEY]) {
+          this.flags = { ...DEFAULT_INTELLIGENCE_FLAGS, ...(res[this.STORAGE_KEY] as IntelligenceFeatureFlags) };
+        }
+      } catch (err) {
+        console.error('[FeatureFlagsManager] Storage hydration failed:', err);
+      }
+    }
+    return { ...this.flags };
   }
 
   getFlags(): IntelligenceFeatureFlags {
@@ -39,16 +56,29 @@ export class FeatureFlagsManager {
     return !!this.flags[flag];
   }
 
-  setFlag(flag: keyof IntelligenceFeatureFlags, value: boolean): void {
+  async setFlag(flag: keyof IntelligenceFeatureFlags, value: boolean): Promise<void> {
     this.flags[flag] = value;
+    await this.persist();
   }
 
-  updateFlags(updates: Partial<IntelligenceFeatureFlags>): void {
+  async updateFlags(updates: Partial<IntelligenceFeatureFlags>): Promise<void> {
     this.flags = { ...this.flags, ...updates };
+    await this.persist();
   }
 
-  reset(): void {
+  async reset(): Promise<void> {
     this.flags = { ...DEFAULT_INTELLIGENCE_FLAGS };
+    await this.persist();
+  }
+
+  private async persist(): Promise<void> {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        await chrome.storage.local.set({ [this.STORAGE_KEY]: this.flags });
+      } catch (err) {
+        console.error('[FeatureFlagsManager] Failed to persist flags:', err);
+      }
+    }
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { keyVaultRepo, ProviderConfig } from '../storage/repositories/key-vault-repo';
 import { providerRegistry } from '../core/intelligence/registry/provider-registry';
 import { OpenAIProvider } from '../core/intelligence/providers/openai';
@@ -6,7 +6,7 @@ import { AnthropicProvider } from '../core/intelligence/providers/anthropic';
 import { GeminiProvider } from '../core/intelligence/providers/gemini';
 import { OllamaProvider } from '../core/intelligence/providers/ollama';
 import { OpenRouterProvider } from '../core/intelligence/providers/openrouter';
-import { X, Key, ShieldCheck, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Key, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
   providerId: string;
@@ -32,34 +32,47 @@ export const ProviderConfigModal: React.FC<Props> = ({
   const [testing, setTesting] = useState(false);
   const [healthStatus, setHealthStatus] = useState<{ isHealthy: boolean; message: string } | null>(null);
 
+  useEffect(() => {
+    if (isOpen && providerId) {
+      keyVaultRepo.get(providerId).then((existing) => {
+        if (existing) {
+          if (existing.apiKey) setApiKey(existing.apiKey);
+          if (existing.endpoint) setEndpoint(existing.endpoint);
+          if (existing.model) setModel(existing.model);
+          if (existing.enabled !== undefined) setEnabled(existing.enabled);
+        }
+      });
+    }
+  }, [isOpen, providerId]);
+
   if (!isOpen) return null;
+
+  const createProviderInstance = () => {
+    if (providerId === 'openai') {
+      return new OpenAIProvider({ apiKey, model: model || 'gpt-4o-mini', endpoint: endpoint || undefined });
+    } else if (providerId === 'anthropic') {
+      return new AnthropicProvider({ apiKey, model: model || 'claude-3-5-sonnet-20241022' });
+    } else if (providerId === 'gemini') {
+      return new GeminiProvider({ apiKey, model: model || 'gemini-1.5-flash' });
+    } else if (providerId === 'ollama') {
+      return new OllamaProvider({ endpoint: endpoint || 'http://localhost:11434', model: model || 'llama3' });
+    } else if (providerId === 'openrouter') {
+      return new OpenRouterProvider({ apiKey, model: model || 'anthropic/claude-3.5-sonnet' });
+    }
+    return null;
+  };
 
   const handleTestConnection = async () => {
     setTesting(true);
     setHealthStatus(null);
 
-    let provider;
-    if (providerId === 'openai') {
-      provider = new OpenAIProvider({ apiKey, model: model || 'gpt-4o-mini', endpoint: endpoint || undefined });
-    } else if (providerId === 'anthropic') {
-      provider = new AnthropicProvider({ apiKey, model: model || 'claude-3-5-sonnet-20241022' });
-    } else if (providerId === 'gemini') {
-      provider = new GeminiProvider({ apiKey, model: model || 'gemini-1.5-flash' });
-    } else if (providerId === 'ollama') {
-      provider = new OllamaProvider({ endpoint: endpoint || 'http://localhost:11434', model: model || 'llama3' });
-    } else if (providerId === 'openrouter') {
-      provider = new OpenRouterProvider({ apiKey, model: model || 'anthropic/claude-3.5-sonnet' });
-    }
-
+    const provider = createProviderInstance();
     if (provider) {
       const health = await provider.healthCheck();
       setHealthStatus({
         isHealthy: health.isHealthy,
         message: health.isHealthy ? `Connected (${health.latencyMs}ms)` : health.errorMessage || 'Health check failed',
       });
-      if (health.isHealthy) {
-        providerRegistry.register(provider);
-      }
     }
     setTesting(false);
   };
@@ -67,7 +80,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
   const handleSave = async () => {
     const config: Partial<ProviderConfig> = {
       id: providerId,
-      enabled,
+      enabled: true,
       apiKey: apiKey || undefined,
       endpoint: endpoint || undefined,
       model: model || undefined,
@@ -82,13 +95,11 @@ export const ProviderConfigModal: React.FC<Props> = ({
 
     await keyVaultRepo.save(providerId, config);
 
-    // Register active provider into ProviderRegistry
-    if (enabled && healthStatus?.isHealthy) {
-      if (providerId === 'openai') providerRegistry.register(new OpenAIProvider({ apiKey, model }));
-      else if (providerId === 'anthropic') providerRegistry.register(new AnthropicProvider({ apiKey, model }));
-      else if (providerId === 'gemini') providerRegistry.register(new GeminiProvider({ apiKey, model }));
-      else if (providerId === 'ollama') providerRegistry.register(new OllamaProvider({ endpoint, model }));
-      else if (providerId === 'openrouter') providerRegistry.register(new OpenRouterProvider({ apiKey, model }));
+    // Register active provider into ProviderRegistry and activate it
+    const provider = createProviderInstance();
+    if (provider) {
+      providerRegistry.register(provider);
+      providerRegistry.setActiveProvider(provider.id);
     }
 
     onSaved();

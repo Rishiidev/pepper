@@ -5,7 +5,6 @@ import {
   featureFlagsManager,
   intelligenceCache,
   intelligenceLogger,
-  MockProvider,
   IntelligenceFeatureFlags,
   LogEntry,
 } from '../core/intelligence';
@@ -20,51 +19,68 @@ interface IntelligenceSettingsState {
   logs: LogEntry[];
 
   // Actions
-  toggleAI: (enabled: boolean) => void;
-  updateFlag: (flag: keyof IntelligenceFeatureFlags, value: boolean) => void;
+  toggleAI: (enabled: boolean) => Promise<void>;
+  updateFlag: (flag: keyof IntelligenceFeatureFlags, value: boolean) => Promise<void>;
   clearCache: () => void;
-  refreshMetrics: () => void;
+  refreshMetrics: () => Promise<void>;
 }
 
-// Auto-register MockProvider on store initialization so the framework is instantly testable offline
-providerRegistry.register(new MockProvider());
-
-export const useIntelligenceSettingsStore = create<IntelligenceSettingsState>((set) => ({
-  aiEnabled: featureFlagsManager.isEnabled('aiEnabled'),
-  featureFlags: featureFlagsManager.getFlags(),
-  providerCount: providerRegistry.getAllProviders().length,
-  activeProviderName: providerRegistry.getActiveProvider()?.name || null,
-  installedSkillsCount: skillRegistry.getAllSkills().length,
-  cacheSize: intelligenceCache.size(),
-  logs: intelligenceLogger.getLogs(),
-
-  toggleAI: (enabled: boolean) => {
-    featureFlagsManager.setFlag('aiEnabled', enabled);
-    set({
-      aiEnabled: enabled,
-      featureFlags: featureFlagsManager.getFlags(),
+export const useIntelligenceSettingsStore = create<IntelligenceSettingsState>((set, get) => {
+  // Listen for cross-context Chrome storage updates (Service Worker -> Manager / Popup UI)
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener(async (changes, areaName) => {
+      if (areaName === 'local' && (changes.pepper_v2_byok_providers || changes.pepper_v2_intelligence_flags)) {
+        await get().refreshMetrics();
+      }
     });
-  },
+  }
 
-  updateFlag: (flag: keyof IntelligenceFeatureFlags, value: boolean) => {
-    featureFlagsManager.setFlag(flag, value);
-    set({ featureFlags: featureFlagsManager.getFlags() });
-  },
-
-  clearCache: () => {
-    intelligenceCache.clear();
-    set({ cacheSize: 0 });
-  },
-
-  refreshMetrics: () => {
-    set({
-      aiEnabled: featureFlagsManager.isEnabled('aiEnabled'),
-      featureFlags: featureFlagsManager.getFlags(),
-      providerCount: providerRegistry.getAllProviders().length,
-      activeProviderName: providerRegistry.getActiveProvider()?.name || null,
-      installedSkillsCount: skillRegistry.getAllSkills().length,
-      cacheSize: intelligenceCache.size(),
-      logs: intelligenceLogger.getLogs(),
+  // Trigger initial storage hydration
+  featureFlagsManager.hydrateFromStorage().then(() => {
+    providerRegistry.hydrateFromStorage().then(() => {
+      get().refreshMetrics();
     });
-  },
-}));
+  });
+
+  return {
+    aiEnabled: featureFlagsManager.isEnabled('aiEnabled'),
+    featureFlags: featureFlagsManager.getFlags(),
+    providerCount: providerRegistry.getAllProviders().length,
+    activeProviderName: providerRegistry.getActiveProvider()?.name || null,
+    installedSkillsCount: skillRegistry.getAllSkills().length,
+    cacheSize: intelligenceCache.size(),
+    logs: intelligenceLogger.getLogs(),
+
+    toggleAI: async (enabled: boolean) => {
+      await featureFlagsManager.setFlag('aiEnabled', enabled);
+      set({
+        aiEnabled: enabled,
+        featureFlags: featureFlagsManager.getFlags(),
+      });
+    },
+
+    updateFlag: async (flag: keyof IntelligenceFeatureFlags, value: boolean) => {
+      await featureFlagsManager.setFlag(flag, value);
+      set({ featureFlags: featureFlagsManager.getFlags() });
+    },
+
+    clearCache: () => {
+      intelligenceCache.clear();
+      set({ cacheSize: 0 });
+    },
+
+    refreshMetrics: async () => {
+      await featureFlagsManager.hydrateFromStorage();
+      await providerRegistry.hydrateFromStorage();
+      set({
+        aiEnabled: featureFlagsManager.isEnabled('aiEnabled'),
+        featureFlags: featureFlagsManager.getFlags(),
+        providerCount: providerRegistry.getAllProviders().length,
+        activeProviderName: providerRegistry.getActiveProvider()?.name || null,
+        installedSkillsCount: skillRegistry.getAllSkills().length,
+        cacheSize: intelligenceCache.size(),
+        logs: intelligenceLogger.getLogs(),
+      });
+    },
+  };
+});

@@ -44,6 +44,7 @@ export const DEFAULT_PROVIDER_CONFIGS: ProviderConfigsMap = {
 
 export class KeyVaultRepository {
   private readonly STORAGE_KEY = 'pepper_v2_byok_providers';
+  private readonly ACTIVE_PROVIDER_KEY = 'pepper_v2_active_provider_id';
 
   async getAll(): Promise<ProviderConfigsMap> {
     if (typeof chrome === 'undefined' || !chrome.storage?.local) {
@@ -80,6 +81,22 @@ export class KeyVaultRepository {
 
   async setEnabled(providerId: string, enabled: boolean): Promise<void> {
     await this.save(providerId, { enabled });
+  }
+
+  async getActiveProviderId(): Promise<string | null> {
+    if (typeof chrome === 'undefined' || !chrome.storage?.local) return null;
+    try {
+      const res = await chrome.storage.local.get(this.ACTIVE_PROVIDER_KEY);
+      return (res[this.ACTIVE_PROVIDER_KEY] as string) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  async setActiveProviderId(providerId: string): Promise<void> {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ [this.ACTIVE_PROVIDER_KEY]: providerId });
+    }
   }
 
   async remove(providerId: string): Promise<void> {

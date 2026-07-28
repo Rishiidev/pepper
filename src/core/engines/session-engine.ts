@@ -1,6 +1,10 @@
 import { PepperSession, PepperTab, SessionStats } from '../types/session';
 import { sessionRepo } from '../../storage/repositories/session-repo';
 import { eventBus } from '../events/event-bus';
+import { featureFlagsManager } from '../intelligence/features/feature-flags';
+import { intelligenceQueue } from '../intelligence/queue/intelligence-queue';
+import { AutoTitleSkill } from '../intelligence/skills/auto-title';
+import { AutoTaggingSkill } from '../intelligence/skills/auto-tagging';
 
 export class SessionEngine {
   async getAllSessions(): Promise<PepperSession[]> {
@@ -39,6 +43,12 @@ export class SessionEngine {
     eventBus.emit('session:created', { session });
     await this.refreshBadge();
     await this.notifyCrossContextSync();
+
+    // Asynchronous non-blocking AI enhancement task
+    this.triggerAISkills(session).catch((err) => {
+      console.warn('[SessionEngine] AI enhancement background task error:', err);
+    });
+
     return session;
   }
 
@@ -105,6 +115,43 @@ export class SessionEngine {
       }
     } catch {
       // Chrome extension API not available
+    }
+  }
+
+  private async triggerAISkills(session: PepperSession): Promise<void> {
+    if (!featureFlagsManager.isEnabled('aiEnabled')) return;
+
+    const autoTitleSkill = new AutoTitleSkill();
+    const autoTaggingSkill = new AutoTaggingSkill();
+
+    const titleResult = await intelligenceQueue.enqueue({
+      id: `task_title_${session.id}`,
+      skillId: autoTitleSkill.id,
+      priority: 'HIGH',
+      requirements: autoTitleSkill.requirements,
+      input: session.tabs,
+      context: { traceId: `trace_${Date.now()}`, createdAt: Date.now() },
+    });
+
+    const tagsResult = await intelligenceQueue.enqueue({
+      id: `task_tags_${session.id}`,
+      skillId: autoTaggingSkill.id,
+      priority: 'LOW',
+      requirements: autoTaggingSkill.requirements,
+      input: session.tabs,
+      context: { traceId: `trace_${Date.now()}`, createdAt: Date.now() },
+    });
+
+    const updates: Partial<PepperSession> = {};
+    if (titleResult.success && titleResult.data && typeof titleResult.data === 'string') {
+      updates.name = titleResult.data;
+    }
+    if (tagsResult.success && Array.isArray(tagsResult.data)) {
+      updates.tags = tagsResult.data as string[];
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.updateSession(session.id, updates);
     }
   }
 
