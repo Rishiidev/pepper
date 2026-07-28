@@ -6,7 +6,7 @@ import { AnthropicProvider } from '../core/intelligence/providers/anthropic';
 import { GeminiProvider } from '../core/intelligence/providers/gemini';
 import { OllamaProvider } from '../core/intelligence/providers/ollama';
 import { OpenRouterProvider } from '../core/intelligence/providers/openrouter';
-import { X, Key, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Key, CheckCircle2, AlertTriangle, RefreshCw, ChevronDown } from 'lucide-react';
 
 interface Props {
   providerId: string;
@@ -16,6 +16,33 @@ interface Props {
   onClose: () => void;
   onSaved: () => void;
 }
+
+const PRESET_MODELS: Record<string, Array<{ value: string; label: string; description: string }>> = {
+  openrouter: [
+    { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet', description: 'Best overall quality & reasoning (Recommended)' },
+    { value: 'openai/gpt-4o-mini', label: 'GPT-4o Mini', description: 'Fast, inexpensive & smart' },
+    { value: 'google/gemini-flash-1.5', label: 'Gemini 1.5 Flash', description: 'Ultra fast response speed' },
+    { value: 'meta-llama/llama-3.3-70b-instruct', label: 'Llama 3.3 70B', description: 'Top tier open source model' },
+    { value: 'deepseek/deepseek-chat', label: 'DeepSeek V3', description: 'Powerful & ultra low-cost' },
+  ],
+  openai: [
+    { value: 'gpt-4o-mini', label: 'GPT-4o Mini', description: 'Fast & smart default model' },
+    { value: 'gpt-4o', label: 'GPT-4o', description: 'Full power flagship model' },
+  ],
+  anthropic: [
+    { value: 'claude-3-5-sonnet-20241022', label: 'Claude 3.5 Sonnet', description: 'Highest performance intelligence' },
+    { value: 'claude-3-haiku-20240307', label: 'Claude 3 Haiku', description: 'Lightweight & instant speed' },
+  ],
+  gemini: [
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash', description: 'Fast & high throughput' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro', description: 'Complex reasoning & long context' },
+  ],
+  ollama: [
+    { value: 'llama3', label: 'Llama 3 (8B)', description: 'Local Meta Llama 3' },
+    { value: 'mistral', label: 'Mistral 7B', description: 'Local Mistral' },
+    { value: 'qwen2.5', label: 'Qwen 2.5', description: 'Local Qwen' },
+  ],
+};
 
 export const ProviderConfigModal: React.FC<Props> = ({
   providerId,
@@ -28,9 +55,12 @@ export const ProviderConfigModal: React.FC<Props> = ({
   const [apiKey, setApiKey] = useState('');
   const [endpoint, setEndpoint] = useState(isLocal ? 'http://localhost:11434' : '');
   const [model, setModel] = useState('');
+  const [isCustomModel, setIsCustomModel] = useState(false);
   const [enabled, setEnabled] = useState(true);
   const [testing, setTesting] = useState(false);
   const [healthStatus, setHealthStatus] = useState<{ isHealthy: boolean; message: string } | null>(null);
+
+  const presets = PRESET_MODELS[providerId] || [];
 
   useEffect(() => {
     if (isOpen && providerId) {
@@ -38,8 +68,16 @@ export const ProviderConfigModal: React.FC<Props> = ({
         if (existing) {
           if (existing.apiKey) setApiKey(existing.apiKey);
           if (existing.endpoint) setEndpoint(existing.endpoint);
-          if (existing.model) setModel(existing.model);
+          if (existing.model) {
+            setModel(existing.model);
+            const isPreset = presets.some((p) => p.value === existing.model);
+            setIsCustomModel(!isPreset && existing.model !== '');
+          } else if (presets.length > 0) {
+            setModel(presets[0].value);
+          }
           if (existing.enabled !== undefined) setEnabled(existing.enabled);
+        } else if (presets.length > 0) {
+          setModel(presets[0].value);
         }
       });
     }
@@ -48,16 +86,17 @@ export const ProviderConfigModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const createProviderInstance = () => {
+    const selectedModel = model || (presets[0]?.value ?? 'anthropic/claude-3.5-sonnet');
     if (providerId === 'openai') {
-      return new OpenAIProvider({ apiKey, model: model || 'gpt-4o-mini', endpoint: endpoint || undefined });
+      return new OpenAIProvider({ apiKey, model: selectedModel, endpoint: endpoint || undefined });
     } else if (providerId === 'anthropic') {
-      return new AnthropicProvider({ apiKey, model: model || 'claude-3-5-sonnet-20241022' });
+      return new AnthropicProvider({ apiKey, model: selectedModel });
     } else if (providerId === 'gemini') {
-      return new GeminiProvider({ apiKey, model: model || 'gemini-1.5-flash' });
+      return new GeminiProvider({ apiKey, model: selectedModel });
     } else if (providerId === 'ollama') {
-      return new OllamaProvider({ endpoint: endpoint || 'http://localhost:11434', model: model || 'llama3' });
+      return new OllamaProvider({ endpoint: endpoint || 'http://localhost:11434', model: selectedModel });
     } else if (providerId === 'openrouter') {
-      return new OpenRouterProvider({ apiKey, model: model || 'anthropic/claude-3.5-sonnet' });
+      return new OpenRouterProvider({ apiKey, model: selectedModel });
     }
     return null;
   };
@@ -71,19 +110,20 @@ export const ProviderConfigModal: React.FC<Props> = ({
       const health = await provider.healthCheck();
       setHealthStatus({
         isHealthy: health.isHealthy,
-        message: health.isHealthy ? `Connected (${health.latencyMs}ms)` : health.errorMessage || 'Health check failed',
+        message: health.isHealthy ? `Connected successfully (${health.latencyMs}ms latency)` : health.errorMessage || 'Health check failed',
       });
     }
     setTesting(false);
   };
 
   const handleSave = async () => {
+    const selectedModel = model || (presets[0]?.value ?? 'anthropic/claude-3.5-sonnet');
     const config: Partial<ProviderConfig> = {
       id: providerId,
       enabled: true,
       apiKey: apiKey || undefined,
       endpoint: endpoint || undefined,
-      model: model || undefined,
+      model: selectedModel,
       lastHealthCheck: healthStatus
         ? {
             isHealthy: healthStatus.isHealthy,
@@ -143,7 +183,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
+                placeholder="sk-or-v1-..."
                 className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
               />
               <span className="text-[10px] text-text-muted mt-1 block">
@@ -152,15 +192,51 @@ export const ProviderConfigModal: React.FC<Props> = ({
             </div>
           )}
 
+          {/* Model Selector Dropdown */}
           <div>
-            <label className="block text-xs font-semibold text-text-secondary mb-1">Model Name</label>
-            <input
-              type="text"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              placeholder={isLocal ? 'llama3' : 'gpt-4o-mini'}
-              className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-text-secondary">Select Model</label>
+              <button
+                type="button"
+                onClick={() => setIsCustomModel(!isCustomModel)}
+                className="text-[10px] text-pepper-400 hover:underline font-medium"
+              >
+                {isCustomModel ? 'Use Preset List' : 'Enter Custom Model ID'}
+              </button>
+            </div>
+
+            {!isCustomModel && presets.length > 0 ? (
+              <div className="relative">
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono appearance-none pr-8 focus:outline-none focus:border-pepper-500 cursor-pointer"
+                >
+                  {presets.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label} ({p.value})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-2.5 pointer-events-none" />
+                <p className="text-[11px] text-text-muted mt-1.5">
+                  {presets.find((p) => p.value === model)?.description || 'Select model for AI tasks'}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="e.g. anthropic/claude-3.5-sonnet"
+                  className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
+                />
+                <span className="text-[10px] text-text-muted mt-1 block">
+                  Enter exact model identifier string from provider documentation.
+                </span>
+              </div>
+            )}
           </div>
 
           {(isLocal || providerId === 'openai') && (
@@ -185,7 +261,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
                   : 'bg-red-500/10 border-red-500/20 text-red-400'
               }`}
             >
-              {healthStatus.isHealthy ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+              {healthStatus.isHealthy ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertTriangle className="w-4 h-4 shrink-0" />}
               <span>{healthStatus.message}</span>
             </div>
           )}
