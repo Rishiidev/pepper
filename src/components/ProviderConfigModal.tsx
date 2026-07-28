@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { keyVaultRepo, ProviderConfig } from '../storage/repositories/key-vault-repo';
 import { providerRegistry } from '../core/intelligence/registry/provider-registry';
+import { featureFlagsManager } from '../core/intelligence/features/feature-flags';
 import { OpenAIProvider } from '../core/intelligence/providers/openai';
 import { AnthropicProvider } from '../core/intelligence/providers/anthropic';
 import { GeminiProvider } from '../core/intelligence/providers/gemini';
@@ -141,6 +142,9 @@ export const ProviderConfigModal: React.FC<Props> = ({
       providerRegistry.register(provider);
       providerRegistry.setActiveProvider(provider.id);
     }
+
+    // Automatically turn on AI Master Switch when provider configuration is saved
+    await featureFlagsManager.setFlag('aiEnabled', true);
 
     onSaved();
     onClose();
