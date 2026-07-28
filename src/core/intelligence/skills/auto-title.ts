@@ -17,18 +17,57 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
 
   async execute(task: IntelligenceTask<PepperTab[], string>): Promise<TaskResult<string>> {
     const tabs = task.input;
-    const tabTitles = tabs.map((t) => `- ${t.title}`).join('\n');
+
+    // Build rich context with Title, URL, and Domain
+    const richContext = tabs
+      .map((t) => {
+        let domain = '';
+        try {
+          if (t.url) domain = new URL(t.url).hostname.replace(/^www\./, '');
+        } catch {
+          domain = '';
+        }
+        return `- ${t.title || 'Untitled'} (${domain || t.url})`;
+      })
+      .slice(0, 10)
+      .join('\n');
 
     const prompt = promptRegistry.render('auto-title', {
-      tab_list: tabTitles,
+      tab_list: richContext,
     });
 
     const executionTask: IntelligenceTask<string, string> = {
       ...task,
       input: prompt,
       parseOutput: (raw: string) => {
-        const cleaned = raw.replace(/^["']|["']$/g, '').trim();
-        return cleaned.split('\n')[0] || 'Browser Workspace';
+        let cleaned = raw.replace(/^["']|["']$/g, '').trim();
+
+        // If mock provider response, generate heuristic title from domains/titles
+        if (cleaned.startsWith('[Mock AI]') || cleaned.includes('Intelligence Architecture')) {
+          const topDomains = Array.from(
+            new Set(
+              tabs
+                .map((t) => {
+                  try {
+                    return new URL(t.url).hostname.replace(/^www\./, '').split('.')[0];
+                  } catch {
+                    return '';
+                  }
+                })
+                .filter(Boolean)
+            )
+          );
+
+          const mainDomain = topDomains[0] || 'Web';
+          const capitalizedDomain = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+          const firstTabTitle = tabs[0]?.title?.split(/[-|–]/)[0].trim() || 'Workspace';
+
+          return `${capitalizedDomain} ${firstTabTitle}`.substring(0, 35);
+        }
+
+        const lines = cleaned.split('\n').filter(Boolean);
+        const titleLine = lines[0] || 'Active Workspace';
+        return titleLine.replace(/^(Title:|Workspace Name:|\*|\#)/i, '').trim();
       },
     };
 

@@ -24,6 +24,10 @@ export class ProviderRegistry {
     return ProviderRegistry.instance;
   }
 
+  getIsHydrated(): boolean {
+    return this.isHydrated;
+  }
+
   async hydrateFromStorage(): Promise<void> {
     try {
       console.log('[ProviderRegistry] Hydrating BYOK providers from storage...');

@@ -67,15 +67,16 @@ export const DomainTabAccordion: React.FC<Props> = ({
         const selectedCount = group.indices.filter((i) => selectedIndices.has(i)).length;
         const allSelected = selectedCount === group.indices.length;
         const someSelected = selectedCount > 0 && !allSelected;
+        const groupRamMb = selectedCount * 125;
 
         return (
           <div
             key={group.domain}
-            className="border border-border/70 rounded-xl bg-surface-card overflow-hidden transition-colors"
+            className="border border-border/70 rounded-xl bg-surface-card overflow-hidden transition-colors shadow-sm"
           >
             {/* Domain Group Header */}
             <div className="flex items-center justify-between p-2.5 bg-surface/60 hover:bg-surface-hover text-xs font-semibold select-none">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <input
                   type="checkbox"
                   checked={allSelected}
@@ -98,7 +99,10 @@ export const DomainTabAccordion: React.FC<Props> = ({
                   <Globe className="w-4 h-4 text-text-muted shrink-0" />
                 )}
                 <span className="truncate text-text-primary font-bold">{group.domain}</span>
-                <span className="text-[10px] font-medium text-text-muted px-1.5 py-0.2 rounded bg-surface border border-border/50">
+                <span className="text-[10px] font-mono text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  {groupRamMb} MB
+                </span>
+                <span className="text-[10px] font-medium text-text-muted px-1.5 py-0.2 rounded bg-surface border border-border/50 shrink-0">
                   {selectedCount}/{group.tabs.length} tabs
                 </span>
               </div>
@@ -106,7 +110,7 @@ export const DomainTabAccordion: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => toggleCollapse(group.domain)}
-                className="p-1 text-text-muted hover:text-text-primary"
+                className="p-1 text-text-muted hover:text-text-primary shrink-0 ml-1"
               >
                 {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
               </button>
@@ -130,6 +134,16 @@ export const DomainTabAccordion: React.FC<Props> = ({
                         onChange={() => onToggleIndex(globalIdx)}
                         className="accent-pepper-500 w-3 h-3 rounded"
                       />
+                      {tab.favIconUrl && (
+                        <img
+                          src={tab.favIconUrl}
+                          alt=""
+                          className="w-3.5 h-3.5 rounded object-cover shrink-0"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/icons/icon-16.png';
+                          }}
+                        />
+                      )}
                       <span className="truncate text-text-primary flex-1">{tab.title || tab.url}</span>
                     </label>
                   );

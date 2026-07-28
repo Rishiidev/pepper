@@ -16,7 +16,11 @@ export class AIRouter {
     return AIRouter.instance;
   }
 
-  resolveProvider(requirements: CapabilityRequirements, overrideProviderId?: string): ModelProvider {
+  async resolveProvider(requirements: CapabilityRequirements, overrideProviderId?: string): Promise<ModelProvider> {
+    if (!providerRegistry.getIsHydrated()) {
+      await providerRegistry.hydrateFromStorage();
+    }
+
     if (overrideProviderId) {
       const provider = providerRegistry.getProvider(overrideProviderId);
       if (!provider) {
@@ -58,7 +62,7 @@ export class AIRouter {
     overrideProviderId?: string
   ): Promise<TaskResult<TOutput>> {
     const startTime = Date.now();
-    const provider = this.resolveProvider(task.requirements, overrideProviderId);
+    const provider = await this.resolveProvider(task.requirements, overrideProviderId);
 
     try {
       const rawPrompt = typeof task.input === 'string' ? task.input : JSON.stringify(task.input);
