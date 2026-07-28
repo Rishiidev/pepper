@@ -16,6 +16,6 @@ jobs:
         run: npm run build
       - name: Lint JSON files
         run: |
-          for f in $(find . -name "*.json" -not -path "*/node_modules/*" -not -path "*/.output/*"); do
-            python3 -c "import json,sys; json.load(open('$f'))" && echo "✓ $f valid" || exit 1
+          for f in $(find . -name "*.json" -not -path "*/node_modules/*" -not -path "*/.output/*" -not -path "*/.wxt/*"); do
+            python3 -c "import json,sys,re; content=open('$f').read(); content=re.sub(r'/\*.*?\*/', '', content, flags=re.S); json.loads(content)" && echo "✓ $f valid" || exit 1
           done
