@@ -2,18 +2,25 @@ import React, { useState } from 'react';
 import { PepperSession } from '../core/types/session';
 import { useSessionStore } from '../stores/session-store';
 import { healthEngine } from '../core/engines/health-engine';
-import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Tag, Sparkles } from 'lucide-react';
+import { sessionEngine } from '../core/engines/session-engine';
+import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
+import { AutoTaggingSkill } from '../core/intelligence/skills/auto-tagging';
+import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-summary';
+import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface SessionCardProps {
   session: PepperSession;
 }
 
 export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
-  const { restoreSession, deleteSession, toggleFavorite, togglePin } = useSessionStore();
+  const { restoreSession, deleteSession, toggleFavorite, togglePin, fetchSessions } = useSessionStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<{ status: 'loading' | 'success' | 'error'; message: string } | null>(null);
 
   const health = healthEngine.calculateHealth(session);
+  const isGenericName = !session.name || session.name.includes('—') || session.name.toLowerCase().startsWith('saved window');
 
   const handleRestore = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -22,6 +29,66 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
       await restoreSession(session.id);
     } finally {
       setIsRestoring(false);
+    }
+  };
+
+  const handleGenerateTitle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAiGenerating(true);
+    setAiFeedback({ status: 'loading', message: 'Generating smart title...' });
+
+    try {
+      const skill = new AutoTitleSkill();
+      const res = await skill.execute({
+        id: `task_manual_title_${session.id}`,
+        skillId: skill.id,
+        priority: 'HIGH',
+        requirements: skill.requirements,
+        input: session.tabs,
+        context: { traceId: `manual_${Date.now()}`, createdAt: Date.now() },
+      });
+
+      if (res.success && res.data && typeof res.data === 'string') {
+        await sessionEngine.updateSession(session.id, { name: res.data });
+        await fetchSessions();
+        setAiFeedback({ status: 'success', message: 'Workspace renamed!' });
+      } else {
+        setAiFeedback({ status: 'error', message: 'Could not generate title. Click to retry.' });
+      }
+    } catch {
+      setAiFeedback({ status: 'error', message: 'AI task failed. Click to retry.' });
+    } finally {
+      setIsAiGenerating(false);
+      setTimeout(() => setAiFeedback(null), 4000);
+    }
+  };
+
+  const handleGenerateSummary = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsAiGenerating(true);
+    setAiFeedback({ status: 'loading', message: 'Generating summary...' });
+
+    try {
+      const skill = new WorkspaceSummarySkill();
+      const res = await skill.execute({
+        id: `task_manual_summary_${session.id}`,
+        skillId: skill.id,
+        priority: 'HIGH',
+        requirements: skill.requirements,
+        input: session,
+        context: { traceId: `manual_${Date.now()}`, createdAt: Date.now() },
+      });
+
+      if (res.success && res.data && res.data.summary) {
+        await sessionEngine.updateSession(session.id, { summary: res.data.summary });
+        await fetchSessions();
+        setAiFeedback({ status: 'success', message: 'Summary updated!' });
+      }
+    } catch {
+      setAiFeedback({ status: 'error', message: 'Failed to generate summary.' });
+    } finally {
+      setIsAiGenerating(false);
+      setTimeout(() => setAiFeedback(null), 3000);
     }
   };
 
@@ -73,9 +140,21 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               {session.isPinned && <Pin className="w-3.5 h-3.5 text-pepper-400 shrink-0 fill-pepper-400" />}
               {session.isFavorite && <Star className="w-3.5 h-3.5 text-amber-400 shrink-0 fill-amber-400" />}
 
+              {/* Manual "✨ Generate via AI" CTA for date titles */}
+              {isGenericName && (
+                <button
+                  onClick={handleGenerateTitle}
+                  disabled={isAiGenerating}
+                  className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-pepper-500/10 text-pepper-400 border border-pepper-500/20 hover:bg-pepper-500/20 transition-colors shrink-0 ml-1"
+                >
+                  <Sparkles className="w-3 h-3 text-pepper-400" />
+                  <span>Generate via AI</span>
+                </button>
+              )}
+
               {/* Health Badge */}
               <span
-                className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded border ml-1"
+                className="text-[10px] font-bold font-mono px-1.5 py-0.2 rounded border ml-auto"
                 style={{ backgroundColor: `${health.color}15`, color: health.color, borderColor: `${health.color}30` }}
                 title={`Workspace Health: ${health.score}%`}
               >
@@ -83,12 +162,34 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               </span>
             </div>
 
+            {/* AI Feedback Banner */}
+            {aiFeedback && (
+              <div
+                className={`text-[11px] font-medium flex items-center gap-1.5 ${
+                  aiFeedback.status === 'loading'
+                    ? 'text-pepper-400'
+                    : aiFeedback.status === 'success'
+                    ? 'text-emerald-400'
+                    : 'text-red-400'
+                }`}
+              >
+                {aiFeedback.status === 'loading' ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : aiFeedback.status === 'success' ? (
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                ) : (
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                )}
+                <span>{aiFeedback.message}</span>
+              </div>
+            )}
+
             {/* AI Summary or Tab Info */}
             <p className="text-xs text-text-muted truncate leading-relaxed">
               {session.summary || `${session.tabCount} open browser tabs &bull; Last active ${timeAgo(session.createdAt)}`}
             </p>
 
-            {/* Tags & Project Badge */}
+            {/* Tags, Project & Context AI Menu */}
             <div className="flex items-center gap-2 pt-0.5">
               {session.projectName && (
                 <span className="px-2 py-0.5 rounded-md bg-surface border border-border/80 text-[10px] font-semibold text-pepper-400">
@@ -105,6 +206,15 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
                   ))}
                 </div>
               )}
+
+              <button
+                onClick={handleGenerateSummary}
+                disabled={isAiGenerating}
+                className="text-[10px] font-semibold text-pepper-400 hover:underline ml-auto flex items-center gap-1"
+              >
+                <Sparkles className="w-3 h-3" />
+                <span>Summary</span>
+              </button>
             </div>
           </div>
         </div>

@@ -35,7 +35,6 @@ export const ProjectsOverview: React.FC<Props> = ({
     onSelectProject(null);
   };
 
-  // Combine custom user projects with auto-derived session projects
   const sessionProjectNames = Array.from(new Set(sessions.map((s) => s.projectName).filter(Boolean)));
 
   return (
@@ -61,7 +60,7 @@ export const ProjectsOverview: React.FC<Props> = ({
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 font-bold text-xs transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>+ New Project</span>
+          <span>New Project</span>
         </button>
       </div>
 
