@@ -5,7 +5,8 @@ import { Logo } from '../../src/components/brand/Logo';
 import { RamBadge } from '../../src/components/brand/RamBadge';
 import { SessionCard } from '../../src/components/SessionCard';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
-import { Search, Pin, Star, LayoutGrid, Download, Upload, Plus, HardDrive, Layers } from 'lucide-react';
+import { IntelligenceSettings } from '../../src/components/IntelligenceSettings';
+import { Search, Pin, Star, LayoutGrid, Download, Plus, HardDrive, Layers, Cpu } from 'lucide-react';
 
 export default function App() {
   const {
@@ -22,7 +23,7 @@ export default function App() {
   } = useSessionStore();
   const { openPalette } = useCommandStore();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites' | 'intelligence'>('all');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -164,6 +165,24 @@ export default function App() {
                 {sessions.filter((s) => s.isFavorite).length}
               </span>
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('intelligence');
+                setSelectedProject(null);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+                activeTab === 'intelligence'
+                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-pepper-400" />
+              <span>Intelligence Platform</span>
+              <span className="ml-auto text-[9px] uppercase font-bold px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                v1.5
+              </span>
+            </button>
           </div>
 
           {/* Projects */}
@@ -175,7 +194,10 @@ export default function App() {
               {projects.map((proj) => (
                 <button
                   key={proj}
-                  onClick={() => setSelectedProject(selectedProject === proj ? null : proj)}
+                  onClick={() => {
+                    setActiveTab('all');
+                    setSelectedProject(selectedProject === proj ? null : proj);
+                  }}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${
                     selectedProject === proj
                       ? 'bg-surface-hover text-text-primary font-semibold'
@@ -206,7 +228,9 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className="flex-1 space-y-8 min-w-0">
-          {filteredSessions.length === 0 ? (
+          {activeTab === 'intelligence' ? (
+            <IntelligenceSettings />
+          ) : filteredSessions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8">
               <HardDrive className="w-12 h-12 text-text-muted mb-3" />
               <h3 className="text-sm font-semibold text-text-primary">No Workspaces Found</h3>
