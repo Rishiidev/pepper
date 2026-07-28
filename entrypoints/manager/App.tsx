@@ -6,7 +6,12 @@ import { RamBadge } from '../../src/components/brand/RamBadge';
 import { SessionCard } from '../../src/components/SessionCard';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
 import { IntelligenceSettings } from '../../src/components/IntelligenceSettings';
-import { Search, Pin, Star, LayoutGrid, Download, Plus, HardDrive, Layers, Cpu, X, RefreshCw } from 'lucide-react';
+import { ContinueWorkingHero } from '../../src/components/dashboard/ContinueWorkingHero';
+import { ProductivityWidget } from '../../src/components/dashboard/ProductivityWidget';
+import { ProjectsOverview } from '../../src/components/dashboard/ProjectsOverview';
+import { AISuggestionsWidget } from '../../src/components/dashboard/AISuggestionsWidget';
+import { DomainFilterStrip } from '../../src/components/dashboard/DomainFilterStrip';
+import { Search, Pin, Star, Home, Download, Plus, HardDrive, Layers, Cpu, X, Clock, Settings, Sparkles } from 'lucide-react';
 
 export default function App() {
   const {
@@ -25,7 +30,7 @@ export default function App() {
   } = useSessionStore();
   const { openPalette } = useCommandStore();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'pinned' | 'favorites' | 'intelligence'>('all');
+  const [activeTab, setActiveTab] = useState<'home' | 'projects' | 'timeline' | 'pinned' | 'favorites' | 'intelligence'>('home');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,11 +45,12 @@ export default function App() {
     }
   };
 
-  const handleNavClick = (tab: 'all' | 'pinned' | 'favorites' | 'intelligence') => {
+  const handleNavClick = (tab: 'home' | 'projects' | 'timeline' | 'pinned' | 'favorites' | 'intelligence') => {
     setActiveTab(tab);
     resetFilters();
   };
 
+  const latestSession = sessions.length > 0 ? sessions[0] : undefined;
   const projects = Array.from(new Set(sessions.map((s) => s.projectName || 'General'))).filter(Boolean);
 
   // Compute view-specific filtered sessions
@@ -84,10 +90,10 @@ export default function App() {
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg tracking-tight text-text-primary">PEPPER</h1>
               <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
-                v2.0
+                v2.0 OS
               </span>
             </div>
-            <p className="text-xs text-text-muted">The Linear of Browser Workspaces</p>
+            <p className="text-xs text-text-muted">The Workspace Operating System</p>
           </div>
         </div>
 
@@ -101,7 +107,7 @@ export default function App() {
             onKeyDown={(e) => {
               if (e.key === 'Escape') clearSearch();
             }}
-            placeholder="Search workspaces, tab titles, or URLs… (ESC to clear, ⌘K)"
+            placeholder="Search workspaces, projects, tabs, or domains… (ESC to clear, ⌘K)"
             className="w-full bg-surface-card border border-border rounded-xl pl-9 pr-16 py-2 text-xs font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
           />
           {searchQuery ? (
@@ -115,7 +121,7 @@ export default function App() {
           ) : null}
           <kbd
             onClick={openPalette}
-            className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] bg-border/60 text-text-secondary rounded cursor-pointer hover:bg-border"
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] bg-border/60 text-text-secondary rounded cursor-pointer hover:bg-border font-mono"
           >
             ⌘K
           </kbd>
@@ -126,7 +132,7 @@ export default function App() {
           {stats && <RamBadge mbSaved={stats.estimatedRamSavedMb} label="SAVED" className="py-1 px-3 text-xs" />}
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-semibold text-xs text-white transition-colors shadow-lg shadow-pepper-500/20"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-colors shadow-lg shadow-pepper-500/20"
           >
             <Plus className="w-4 h-4" />
             <span>Save Workspace</span>
@@ -134,31 +140,55 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Layout */}
+      {/* Main OS Layout */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-6 py-6 gap-8">
         {/* Sidebar Navigation */}
         <aside className="w-60 shrink-0 space-y-6">
-          {/* Views */}
           <div className="space-y-1">
             <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
               Navigation
             </div>
+
             <button
-              onClick={() => handleNavClick('all')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
-                activeTab === 'all' && !selectedProject
+              onClick={() => handleNavClick('home')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'home' && !selectedProject
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <LayoutGrid className="w-4 h-4" />
-              <span>All Workspaces</span>
-              <span className="ml-auto text-[10px] opacity-70 font-mono">{sessions.length}</span>
+              <Home className="w-4 h-4" />
+              <span>Home (Continue)</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('projects')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'projects'
+                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              <span>Projects</span>
+              <span className="ml-auto text-[10px] opacity-70 font-mono">{projects.length}</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('timeline')}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+                activeTab === 'timeline'
+                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>Timeline</span>
             </button>
 
             <button
               onClick={() => handleNavClick('pinned')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                 activeTab === 'pinned'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
@@ -171,7 +201,7 @@ export default function App() {
 
             <button
               onClick={() => handleNavClick('favorites')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                 activeTab === 'favorites'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
@@ -186,7 +216,7 @@ export default function App() {
 
             <button
               onClick={() => handleNavClick('intelligence')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                 activeTab === 'intelligence'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
@@ -195,12 +225,12 @@ export default function App() {
               <Cpu className="w-4 h-4 text-pepper-400" />
               <span>Intelligence Platform</span>
               <span className="ml-auto text-[9px] uppercase font-bold px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                v1.5
+                v2.0
               </span>
             </button>
           </div>
 
-          {/* Projects */}
+          {/* First-Class Projects */}
           {projects.length > 0 && (
             <div className="space-y-1 pt-4 border-t border-border">
               <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
@@ -210,7 +240,7 @@ export default function App() {
                 <button
                   key={proj}
                   onClick={() => {
-                    setActiveTab('all');
+                    setActiveTab('home');
                     clearSearch();
                     setSelectedProject(selectedProject === proj ? null : proj);
                   }}
@@ -227,7 +257,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Data Tools */}
+          {/* Backup & Tools */}
           <div className="space-y-2 pt-4 border-t border-border">
             <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
               Storage &amp; Backup
@@ -242,9 +272,9 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Operating System View */}
         <main className="flex-1 space-y-6 min-w-0">
-          {/* Active Filter / Search Indicator Bar */}
+          {/* Active Search Filter Banner */}
           {searchQuery && (
             <div className="flex items-center justify-between p-3 rounded-xl bg-pepper-500/10 border border-pepper-500/20 text-xs text-text-primary">
               <div className="flex items-center gap-2">
@@ -266,7 +296,7 @@ export default function App() {
           {activeTab === 'intelligence' ? (
             <IntelligenceSettings />
           ) : sessions.length === 0 ? (
-            /* Empty State 1: Zero Workspaces Saved Total */
+            /* Zero State Onboarding */
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
               <div className="p-4 rounded-2xl bg-pepper-500/10 border border-pepper-500/20 text-pepper-400">
                 <HardDrive className="w-10 h-10" />
@@ -274,7 +304,7 @@ export default function App() {
               <div>
                 <h3 className="text-base font-bold text-text-primary">No workspaces yet</h3>
                 <p className="text-xs text-text-muted max-w-sm mt-1">
-                  Save your current browser session to create your first workspace.
+                  Save your current browser window tabs to create your first workspace.
                 </p>
               </div>
               <button
@@ -285,54 +315,81 @@ export default function App() {
                 <span>Save Workspace</span>
               </button>
             </div>
-          ) : displayedSessions.length === 0 ? (
-            /* Empty State 2: Zero Matching Results for Search Query */
-            <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
-              <div className="p-4 rounded-2xl bg-border/40 text-text-muted">
-                <Search className="w-8 h-8" />
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-text-primary">No matching workspaces</h3>
-                <p className="text-xs text-text-muted max-w-sm mt-1">
-                  No results match "{searchQuery}". Try another keyword or clear the search filter.
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={clearSearch}
-                  className="flex items-center gap-1.5 px-4 py-2 border border-border hover:bg-surface-hover font-semibold text-xs rounded-xl text-text-primary transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Clear Search</span>
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Save Workspace</span>
-                </button>
-              </div>
-            </div>
           ) : (
-            /* Workspace Grid List */
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
-                <span className="font-semibold uppercase tracking-wider">
-                  {activeTab === 'pinned'
-                    ? 'Pinned Workspaces'
-                    : activeTab === 'favorites'
-                    ? 'Favorite Workspaces'
-                    : 'All Workspaces'}
-                </span>
-                <span>{displayedSessions.length} workspace{displayedSessions.length !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="grid grid-cols-1 gap-3">
-                {displayedSessions.map((session) => (
-                  <SessionCard key={session.id} session={session} />
-                ))}
-              </div>
-            </div>
+            <>
+              {/* Home Operating System View */}
+              {activeTab === 'home' && !searchQuery && (
+                <div className="space-y-6">
+                  {/* Hero Card: Continue Working */}
+                  <ContinueWorkingHero session={latestSession} />
+
+                  {/* Contextual AI Suggestions Widget */}
+                  <AISuggestionsWidget latestSession={latestSession} onClearSearch={clearSearch} />
+
+                  {/* Productivity & RAM Saved Widget */}
+                  <ProductivityWidget stats={stats} />
+
+                  {/* First-Class Projects Overview Grid */}
+                  <ProjectsOverview
+                    sessions={sessions}
+                    selectedProject={selectedProject}
+                    onSelectProject={(p) => setSelectedProject(p)}
+                  />
+
+                  {/* Top Domains Filter Strip */}
+                  <DomainFilterStrip
+                    sessions={sessions}
+                    activeSearchQuery={searchQuery}
+                    onSelectDomain={(d) => setSearchQuery(d)}
+                  />
+                </div>
+              )}
+
+              {/* Workspace Cards View */}
+              {displayedSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
+                  <Search className="w-8 h-8 text-text-muted" />
+                  <div>
+                    <h3 className="text-base font-bold text-text-primary">No matching workspaces</h3>
+                    <p className="text-xs text-text-muted max-w-sm mt-1">
+                      No results match "{searchQuery}". Try another keyword or domain.
+                    </p>
+                  </div>
+                  <button
+                    onClick={clearSearch}
+                    className="px-4 py-2 border border-border hover:bg-surface-hover font-semibold text-xs rounded-xl text-text-primary transition-colors"
+                  >
+                    Clear Search
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
+                    <span className="font-semibold uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
+                      <span>
+                        {activeTab === 'pinned'
+                          ? 'Pinned Workspaces'
+                          : activeTab === 'favorites'
+                          ? 'Favorite Workspaces'
+                          : activeTab === 'projects'
+                          ? `Project Workspaces`
+                          : activeTab === 'timeline'
+                          ? 'Workspace Timeline'
+                          : 'Recent Workspaces'}
+                      </span>
+                    </span>
+                    <span>{displayedSessions.length} workspace{displayedSessions.length !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3.5">
+                    {displayedSessions.map((session) => (
+                      <SessionCard key={session.id} session={session} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

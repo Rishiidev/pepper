@@ -18,6 +18,8 @@ export interface PepperSession {
   isPinned?: boolean;
   projectName?: string;
   tags?: string[];
+  summary?: string;
+  timeWorkedMinutes?: number;
   windowId?: number;
   estimatedRamSavedMb?: number;
 }
