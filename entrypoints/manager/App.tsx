@@ -11,7 +11,10 @@ import { ProductivityWidget } from '../../src/components/dashboard/ProductivityW
 import { ProjectsOverview } from '../../src/components/dashboard/ProjectsOverview';
 import { AISuggestionsWidget } from '../../src/components/dashboard/AISuggestionsWidget';
 import { DomainFilterStrip } from '../../src/components/dashboard/DomainFilterStrip';
-import { Search, Pin, Star, Home, Download, Plus, HardDrive, Layers, Cpu, X, Clock, Settings, Sparkles } from 'lucide-react';
+import { VisualTimelineView } from '../../src/components/dashboard/VisualTimelineView';
+import { MergeDuplicatesModal } from '../../src/components/modals/MergeDuplicatesModal';
+import { CreateProjectModal } from '../../src/components/modals/CreateProjectModal';
+import { Search, Pin, Star, Home, Download, Plus, HardDrive, Layers, Cpu, X, Clock, Sparkles } from 'lucide-react';
 
 export default function App() {
   const {
@@ -32,6 +35,8 @@ export default function App() {
 
   const [activeTab, setActiveTab] = useState<'home' | 'projects' | 'timeline' | 'pinned' | 'favorites' | 'intelligence'>('home');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
 
   useEffect(() => {
     fetchSessions();
@@ -74,6 +79,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-surface text-text-primary flex flex-col font-sans selection:bg-pepper-500 selection:text-white">
       <CommandPalette />
+
+      {/* Interactive Modals */}
+      <MergeDuplicatesModal isOpen={isMergeModalOpen} onClose={() => setIsMergeModalOpen(false)} />
+      <CreateProjectModal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        onCreated={() => fetchSessions()}
+      />
 
       {/* Toast Feedback Notification */}
       {feedbackMsg && (
@@ -170,8 +183,7 @@ export default function App() {
               }`}
             >
               <Layers className="w-4 h-4" />
-              <span>Projects</span>
-              <span className="ml-auto text-[10px] opacity-70 font-mono">{projects.length}</span>
+              <span>Projects Hub</span>
             </button>
 
             <button
@@ -183,7 +195,7 @@ export default function App() {
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>Timeline</span>
+              <span>Timeline Activity</span>
             </button>
 
             <button
@@ -230,7 +242,7 @@ export default function App() {
             </button>
           </div>
 
-          {/* First-Class Projects */}
+          {/* First-Class Projects Quick Filter */}
           {projects.length > 0 && (
             <div className="space-y-1 pt-4 border-t border-border">
               <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
@@ -272,7 +284,7 @@ export default function App() {
           </div>
         </aside>
 
-        {/* Main Operating System View */}
+        {/* Main View Area */}
         <main className="flex-1 space-y-6 min-w-0">
           {/* Active Search Filter Banner */}
           {searchQuery && (
@@ -295,6 +307,30 @@ export default function App() {
 
           {activeTab === 'intelligence' ? (
             <IntelligenceSettings />
+          ) : activeTab === 'timeline' ? (
+            <VisualTimelineView sessions={sessions} />
+          ) : activeTab === 'projects' ? (
+            <div className="space-y-6">
+              <ProjectsOverview
+                sessions={sessions}
+                selectedProject={selectedProject}
+                onSelectProject={(p) => setSelectedProject(p)}
+                onOpenCreateModal={() => setIsCreateProjectModalOpen(true)}
+              />
+
+              {displayedSessions.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-border">
+                  <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                    {selectedProject ? `Workspaces in ${selectedProject}` : 'All Project Workspaces'} ({displayedSessions.length})
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {displayedSessions.map((s) => (
+                      <SessionCard key={s.id} session={s} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : sessions.length === 0 ? (
             /* Zero State Onboarding */
             <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
@@ -304,7 +340,7 @@ export default function App() {
               <div>
                 <h3 className="text-base font-bold text-text-primary">No workspaces yet</h3>
                 <p className="text-xs text-text-muted max-w-sm mt-1">
-                  Save your current browser window tabs to create your first workspace.
+                  Save your current browser session to create your first workspace.
                 </p>
               </div>
               <button
@@ -317,23 +353,28 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Home Operating System View */}
+              {/* Home View Layout */}
               {activeTab === 'home' && !searchQuery && (
                 <div className="space-y-6">
                   {/* Hero Card: Continue Working */}
                   <ContinueWorkingHero session={latestSession} />
 
-                  {/* Contextual AI Suggestions Widget */}
-                  <AISuggestionsWidget latestSession={latestSession} onClearSearch={clearSearch} />
+                  {/* Interactive AI Suggestions Widget */}
+                  <AISuggestionsWidget
+                    latestSession={latestSession}
+                    onClearSearch={clearSearch}
+                    onOpenMergeModal={() => setIsMergeModalOpen(true)}
+                  />
 
                   {/* Productivity & RAM Saved Widget */}
                   <ProductivityWidget stats={stats} />
 
-                  {/* First-Class Projects Overview Grid */}
+                  {/* Projects Overview */}
                   <ProjectsOverview
                     sessions={sessions}
                     selectedProject={selectedProject}
                     onSelectProject={(p) => setSelectedProject(p)}
+                    onOpenCreateModal={() => setIsCreateProjectModalOpen(true)}
                   />
 
                   {/* Top Domains Filter Strip */}
@@ -345,7 +386,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* Workspace Cards View */}
+              {/* Workspace List View */}
               {displayedSessions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
                   <Search className="w-8 h-8 text-text-muted" />
@@ -372,10 +413,6 @@ export default function App() {
                           ? 'Pinned Workspaces'
                           : activeTab === 'favorites'
                           ? 'Favorite Workspaces'
-                          : activeTab === 'projects'
-                          ? `Project Workspaces`
-                          : activeTab === 'timeline'
-                          ? 'Workspace Timeline'
                           : 'Recent Workspaces'}
                       </span>
                     </span>

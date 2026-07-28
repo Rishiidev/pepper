@@ -23,11 +23,22 @@ export interface PepperEmbedding {
   createdAt: number;
 }
 
+export interface PepperProjectEntity {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  description?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 class PepperDatabase extends Dexie {
   sessions!: EntityTable<PepperSession, 'id'>;
   snapshots!: EntityTable<PepperSnapshot, 'id'>;
   cache!: EntityTable<PepperCacheItem, 'key'>;
   embeddings!: EntityTable<PepperEmbedding, 'id'>;
+  projects!: EntityTable<PepperProjectEntity, 'id'>;
 
   constructor() {
     super('PepperDatabaseV2');
@@ -37,6 +48,14 @@ class PepperDatabase extends Dexie {
       snapshots: 'id, timestamp, windowId, reason',
       cache: 'key, expiresAt',
       embeddings: 'id, sessionId, createdAt',
+    });
+
+    this.version(2).stores({
+      sessions: 'id, name, createdAt, isFavorite, isPinned, projectName, *tags',
+      snapshots: 'id, timestamp, windowId, reason',
+      cache: 'key, expiresAt',
+      embeddings: 'id, sessionId, createdAt',
+      projects: 'id, name, createdAt',
     });
   }
 }
