@@ -20,7 +20,9 @@ interface SessionState {
   // Actions
   fetchSessions: () => Promise<void>;
   setSearchQuery: (query: string) => void;
+  clearSearch: () => void;
   setSelectedProject: (project: string | null) => void;
+  resetFilters: () => void;
   saveWorkspace: (customName?: string) => Promise<PepperSession | null>;
   restoreSession: (id: string, tabIndices?: number[]) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
@@ -88,6 +90,10 @@ export const useSessionStore = create<SessionState>((set, get) => {
       set({ filteredSessions: filtered, timeline });
     },
 
+    clearSearch: () => {
+      get().setSearchQuery('');
+    },
+
     setSelectedProject: (project: string | null) => {
       set({ selectedProject: project });
       const { sessions, searchQuery } = get();
@@ -95,6 +101,14 @@ export const useSessionStore = create<SessionState>((set, get) => {
         query: searchQuery,
         projectFilter: project || undefined,
       });
+      const timeline = timelineEngine.groupSessions(filtered);
+      set({ filteredSessions: filtered, timeline });
+    },
+
+    resetFilters: () => {
+      set({ searchQuery: '', selectedProject: null });
+      const { sessions } = get();
+      const filtered = searchEngine.search(sessions, {});
       const timeline = timelineEngine.groupSessions(filtered);
       set({ filteredSessions: filtered, timeline });
     },

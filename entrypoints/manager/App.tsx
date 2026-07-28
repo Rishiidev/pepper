@@ -6,7 +6,7 @@ import { RamBadge } from '../../src/components/brand/RamBadge';
 import { SessionCard } from '../../src/components/SessionCard';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
 import { IntelligenceSettings } from '../../src/components/IntelligenceSettings';
-import { Search, Pin, Star, LayoutGrid, Download, Plus, HardDrive, Layers, Cpu } from 'lucide-react';
+import { Search, Pin, Star, LayoutGrid, Download, Plus, HardDrive, Layers, Cpu, X, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const {
@@ -18,7 +18,9 @@ export default function App() {
     selectedProject,
     fetchSessions,
     setSearchQuery,
+    clearSearch,
     setSelectedProject,
+    resetFilters,
     saveWorkspace,
   } = useSessionStore();
   const { openPalette } = useCommandStore();
@@ -38,7 +40,20 @@ export default function App() {
     }
   };
 
+  const handleNavClick = (tab: 'all' | 'pinned' | 'favorites' | 'intelligence') => {
+    setActiveTab(tab);
+    resetFilters();
+  };
+
   const projects = Array.from(new Set(sessions.map((s) => s.projectName || 'General'))).filter(Boolean);
+
+  // Compute view-specific filtered sessions
+  let displayedSessions = filteredSessions;
+  if (activeTab === 'pinned') {
+    displayedSessions = filteredSessions.filter((s) => s.isPinned);
+  } else if (activeTab === 'favorites') {
+    displayedSessions = filteredSessions.filter((s) => s.isFavorite);
+  }
 
   const exportJSON = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions, null, 2));
@@ -83,9 +98,21 @@ export default function App() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search workspaces, tab titles, or URLs… (Press ⌘K)"
-            className="w-full bg-surface-card border border-border rounded-xl pl-9 pr-12 py-2 text-xs font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') clearSearch();
+            }}
+            placeholder="Search workspaces, tab titles, or URLs… (ESC to clear, ⌘K)"
+            className="w-full bg-surface-card border border-border rounded-xl pl-9 pr-16 py-2 text-xs font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
           />
+          {searchQuery ? (
+            <button
+              onClick={clearSearch}
+              className="absolute right-10 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-surface-hover text-text-muted hover:text-text-primary"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
           <kbd
             onClick={openPalette}
             className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] bg-border/60 text-text-secondary rounded cursor-pointer hover:bg-border"
@@ -109,7 +136,7 @@ export default function App() {
 
       {/* Main Layout */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-6 py-6 gap-8">
-        {/* Sidebar */}
+        {/* Sidebar Navigation */}
         <aside className="w-60 shrink-0 space-y-6">
           {/* Views */}
           <div className="space-y-1">
@@ -117,10 +144,7 @@ export default function App() {
               Navigation
             </div>
             <button
-              onClick={() => {
-                setActiveTab('all');
-                setSelectedProject(null);
-              }}
+              onClick={() => handleNavClick('all')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
                 activeTab === 'all' && !selectedProject
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
@@ -133,10 +157,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => {
-                setActiveTab('pinned');
-                setSelectedProject(null);
-              }}
+              onClick={() => handleNavClick('pinned')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
                 activeTab === 'pinned'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
@@ -149,10 +170,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => {
-                setActiveTab('favorites');
-                setSelectedProject(null);
-              }}
+              onClick={() => handleNavClick('favorites')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
                 activeTab === 'favorites'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
@@ -167,10 +185,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => {
-                setActiveTab('intelligence');
-                setSelectedProject(null);
-              }}
+              onClick={() => handleNavClick('intelligence')}
               className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left ${
                 activeTab === 'intelligence'
                   ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
@@ -196,6 +211,7 @@ export default function App() {
                   key={proj}
                   onClick={() => {
                     setActiveTab('all');
+                    clearSearch();
                     setSelectedProject(selectedProject === proj ? null : proj);
                   }}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${
@@ -214,7 +230,7 @@ export default function App() {
           {/* Data Tools */}
           <div className="space-y-2 pt-4 border-t border-border">
             <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
-              Storage & Backup
+              Storage &amp; Backup
             </div>
             <button
               onClick={exportJSON}
@@ -227,98 +243,96 @@ export default function App() {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 space-y-8 min-w-0">
-          {activeTab === 'intelligence' ? (
-            <IntelligenceSettings />
-          ) : filteredSessions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8">
-              <HardDrive className="w-12 h-12 text-text-muted mb-3" />
-              <h3 className="text-sm font-semibold text-text-primary">No Workspaces Found</h3>
-              <p className="text-xs text-text-muted max-w-sm mt-1 mb-4">
-                {searchQuery
-                  ? `No results match "${searchQuery}".`
-                  : 'Save your current browser window tabs to organize your workflow.'}
-              </p>
+        <main className="flex-1 space-y-6 min-w-0">
+          {/* Active Filter / Search Indicator Bar */}
+          {searchQuery && (
+            <div className="flex items-center justify-between p-3 rounded-xl bg-pepper-500/10 border border-pepper-500/20 text-xs text-text-primary">
+              <div className="flex items-center gap-2">
+                <Search className="w-4 h-4 text-pepper-400" />
+                <span>
+                  Filtering for <strong className="text-pepper-400">"{searchQuery}"</strong> ({displayedSessions.length} match{displayedSessions.length !== 1 ? 'es' : ''})
+                </span>
+              </div>
               <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-lg transition-colors shadow-lg shadow-pepper-500/20"
+                onClick={clearSearch}
+                className="flex items-center gap-1 text-[11px] font-semibold text-pepper-400 hover:underline"
               >
-                Save Active Window Tabs
+                <X className="w-3.5 h-3.5" />
+                <span>Clear Filter</span>
               </button>
             </div>
+          )}
+
+          {activeTab === 'intelligence' ? (
+            <IntelligenceSettings />
+          ) : sessions.length === 0 ? (
+            /* Empty State 1: Zero Workspaces Saved Total */
+            <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
+              <div className="p-4 rounded-2xl bg-pepper-500/10 border border-pepper-500/20 text-pepper-400">
+                <HardDrive className="w-10 h-10" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-text-primary">No workspaces yet</h3>
+                <p className="text-xs text-text-muted max-w-sm mt-1">
+                  Save your current browser session to create your first workspace.
+                </p>
+              </div>
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Save Workspace</span>
+              </button>
+            </div>
+          ) : displayedSessions.length === 0 ? (
+            /* Empty State 2: Zero Matching Results for Search Query */
+            <div className="flex flex-col items-center justify-center py-16 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
+              <div className="p-4 rounded-2xl bg-border/40 text-text-muted">
+                <Search className="w-8 h-8" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-text-primary">No matching workspaces</h3>
+                <p className="text-xs text-text-muted max-w-sm mt-1">
+                  No results match "{searchQuery}". Try another keyword or clear the search filter.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={clearSearch}
+                  className="flex items-center gap-1.5 px-4 py-2 border border-border hover:bg-surface-hover font-semibold text-xs rounded-xl text-text-primary transition-colors"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Clear Search</span>
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Save Workspace</span>
+                </button>
+              </div>
+            </div>
           ) : (
-            <>
-              {/* Pinned Section */}
-              {timeline.pinned.length > 0 && (
-                <section className="space-y-3">
-                  <div className="flex items-center gap-2 text-xs font-bold text-pepper-400 uppercase tracking-wider border-b border-border/60 pb-2">
-                    <Pin className="w-4 h-4 fill-pepper-400" />
-                    <span>Pinned Workspaces ({timeline.pinned.length})</span>
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {timeline.pinned.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Today Section */}
-              {timeline.today.length > 0 && (
-                <section className="space-y-3">
-                  <div className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border/60 pb-2">
-                    Today ({timeline.today.length})
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {timeline.today.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Yesterday Section */}
-              {timeline.yesterday.length > 0 && (
-                <section className="space-y-3">
-                  <div className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border/60 pb-2">
-                    Yesterday ({timeline.yesterday.length})
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {timeline.yesterday.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* This Week Section */}
-              {timeline.this_week.length > 0 && (
-                <section className="space-y-3">
-                  <div className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border/60 pb-2">
-                    This Week ({timeline.this_week.length})
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {timeline.this_week.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Older Section */}
-              {timeline.older.length > 0 && (
-                <section className="space-y-3">
-                  <div className="text-xs font-bold text-text-secondary uppercase tracking-wider border-b border-border/60 pb-2">
-                    Older Workspaces ({timeline.older.length})
-                  </div>
-                  <div className="grid grid-cols-1 gap-3">
-                    {timeline.older.map((session) => (
-                      <SessionCard key={session.id} session={session} />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
+            /* Workspace Grid List */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
+                <span className="font-semibold uppercase tracking-wider">
+                  {activeTab === 'pinned'
+                    ? 'Pinned Workspaces'
+                    : activeTab === 'favorites'
+                    ? 'Favorite Workspaces'
+                    : 'All Workspaces'}
+                </span>
+                <span>{displayedSessions.length} workspace{displayedSessions.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {displayedSessions.map((session) => (
+                  <SessionCard key={session.id} session={session} />
+                ))}
+              </div>
+            </div>
           )}
         </main>
       </div>
