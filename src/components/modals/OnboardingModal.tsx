@@ -30,6 +30,11 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   const totalSteps = 4;
 
+  const handleDismiss = () => {
+    updateSettings({ hasCompletedOnboarding: true });
+    onClose();
+  };
+
   const handleNext = () => {
     if (step < totalSteps) {
       setStep(step + 1);
@@ -101,10 +106,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <button
-              onClick={() => {
-                updateSettings({ hasCompletedOnboarding: true });
-                onClose();
-              }}
+              onClick={handleDismiss}
               className="p-1 text-text-muted hover:text-text-primary rounded-lg transition-colors"
               title="Skip Tour"
             >

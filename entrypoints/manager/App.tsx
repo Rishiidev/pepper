@@ -35,7 +35,7 @@ export default function App() {
     resetFilters,
     saveWorkspace,
   } = useSessionStore();
-  const { settings, fetchSettings } = useSettingsStore();
+  const { settings, isHydrated, fetchSettings } = useSettingsStore();
   const { openPalette } = useCommandStore();
 
   const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'projects' | 'timeline' | 'settings'>('home');
@@ -52,12 +52,12 @@ export default function App() {
     fetchSettings();
   }, []);
 
-  // Automatically trigger Onboarding Tour on first launch if not completed
+  // Automatically trigger Onboarding Tour on first launch ONLY AFTER settings are hydrated from IndexedDB
   useEffect(() => {
-    if (settings && settings.hasCompletedOnboarding === false) {
+    if (isHydrated && settings && settings.hasCompletedOnboarding === false) {
       setIsOnboardingOpen(true);
     }
-  }, [settings]);
+  }, [isHydrated, settings]);
 
   const handleSaveMemory = async () => {
     const session = await saveWorkspace();
