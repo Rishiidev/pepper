@@ -2,7 +2,8 @@ import React from 'react';
 import { PepperSession } from '../../core/types/session';
 import { restoreEngine } from '../../core/engines/restore-engine';
 import { healthEngine } from '../../core/engines/health-engine';
-import { Play, Sparkles, Clock, Layers, Tag, LogIn } from 'lucide-react';
+import { sanitizeDisplayTitle, sanitizeDisplaySummary } from '../../core/utils/text-sanitizer';
+import { Sparkles, Clock, Layers, Tag, LogIn } from 'lucide-react';
 
 interface Props {
   session?: PepperSession;
@@ -12,6 +13,8 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
   if (!session) return null;
 
   const health = healthEngine.calculateHealth(session);
+  const cleanTitle = sanitizeDisplayTitle(session.name, session.tabs);
+  const cleanSummary = sanitizeDisplaySummary(session.summary, session.tabCount, session.projectName);
 
   const handleContinue = () => {
     restoreEngine.restoreSession(session.id);
@@ -74,7 +77,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
       <div className="space-y-2">
         <div className="flex items-center gap-3">
           <h2 className="text-xl font-bold tracking-tight text-text-primary">
-            {session.name}
+            {cleanTitle}
           </h2>
           {session.projectName && (
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border text-pepper-400">
@@ -84,10 +87,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
         </div>
 
         <p className="text-xs text-text-secondary max-w-2xl leading-relaxed">
-          {session.summary ||
-            `Contains ${session.tabCount} active browser tabs related to ${
-              session.projectName || 'general tasks'
-            }. Restore instantly to resume your exact workspace flow.`}
+          {cleanSummary}
         </p>
       </div>
 

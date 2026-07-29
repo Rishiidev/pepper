@@ -17,7 +17,7 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
   readonly id = 'workspace-summary';
   readonly name = 'Workspace Summary Skill';
   readonly description = 'Generates executive summary, project goals, key topics, and next steps for a workspace.';
-  readonly version = '1.0.0';
+  readonly version = '1.1.0';
 
   readonly requirements: CapabilityRequirements = {
     required: ['summarize', 'chat'],
@@ -45,9 +45,9 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
           const jsonMatch = raw.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             const parsed = JSON.parse(jsonMatch[0]);
-            if (parsed.summary) {
+            if (parsed.summary && typeof parsed.summary === 'string') {
               return {
-                summary: parsed.summary,
+                summary: this.cleanSummaryText(parsed.summary, session),
                 goals: Array.isArray(parsed.goals) ? parsed.goals : ['Review active research tabs'],
                 keyTopics: Array.isArray(parsed.keyTopics) ? parsed.keyTopics : [],
                 suggestedNextStep: parsed.suggestedNextStep || 'Resume workspace tasks.',
@@ -56,11 +56,8 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
           }
         } catch {}
 
-        // Safe hostname extraction
         const safeTopics = Array.from(new Set(compressed.map((t) => t.domain.split('.')[0]).filter(Boolean))).slice(0, 4);
-        const lines = raw.split('\n').filter((l) => l.trim().length > 0);
-        const summaryText = lines[0]?.replace(/^Summary:?/i, '').trim() ||
-          `Workspace containing ${session.tabCount} active browser tabs for ${session.projectName || 'tasks'}.`;
+        const summaryText = this.cleanSummaryText(raw, session);
 
         return {
           summary: summaryText,
@@ -75,5 +72,56 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
       cacheKey: `summary_${task.id}`,
       workspaceId: session.id,
     });
+  }
+
+  private cleanSummaryText(raw: string, session: PepperSession): string {
+    if (!raw || typeof raw !== 'string') {
+      return `Workspace containing ${session.tabCount} active browser tabs for ${session.projectName || 'general tasks'}.`;
+    }
+
+    let text = raw.trim();
+
+    // Strip Markdown images ![alt](url) and links [text](url)
+    text = text.replace(/!\[.*?\]\(.*?\)/g, '');
+    text = text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+
+    // Strip URLs & HTML tags
+    text = text.replace(/https?:\/\/\S+/gi, '');
+    text = text.replace(/<[^>]*>/g, '');
+
+    // Strip conversational preambles
+    text = text.replace(/^(here's a summary of|here is a summary of|sure|summary:?|overview:?)/gi, '').trim();
+
+    // Take the first clean non-empty paragraph/line
+    const firstParagraph = text.split('\n\n')[0] || text.split('\n')[0] || '';
+    let cleaned = firstParagraph
+      .replace(/^[\*\#\`>\s\d\.-]+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned || cleaned.length < 10 || cleaned.toLowerCase().includes('favicon')) {
+      const topDomains = Array.from(
+        new Set(
+          session.tabs
+            .map((t) => {
+              try {
+                return new URL(t.url).hostname.replace(/^www\./, '');
+              } catch {
+                return '';
+              }
+            })
+            .filter(Boolean)
+        )
+      ).slice(0, 3);
+
+      return `Contains ${session.tabCount} browser tabs spanning ${topDomains.join(', ') || 'web resources'}.`;
+    }
+
+    // Limit to max 180 chars
+    if (cleaned.length > 180) {
+      cleaned = cleaned.substring(0, 177).trim() + '...';
+    }
+
+    return cleaned;
   }
 }

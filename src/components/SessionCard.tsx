@@ -8,6 +8,7 @@ import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-sum
 import { aiLogger } from '../core/intelligence/utils/ai-logger';
 import { TokenBudgetEstimator } from '../core/intelligence/utils/token-budget';
 import { WorkspaceHoverPortal } from './dashboard/WorkspaceHoverPortal';
+import { sanitizeDisplayTitle, sanitizeDisplaySummary } from '../core/utils/text-sanitizer';
 import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, Layers, Clock, ArrowUpRight, Brain, Zap, Eye } from 'lucide-react';
 
 const CAPTURE_LABELS: Record<string, { label: string; color: string }> = {
@@ -144,7 +145,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             </div>
             
             <h3 className="text-base font-bold text-text-primary tracking-tight truncate leading-tight">
-              {session.name}
+              {sanitizeDisplayTitle(session.name, session.tabs)}
             </h3>
           </div>
         </div>
@@ -179,7 +180,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           <span>AI Memory Context</span>
         </div>
         <p className="text-xs text-text-secondary leading-relaxed font-medium">
-          {session.summary || 'Workspace memory context captured. Click summary tool to inspect details.'}
+          {sanitizeDisplaySummary(session.summary, session.tabCount, session.projectName)}
         </p>
       </div>
 

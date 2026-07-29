@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useCommandStore } from '../../stores/command-store';
 import { useSessionStore } from '../../stores/session-store';
 import { searchEngine, RankedResult } from '../../core/engines/search-engine';
+import { sanitizeDisplayTitle } from '../../core/utils/text-sanitizer';
 import {
   Search,
   Save,
@@ -251,7 +252,7 @@ export const CommandPalette: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold text-text-primary truncate">
                             {session.isFavorite && <Star className="w-3 h-3 text-amber-400 inline mr-1 fill-amber-400" />}
-                            {session.name}
+                            {sanitizeDisplayTitle(session.name, session.tabs)}
                           </span>
                           {autoLabel && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20 shrink-0">
