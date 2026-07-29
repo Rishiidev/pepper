@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug or error in PEPPER
+description: Report an issue with PEPPER OS
 labels: ["bug"]
 body:
   - type: textarea
@@ -23,5 +23,5 @@ body:
   - type: input
     id: version
     attributes:
-      label: Version
+      label: Extension / OS Version
       placeholder: "1.0.0"

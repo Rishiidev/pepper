@@ -1,37 +1,30 @@
-# Contributing to PEPPER
+# Contributing to PEPPER OS
 
-Thank you for your interest in contributing to PEPPER!
+Thank you for helping build the future operating system for human memory!
 
-## Getting Started
+## How to Contribute
 
-1. Clone the repository:
+1. **Fork & Clone**:
    ```bash
    git clone https://github.com/Rishiidev/pepper.git
-   cd pepper
-   ```
-2. Install dependencies:
-   ```bash
+   cd pepper-v2
    npm install
    ```
-3. Run dev mode (with Live Extension HMR):
+
+2. **Development**:
    ```bash
-   npm run dev
+   npm run dev      # WXT local dev server with auto-reload
+   npm run compile  # Type check with tsc --noEmit
+   npm run build    # Build production MV3 extension bundle
    ```
-4. Load in Chrome:
-   - Open `chrome://extensions`
-   - Enable **Developer mode**
-   - Click **Load unpacked**
-   - Select the `.output/chrome-mv3` folder inside `pepper`
 
-## Code Structure
+3. **Submitting a Pull Request**:
+   - Keep changes focused and well-tested.
+   - Run `npm run compile` and `npm run build` before committing.
+   - Include before/after output or screenshots in your PR description.
 
-- `entrypoints/`: Background service worker (`background.ts`), Popup (`popup/`), and Manager Dashboard (`manager/`).
-- `src/core/engines/`: Workspace discovery, Dexie session storage, restoration, timeline grouping, search.
-- `src/stores/`: Zustand reactive state management.
-- `src/components/`: Reusable Tailwind UI components.
+## Code Guidelines
 
-## Submitting Pull Requests
-
-- Keep changes modular and adhere to existing engine abstractions.
-- Run `npm run compile` to verify strict TypeScript types.
-- Include a summary of changes and before/after screenshots in your PR description.
+- **Brand Language**: Never call them "sessions", "bookmarks", or "saved tabs". User-facing entity is **Memory**.
+- **Aesthetics**: Follow the Linear/Apple monochrome dark mode (`#050507`). Whitespace over borders.
+- **Local First**: Never send user memory data or browser telemetry to un-configured external servers.

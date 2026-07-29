@@ -3,40 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Cuts browser memory usage by 90% and restores workspaces in 1 click.">
-  <meta property="og:title" content="PEPPER — The Linear of Browser Workspaces">
-  <meta property="og:description" content="Cuts browser memory usage by 90% and restores workspaces in 1 click.">
+  <meta name="description" content="Pepper OS is the operating system for human memory. Leave any workspace instantly, return as if you never left.">
+  <meta property="og:title" content="PEPPER OS — Operating System for Human Memory">
+  <meta property="og:description" content="Pepper OS is the operating system for human memory. Leave any workspace instantly, return as if you never left.">
   <meta property="og:image" content="https://raw.githubusercontent.com/Rishiidev/pepper/main/assets/social-preview.svg">
-  <title>PEPPER — The Linear of Browser Workspaces</title>
+  <title>PEPPER OS — Operating System for Human Memory</title>
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--subtle:#21262d;--text:#e6edf3;--muted:#8b949e;--faint:#484f58;--orange:#f0883e;--blue:#58a6ff;--green:#3fb950;--purple:#d2a8ff}
+    :root{--bg:#050507;--bg2:#0D0D12;--bg3:#14141C;--border:#181822;--subtle:#101017;--text:#F4F4F6;--muted:#9E9EAF;--faint:#5F5F70;--red:#FF3B30;--blue:#58a6ff;--green:#3fb950;--purple:#d2a8ff}
     html{scroll-behavior:smooth}
     body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.6}
     a{color:inherit;text-decoration:none}
-    nav{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--subtle);height:56px;padding:0 32px;display:flex;align-items:center;justify-content:space-between}
-    .nav-brand{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:600}
-    .nav-dot{width:8px;height:8px;border-radius:50%;background:var(--orange);flex-shrink:0}
+    nav{position:sticky;top:0;z-index:100;background:rgba(5,5,7,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between}
+    .nav-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;font-family:monospace;letter-spacing:2px}
+    .nav-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
     .nav-links{display:flex;gap:24px}
     .nav-links a{font-size:14px;color:var(--muted);transition:color .15s}
     .nav-links a:hover{color:var(--text)}
-    .nav-star{background:var(--orange);color:#0d1117;padding:7px 16px;border-radius:7px;font-size:14px;font-weight:600;transition:opacity .15s}
+    .nav-star{background:var(--red);color:#ffffff;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;transition:opacity .15s}
     .nav-star:hover{opacity:.88}
     .hero{max-width:900px;margin:0 auto;padding:80px 32px 56px}
-    .hero-eyebrow{font-size:12px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin-bottom:20px}
-    .hero-headline{font-size:clamp(48px,9vw,88px);font-weight:800;line-height:.95;letter-spacing:-2px;margin-bottom:24px}
-    .hero-headline .arrow{color:var(--orange)}
-    .hero-sub{font-size:18px;color:var(--muted);max-width:480px;margin-bottom:40px;line-height:1.65}
-    .terminal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:640px}
-    .t-bar{background:var(--bg3);padding:10px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--subtle)}
+    .hero-eyebrow{font-size:12px;color:var(--red);text-transform:uppercase;letter-spacing:3px;font-weight:700;margin-bottom:20px}
+    .hero-headline{font-size:clamp(48px,8vw,80px);font-weight:800;line-height:.95;letter-spacing:-2px;margin-bottom:24px}
+    .hero-sub{font-size:18px;color:var(--muted);max-width:540px;margin-bottom:40px;line-height:1.65}
+    .terminal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:600px;box-shadow:0 20px 50px rgba(0,0,0,0.6)}
+    .t-bar{background:var(--bg3);padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--subtle)}
     .dot{width:11px;height:11px;border-radius:50%}
-    .dot-r{background:#e05252}.dot-y{background:#e0a952}.dot-g{background:#52c452}
-    .t-title{font-size:12px;color:var(--faint);margin:0 auto;font-family:'Courier New',monospace}
-    .t-body{padding:18px 20px}
-    .t-line{font-family:'Courier New',monospace;font-size:clamp(13px,2.5vw,15px)}
-    .t-prompt{color:var(--faint)}.t-cmd{color:var(--orange)}.t-out{color:var(--green);margin-top:6px;font-size:13px}
-    .t-actions{display:flex;align-items:center;gap:10px;margin-top:14px}
-    .t-copy{background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:0 14px;height:40px;min-width:44px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color .15s,color .15s;font-family:system-ui,sans-serif}
+    .dot-r{background:#ff5f56}.dot-y{background:#ffbd2e}.dot-g{background:#27c93f}
+    .t-title{font-size:12px;color:var(--faint);margin:0 auto;font-family:monospace}
+    .t-body{padding:20px 24px}
+    .t-line{font-family:monospace;font-size:clamp(13px,2.2vw,15px)}
+    .t-prompt{color:var(--faint)}.t-cmd{color:var(--red)}.t-out{color:var(--green);margin-top:8px;font-size:13px}
+    .t-actions{display:flex;align-items:center;gap:12px;margin-top:16px}
+    .t-copy{background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:0 16px;height:40px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
     .t-copy:hover{border-color:var(--muted);color:var(--text)}
     .t-hint{font-size:12px;color:var(--faint)}
     .section{max-width:900px;margin:0 auto;padding:0 32px 64px}
@@ -44,99 +43,97 @@
     .section-head h2{font-size:24px;font-weight:700;margin-bottom:6px}
     .section-head p{font-size:15px;color:var(--muted)}
     .output-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .output-card{background:var(--bg2);border:1px solid var(--subtle);border-radius:10px;padding:22px}
+    .output-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px}
     .output-title{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-    .output-dot{width:7px;height:7px;border-radius:50%}
-    .checklist{display:flex;flex-direction:column;gap:9px}
+    .output-dot{width:8px;height:8px;border-radius:50%}
+    .checklist{display:flex;flex-direction:column;gap:10px}
     .check-item{font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.45}
     .check-icon{color:var(--green);flex-shrink:0}
-    footer{border-top:1px solid var(--subtle)}
+    footer{border-top:1px solid var(--border)}
     .footer-inner{max-width:900px;margin:0 auto;padding:32px;display:flex;align-items:center;justify-content:space-between}
     .footer-left{font-size:13px;color:var(--faint)}
     .footer-left a{color:var(--muted);transition:color .15s}
     .footer-left a:hover{color:var(--text)}
-    .footer-star{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:7px;font-size:13px;transition:border-color .15s,color .15s}
+    .footer-star{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-size:13px;transition:all .15s}
     .footer-star:hover{border-color:var(--muted);color:var(--text)}
-    .sticky-cta{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:14px 20px;align-items:center;justify-content:space-between;z-index:50}
-    .sticky-cta-text{font-size:14px;color:var(--muted)}
-    .sticky-cta-btn{background:var(--orange);color:#0d1117;padding:10px 20px;border-radius:7px;font-size:14px;font-weight:600;white-space:nowrap}
-    @media(max-width:720px){nav{padding:0 20px}.nav-links{display:none}.hero{padding:48px 20px 40px}.section{padding-left:20px;padding-right:20px}.output-grid{grid-template-columns:1fr}.footer-inner{padding:24px 20px;flex-direction:column;gap:16px;text-align:center}.sticky-cta{display:flex}body{padding-bottom:72px}}
   </style>
 </head>
 <body>
 <nav>
-  <div class="nav-brand"><div class="nav-dot"></div>PEPPER</div>
+  <div class="nav-brand"><div class="nav-dot"></div>PEPPER OS</div>
   <div class="nav-links">
     <a href="#install">install</a>
-    <a href="#what-you-get">features</a>
+    <a href="#features">features</a>
     <a href="https://github.com/Rishiidev/pepper#readme">docs</a>
     <a href="https://github.com/Rishiidev/pepper">GitHub</a>
   </div>
   <a href="https://github.com/Rishiidev/pepper" class="nav-star">⭐ Star</a>
 </nav>
+
 <section class="hero" id="install">
-  <div class="hero-eyebrow">CHROME EXTENSION</div>
-  <div class="hero-headline">90% RAM Savings. <span class="arrow">1-Click</span> Restore.</div>
-  <p class="hero-sub">The Linear of Browser Workspaces. Save active windows into structured workspaces with 1 keystroke, search sub-10ms with Dexie, and free up gigabytes of RAM instantly.</p>
+  <div class="hero-eyebrow">Operating System for Human Memory</div>
+  <div class="hero-headline">20 min → 0s downtime.</div>
+  <p class="hero-sub">Computers remember files. Browsers remember history. People remember ideas. Pepper remembers work.</p>
   <div class="terminal">
     <div class="t-bar">
       <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-      <div class="t-title">pepper — bash</div>
+      <div class="t-title">pepper — installation</div>
     </div>
     <div class="t-body">
-      <div class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/Rishiidev/pepper &amp;&amp; cd pepper &amp;&amp; npm install &amp;&amp; npm run build</span></div>
-      <div class="t-out">✓ Built in 1.05s. Load .output/chrome-mv3 in chrome://extensions</div>
+      <div class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/Rishiidev/pepper.git</span></div>
+      <div class="t-line t-out">✓ Cloned. Run "npm run build" and load in chrome://extensions/</div>
       <div class="t-actions">
         <button class="t-copy" id="copy-btn" onclick="copyInstall()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copy Clone Command
         </button>
-        <span class="t-hint">Works in Chrome Manifest V3 · Brave · Edge</span>
+        <span class="t-hint">Chrome · Edge · Brave · Arc</span>
       </div>
     </div>
   </div>
 </section>
-<section class="section" id="what-you-get">
-  <div class="section-head"><h2>Built for Speed &amp; Scale</h2><p>Designed for power users managing dozens of open tabs daily.</p></div>
+
+<section class="section" id="features">
+  <div class="section-head"><h2>What Pepper OS Builds</h2><p>Never save tabs again. Preserve momentum.</p></div>
   <div class="output-grid">
     <div class="output-card">
-      <div class="output-title"><div class="output-dot" style="background:var(--orange)"></div>Core Architecture</div>
+      <div class="output-title"><div class="output-dot" style="background:var(--red)"></div>Memory OS Capabilities</div>
       <div class="checklist">
-        <div class="check-item"><span class="check-icon">✓</span>Manifest V3 Service Worker &amp; WXT framework</div>
-        <div class="check-item"><span class="check-icon">✓</span>Dexie IndexedDB for instant sub-10ms tab search</div>
-        <div class="check-item"><span class="check-icon">✓</span>Linear-grade dark design system with Tailwind v4</div>
-        <div class="check-item"><span class="check-icon">✓</span>Cross-context reactive state synchronization</div>
-        <div class="check-item"><span class="check-icon">✓</span>Global Command Palette (⌘K) for all actions</div>
-        <div class="check-item"><span class="check-icon">✓</span>Automatic RAM savings estimation badge</div>
+        <div class="check-item"><span class="check-icon">✓</span>Silent Context Auto-Capture on window close</div>
+        <div class="check-item"><span class="check-icon">✓</span>Work Memory Recall (⌘K) with ranked search</div>
+        <div class="check-item"><span class="check-icon">✓</span>Geometric Portal Context Reconstruction animation</div>
+        <div class="check-item"><span class="check-icon">✓</span>Linear/Apple Monochrome Dark Mode aesthetic</div>
+        <div class="check-item"><span class="check-icon">✓</span>BYOK support for 8 AI providers (OpenAI, Claude, Gemini, Ollama)</div>
       </div>
     </div>
     <div class="output-card">
-      <div class="output-title"><div class="output-dot" style="background:var(--blue)"></div>Shortcuts &amp; Controls</div>
+      <div class="output-title"><div class="output-dot" style="background:var(--blue)"></div>Privacy & Architecture</div>
       <div class="checklist">
-        <div class="check-item"><span class="check-icon">✓</span>⌘ + Shift + S — Save active window as workspace</div>
-        <div class="check-item"><span class="check-icon">✓</span>⌘ + Shift + O — Open Workspace Manager</div>
-        <div class="check-item"><span class="check-icon">✓</span>⌘ + Shift + R — Restore last saved session</div>
-        <div class="check-item"><span class="check-icon">✓</span>JSON Export &amp; Import backup utility</div>
-        <div class="check-item"><span class="check-icon">✓</span>Project-based grouping &amp; favorites</div>
-        <div class="check-item"><span class="check-icon">✓</span>Date-based timeline navigation</div>
+        <div class="check-item"><span class="check-icon">✓</span>100% Local-First data persistence</div>
+        <div class="check-item"><span class="check-icon">✓</span>Zero telemetry tracking</div>
+        <div class="check-item"><span class="check-icon">✓</span>Manifest V3 Chrome Extension</div>
+        <div class="check-item"><span class="check-icon">✓</span>Open Source MIT License</div>
       </div>
     </div>
   </div>
 </section>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-left">MIT License · <a href="https://github.com/Rishiidev/pepper">GitHub</a> · Built by <a href="https://github.com/Rishiidev">Rishiidev</a></div>
     <a href="https://github.com/Rishiidev/pepper" class="footer-star">⭐ Star on GitHub</a>
   </div>
 </footer>
-<div class="sticky-cta" id="sticky-cta">
-  <div class="sticky-cta-text">Star — takes 2 seconds</div>
-  <a href="https://github.com/Rishiidev/pepper" class="sticky-cta-btn">⭐ Star</a>
-</div>
+
 <script>
-  function copyInstall(){const cmd='git clone https://github.com/Rishiidev/pepper && cd pepper && npm install && npm run build';const btn=document.getElementById('copy-btn');navigator.clipboard.writeText(cmd).then(()=>{btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg> Copied';btn.style.color='#3fb950';btn.style.borderColor='#3fb950';setTimeout(()=>{btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy';btn.style.color='';btn.style.borderColor='';},2000);}).catch(()=>{btn.textContent='Copy failed';});}
-  const hero=document.querySelector('.hero'),stickyCta=document.getElementById('sticky-cta');
-  if(hero&&stickyCta){const obs=new IntersectionObserver(([e])=>{stickyCta.style.display=e.isIntersecting?'none':'flex';},{threshold:0});obs.observe(hero);}
+  function copyInstall(){
+    const cmd='git clone https://github.com/Rishiidev/pepper.git';
+    navigator.clipboard.writeText(cmd).then(()=>{
+      const btn=document.getElementById('copy-btn');
+      btn.innerHTML='Copied!';
+      setTimeout(()=>{ btn.innerHTML='Copy Clone Command'; },2000);
+    });
+  }
 </script>
 </body>
 </html>
