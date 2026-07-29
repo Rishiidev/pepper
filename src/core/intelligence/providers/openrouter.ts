@@ -49,10 +49,11 @@ export class OpenRouterProvider extends BaseProvider {
           lastChecked: startTime,
         };
       }
+      const errText = await res.text().catch(() => '');
       return {
         isHealthy: false,
         lastChecked: startTime,
-        errorMessage: `HTTP ${res.status}: OpenRouter auth check failed`,
+        errorMessage: `HTTP ${res.status}: OpenRouter auth check failed ${errText.substring(0, 100)}`,
       };
     } catch (err) {
       return {
@@ -65,7 +66,7 @@ export class OpenRouterProvider extends BaseProvider {
 
   async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
     if (!this.apiKey) {
-      throw new IntelligenceError('INVALID_KEY', 'OpenRouter API key is missing.', this.id);
+      throw new IntelligenceError('INVALID_KEY', 'OpenRouter API key is missing. Please configure key in Settings.', this.id);
     }
     this.ensureCapability('chat');
 
@@ -85,11 +86,25 @@ export class OpenRouterProvider extends BaseProvider {
       });
 
       if (!res.ok) {
-        throw new IntelligenceError('TASK_FAILED', `OpenRouter returned HTTP ${res.status}`, this.id);
+        const errorBody = await res.text().catch(() => '');
+        let detailedMsg = `HTTP ${res.status}`;
+        try {
+          const parsed = JSON.parse(errorBody);
+          if (parsed.error?.message) detailedMsg += `: ${parsed.error.message}`;
+        } catch {
+          if (errorBody) detailedMsg += `: ${errorBody.substring(0, 150)}`;
+        }
+        throw new IntelligenceError('TASK_FAILED', `OpenRouter ${detailedMsg}`, this.id);
       }
 
       const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
+      const content = data.choices?.[0]?.message?.content;
+
+      if (!content) {
+        throw new IntelligenceError('TASK_FAILED', 'OpenRouter returned empty choices array', this.id);
+      }
+
+      return content;
     } catch (err) {
       if (err instanceof IntelligenceError) throw err;
       throw new IntelligenceError('NETWORK_ERROR', (err as Error).message, this.id);

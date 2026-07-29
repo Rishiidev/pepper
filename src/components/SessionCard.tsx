@@ -4,8 +4,8 @@ import { useSessionStore } from '../stores/session-store';
 import { healthEngine } from '../core/engines/health-engine';
 import { sessionEngine } from '../core/engines/session-engine';
 import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
-import { AutoTaggingSkill } from '../core/intelligence/skills/auto-tagging';
 import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-summary';
+import { aiLogger } from '../core/intelligence/utils/ai-logger';
 import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface SessionCardProps {
@@ -34,61 +34,103 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
 
   const handleGenerateTitle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    const traceId = `manual_title_${session.id}_${Date.now()}`;
+    aiLogger.startTrace(traceId);
+
     setIsAiGenerating(true);
-    setAiFeedback({ status: 'loading', message: 'Generating smart title...' });
+    setAiFeedback({ status: 'loading', message: 'Analyzing tabs & generating title...' });
 
     try {
+      aiLogger.log(traceId, 'COLLECT_TABS', 'info', `Collected ${session.tabs.length} tabs for workspace "${session.name}"`);
+
       const skill = new AutoTitleSkill();
       const res = await skill.execute({
-        id: `task_manual_title_${session.id}`,
+        id: `task_${traceId}`,
         skillId: skill.id,
         priority: 'HIGH',
         requirements: skill.requirements,
         input: session.tabs,
-        context: { traceId: `manual_${Date.now()}`, createdAt: Date.now() },
+        context: { traceId, createdAt: Date.now() },
       });
 
       if (res.success && res.data && typeof res.data === 'string') {
+        aiLogger.log(traceId, 'STORAGE_UPDATE', 'success', `Generated title: "${res.data}"`);
         await sessionEngine.updateSession(session.id, { name: res.data });
         await fetchSessions();
-        setAiFeedback({ status: 'success', message: 'Workspace renamed!' });
+        setAiFeedback({ status: 'success', message: 'Workspace renamed successfully!' });
       } else {
-        setAiFeedback({ status: 'error', message: 'Could not generate title. Click to retry.' });
+        const errorDetail = res.error || 'AI provider request failed';
+        aiLogger.log(traceId, 'AI_ERROR', 'error', errorDetail);
+
+        // Fallback: Generate smart heuristic title from top domain & tab title
+        const topDomains = Array.from(
+          new Set(
+            session.tabs
+              .map((t) => {
+                try {
+                  return new URL(t.url).hostname.replace(/^www\./, '').split('.')[0];
+                } catch {
+                  return '';
+                }
+              })
+              .filter(Boolean)
+          )
+        );
+
+        const mainDomain = topDomains[0] || 'Web';
+        const capitalizedDomain = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+        const firstTabTitle = session.tabs[0]?.title?.split(/[-|–]/)[0].trim() || 'Workspace';
+        const heuristicName = `${capitalizedDomain} ${firstTabTitle}`.substring(0, 35);
+
+        await sessionEngine.updateSession(session.id, { name: heuristicName });
+        await fetchSessions();
+
+        setAiFeedback({
+          status: 'error',
+          message: `${errorDetail} (Used smart fallback: "${heuristicName}")`,
+        });
       }
-    } catch {
-      setAiFeedback({ status: 'error', message: 'AI task failed. Click to retry.' });
+    } catch (err) {
+      aiLogger.log(traceId, 'PIPELINE_EXCEPTION', 'error', (err as Error).message);
+      setAiFeedback({ status: 'error', message: `Pipeline Exception: ${(err as Error).message}` });
     } finally {
       setIsAiGenerating(false);
-      setTimeout(() => setAiFeedback(null), 4000);
+      setTimeout(() => setAiFeedback(null), 5000);
     }
   };
 
   const handleGenerateSummary = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    const traceId = `manual_summary_${session.id}_${Date.now()}`;
+    aiLogger.startTrace(traceId);
+
     setIsAiGenerating(true);
-    setAiFeedback({ status: 'loading', message: 'Generating summary...' });
+    setAiFeedback({ status: 'loading', message: 'Generating workspace summary...' });
 
     try {
       const skill = new WorkspaceSummarySkill();
       const res = await skill.execute({
-        id: `task_manual_summary_${session.id}`,
+        id: `task_${traceId}`,
         skillId: skill.id,
         priority: 'HIGH',
         requirements: skill.requirements,
         input: session,
-        context: { traceId: `manual_${Date.now()}`, createdAt: Date.now() },
+        context: { traceId, createdAt: Date.now() },
       });
 
       if (res.success && res.data && res.data.summary) {
         await sessionEngine.updateSession(session.id, { summary: res.data.summary });
         await fetchSessions();
-        setAiFeedback({ status: 'success', message: 'Summary updated!' });
+        setAiFeedback({ status: 'success', message: 'Summary generated & saved!' });
+      } else {
+        const errorDetail = res.error || 'Failed to generate summary';
+        setAiFeedback({ status: 'error', message: errorDetail });
       }
-    } catch {
-      setAiFeedback({ status: 'error', message: 'Failed to generate summary.' });
+    } catch (err) {
+      setAiFeedback({ status: 'error', message: (err as Error).message });
     } finally {
       setIsAiGenerating(false);
-      setTimeout(() => setAiFeedback(null), 3000);
+      setTimeout(() => setAiFeedback(null), 4000);
     }
   };
 
@@ -162,25 +204,25 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               </span>
             </div>
 
-            {/* AI Feedback Banner */}
+            {/* AI Feedback & Diagnostic Banner */}
             {aiFeedback && (
               <div
-                className={`text-[11px] font-medium flex items-center gap-1.5 ${
+                className={`text-[11px] font-medium flex items-center gap-1.5 p-1.5 rounded-lg border ${
                   aiFeedback.status === 'loading'
-                    ? 'text-pepper-400'
+                    ? 'bg-pepper-500/10 border-pepper-500/20 text-pepper-400'
                     : aiFeedback.status === 'success'
-                    ? 'text-emerald-400'
-                    : 'text-red-400'
+                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    : 'bg-red-500/10 border-red-500/20 text-red-400'
                 }`}
               >
                 {aiFeedback.status === 'loading' ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin shrink-0" />
                 ) : aiFeedback.status === 'success' ? (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 )}
-                <span>{aiFeedback.message}</span>
+                <span className="truncate">{aiFeedback.message}</span>
               </div>
             )}
 
@@ -189,7 +231,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
               {session.summary || `${session.tabCount} open browser tabs &bull; Last active ${timeAgo(session.createdAt)}`}
             </p>
 
-            {/* Tags, Project & Context AI Menu */}
+            {/* Tags & Project */}
             <div className="flex items-center gap-2 pt-0.5">
               {session.projectName && (
                 <span className="px-2 py-0.5 rounded-md bg-surface border border-border/80 text-[10px] font-semibold text-pepper-400">
