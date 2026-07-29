@@ -61,7 +61,7 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
             <span>Downloads</span>
           </div>
           <div className="space-y-0.5">
-            {downloads.slice(0, 2).map((dl, idx) => (
+            {downloads.slice(0, 2).map((dl: string, idx: number) => (
               <div key={idx} className="text-[10px] text-text-secondary truncate font-mono">
                 ↓ {dl}
               </div>
@@ -77,7 +77,7 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
           <span>Recent Activity</span>
         </div>
         <div className="space-y-1 pl-1 border-l border-border/60">
-          {activities.slice(0, 3).map((act, idx) => (
+          {activities.slice(0, 3).map((act: string, idx: number) => (
             <div key={idx} className="text-[10px] text-text-secondary leading-snug truncate">
               • {act}
             </div>

@@ -11,4 +11,5 @@ export type PepperEvents = {
   'badge:updated': { count: number };
   'search:query': { query: string };
   'command:execute': { commandId: string };
+  'capture:auto': { windowId: number; tabCount: number };
 };

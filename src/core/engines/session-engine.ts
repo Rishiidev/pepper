@@ -1,10 +1,21 @@
-import { PepperSession, PepperTab, SessionStats } from '../types/session';
+import { PepperSession, PepperTab, SessionStats, CaptureType } from '../types/session';
 import { sessionRepo } from '../../storage/repositories/session-repo';
 import { eventBus } from '../events/event-bus';
 import { featureFlagsManager } from '../intelligence/features/feature-flags';
 import { intelligenceQueue } from '../intelligence/queue/intelligence-queue';
 import { AutoTitleSkill } from '../intelligence/skills/auto-title';
 import { AutoTaggingSkill } from '../intelligence/skills/auto-tagging';
+
+export interface CreateSessionOptions {
+  isFavorite?: boolean;
+  isPinned?: boolean;
+  projectName?: string;
+  // === Memory Engine options ===
+  captureType?: CaptureType;
+  activeTabIndex?: number;
+  tabDurations?: Record<number, number>;
+  domainClusters?: string[];
+}
 
 export class SessionEngine {
   async getAllSessions(): Promise<PepperSession[]> {
@@ -15,7 +26,7 @@ export class SessionEngine {
     return await sessionRepo.getById(id);
   }
 
-  async createSession(name: string, tabs: PepperTab[], options: { isFavorite?: boolean; isPinned?: boolean; projectName?: string } = {}): Promise<PepperSession> {
+  async createSession(name: string, tabs: PepperTab[], options: CreateSessionOptions = {}): Promise<PepperSession> {
     if (!tabs || tabs.length === 0) {
       throw new Error('Cannot create an empty workspace');
     }
@@ -36,7 +47,13 @@ export class SessionEngine {
       isFavorite: options.isFavorite ?? false,
       isPinned: options.isPinned ?? false,
       projectName: options.projectName || 'General',
-      estimatedRamSavedMb: Math.round(tabs.length * 125), // Average ~125MB per tab
+      estimatedRamSavedMb: Math.round(tabs.length * 125),
+
+      // === Memory Engine fields ===
+      captureType: options.captureType || 'manual',
+      activeTabIndex: options.activeTabIndex,
+      tabDurations: options.tabDurations,
+      domainClusters: options.domainClusters,
     };
 
     await sessionRepo.save(session);
@@ -91,12 +108,16 @@ export class SessionEngine {
     const sessions = await this.getAllSessions();
     const totalTabsSaved = sessions.reduce((acc, s) => acc + s.tabCount, 0);
     const estimatedRamSavedMb = sessions.reduce((acc, s) => acc + (s.estimatedRamSavedMb || s.tabCount * 125), 0);
+    const autoCaptures = sessions.filter((s) => s.captureType && s.captureType !== 'manual').length;
+    const manualCaptures = sessions.length - autoCaptures;
 
     return {
       totalSessions: sessions.length,
       totalTabsSaved,
       estimatedRamSavedMb,
       storageBytesUsed: 0,
+      autoCaptures,
+      manualCaptures,
     };
   }
 

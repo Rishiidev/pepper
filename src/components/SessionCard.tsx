@@ -8,7 +8,21 @@ import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-sum
 import { aiLogger } from '../core/intelligence/utils/ai-logger';
 import { TokenBudgetEstimator } from '../core/intelligence/utils/token-budget';
 import { WorkspaceHoverPortal } from './dashboard/WorkspaceHoverPortal';
-import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, Layers, Clock, ArrowUpRight } from 'lucide-react';
+import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, Layers, Clock, ArrowUpRight, Brain, Zap, Eye } from 'lucide-react';
+
+const CAPTURE_LABELS: Record<string, { label: string; color: string }> = {
+  manual: { label: 'Manual Save', color: 'text-pepper-400 bg-pepper-500/10 border-pepper-500/20' },
+  auto_window_close: { label: 'Auto-captured', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+  auto_idle: { label: 'Idle Capture', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
+  keyboard_shortcut: { label: 'Shortcut', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+};
+
+const formatDuration = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+};
 
 interface SessionCardProps {
   session: PepperSession;
@@ -135,17 +149,31 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           </div>
         </div>
 
-        {/* Health status score badge */}
-        <span
-          className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md border"
-          style={{ backgroundColor: `${health.color}15`, color: health.color, borderColor: `${health.color}30` }}
-        >
-          {health.score}% Health
-        </span>
+        {/* Capture type + Health badges */}
+        <div className="flex items-center gap-2 shrink-0">
+          {session.captureType && session.captureType !== 'manual' && (
+            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border flex items-center gap-1 ${CAPTURE_LABELS[session.captureType]?.color || CAPTURE_LABELS.manual.color}`}>
+              <Zap className="w-3 h-3" />
+              {CAPTURE_LABELS[session.captureType]?.label || 'Captured'}
+            </span>
+          )}
+          <span
+            className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md border"
+            style={{ backgroundColor: `${health.color}15`, color: health.color, borderColor: `${health.color}30` }}
+          >
+            {health.score}% Health
+          </span>
+        </div>
       </div>
 
       {/* LEVEL 2: AI Intent / Context Summary */}
-      <div className="bg-surface/40 border border-border/40 rounded-xl p-3.5 space-y-1.5">
+      <div className="bg-surface/40 border border-border/40 rounded-xl p-3.5 space-y-2">
+        {session.sessionIntent && (
+          <div className="flex items-center gap-1.5">
+            <Brain className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+            <span className="text-xs text-violet-300 font-semibold">{session.sessionIntent}</span>
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider text-text-muted">
           <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
           <span>AI Memory Context</span>
@@ -154,6 +182,18 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           {session.summary || 'Workspace memory context captured. Click summary tool to inspect details.'}
         </p>
       </div>
+
+      {/* Domain Clusters Strip */}
+      {session.domainClusters && session.domainClusters.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Globe className="w-3.5 h-3.5 text-text-muted shrink-0" />
+          {session.domainClusters.slice(0, 5).map((domain) => (
+            <span key={domain} className="text-[9px] font-bold font-mono px-2 py-0.5 rounded-md bg-surface border border-border/60 text-text-secondary">
+              {domain}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* LEVEL 3: Workspace Grouped Previews & Hover Trigger */}
       <div 
@@ -264,31 +304,47 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-2">
             Tabs in this workspace ({session.tabs.length})
           </div>
-          {session.tabs.map((tab, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between gap-3 px-2 py-1 rounded-lg hover:bg-surface text-xs text-text-secondary group/tab"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <img
-                  src={tab.favIconUrl || '/icons/icon-16.png'}
-                  alt=""
-                  className="w-3.5 h-3.5 rounded object-cover shrink-0"
-                  onError={(e) => { (e.target as HTMLImageElement).src = '/icons/icon-16.png'; }}
-                />
-                <span className="truncate text-text-primary font-medium">{tab.title || tab.url}</span>
-              </div>
-              <a
-                href={tab.url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="text-text-muted hover:text-pepper-400 opacity-0 group-hover/tab:opacity-100 transition-opacity shrink-0"
+          {session.tabs.map((tab, idx) => {
+            const duration = session.tabDurations?.[idx];
+            const isActiveTab = session.activeTabIndex === idx;
+            return (
+              <div
+                key={idx}
+                className={`flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg hover:bg-surface text-xs text-text-secondary group/tab ${
+                  isActiveTab ? 'bg-pepper-500/5 border border-pepper-500/10' : ''
+                }`}
               >
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          ))}
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={tab.favIconUrl || '/icons/icon-16.png'}
+                    alt=""
+                    className="w-3.5 h-3.5 rounded object-cover shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/icons/icon-16.png'; }}
+                  />
+                  <span className={`truncate font-medium ${isActiveTab ? 'text-pepper-400' : 'text-text-primary'}`}>
+                    {isActiveTab && <Eye className="w-3 h-3 inline mr-1 text-pepper-400" />}
+                    {tab.title || tab.url}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {duration !== undefined && duration > 0 && (
+                    <span className="text-[9px] font-mono text-text-muted bg-surface-card border border-border/40 px-1.5 py-0.5 rounded">
+                      {formatDuration(duration)}
+                    </span>
+                  )}
+                  <a
+                    href={tab.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-text-muted hover:text-pepper-400 opacity-0 group-hover/tab:opacity-100 transition-opacity"
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

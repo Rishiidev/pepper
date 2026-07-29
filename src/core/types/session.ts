@@ -7,6 +7,8 @@ export interface PepperTab {
   pinned?: boolean;
 }
 
+export type CaptureType = 'manual' | 'auto_window_close' | 'auto_idle' | 'keyboard_shortcut';
+
 export interface PepperSession {
   id: string;
   name: string;
@@ -22,8 +24,28 @@ export interface PepperSession {
   timeWorkedMinutes?: number;
   windowId?: number;
   estimatedRamSavedMb?: number;
-  
-  // Workspace Memory Additions
+
+  // === Memory Engine Fields ===
+
+  /** How this workspace was captured */
+  captureType: CaptureType;
+
+  /** Index of the tab the user was actively viewing when captured */
+  activeTabIndex?: number;
+
+  /** Seconds spent on each tab (keyed by tab index) */
+  tabDurations?: Record<number, number>;
+
+  /** Ordered trail of URLs the user navigated through in this session */
+  navigationTrail?: string[];
+
+  /** AI-generated session intent: "researching X", "comparing Y", "debugging Z" */
+  sessionIntent?: string;
+
+  /** Domain clusters detected in this workspace */
+  domainClusters?: string[];
+
+  // === Workspace Context Fields ===
   clipboardSnippet?: string;
   recentDownloads?: string[];
   recentActivity?: string[];
@@ -44,4 +66,6 @@ export interface SessionStats {
   totalTabsSaved: number;
   estimatedRamSavedMb: number;
   storageBytesUsed: number;
+  autoCaptures: number;
+  manualCaptures: number;
 }

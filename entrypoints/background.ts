@@ -2,15 +2,19 @@ import { defineBackground } from 'wxt/sandbox';
 import { workspaceEngine } from '../src/core/engines/workspace-engine';
 import { restoreEngine } from '../src/core/engines/restore-engine';
 import { sessionEngine } from '../src/core/engines/session-engine';
+import { captureEngine } from '../src/core/engines/capture-engine';
 import { providerRegistry, featureFlagsManager } from '../src/core/intelligence';
 
 export default defineBackground(() => {
-  console.log('PEPPER v2 background service worker initialized');
+  console.log('PEPPER v2 — Work Memory Engine initialized');
 
   // Hydrate BYOK providers and feature flags on Service Worker boot
   featureFlagsManager.hydrateFromStorage().then(() => {
     providerRegistry.hydrateFromStorage();
   });
+
+  // === MEMORY ENGINE: Initialize silent auto-capture ===
+  captureEngine.initialize();
 
   // Install Event
   chrome.runtime.onInstalled.addListener(async (details) => {
