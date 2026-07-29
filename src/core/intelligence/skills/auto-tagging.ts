@@ -4,6 +4,7 @@ import { IntelligenceTask, TaskResult } from '../interfaces/task';
 import { intelligenceService } from '../intelligence-service';
 import { promptRegistry } from '../registry/prompt-registry';
 import { PepperTab } from '../../types/session';
+import { TokenBudgetEstimator } from '../utils/token-budget';
 
 export class AutoTaggingSkill extends IntelligenceSkill<PepperTab[], string[]> {
   readonly id = 'auto-tagging';
@@ -16,8 +17,11 @@ export class AutoTaggingSkill extends IntelligenceSkill<PepperTab[], string[]> {
   };
 
   async execute(task: IntelligenceTask<PepperTab[], string[]>): Promise<TaskResult<string[]>> {
-    const tabs = task.input;
-    const tabStr = tabs.map((t) => `${t.title || 'Untitled'} (${t.url || ''})`).join('\n');
+    const rawTabs = task.input;
+
+    // Apply smart context compression for prompt size optimization
+    const compressed = TokenBudgetEstimator.compressTabs(rawTabs);
+    const tabStr = compressed.map((t) => `${t.title} (${t.domain})`).join('\n');
 
     const prompt = promptRegistry.render('auto-tags', {
       tab_list: tabStr,
@@ -47,25 +51,11 @@ export class AutoTaggingSkill extends IntelligenceSkill<PepperTab[], string[]> {
         if (uniqueTags.length > 0) return uniqueTags.slice(0, 5);
 
         // Fallback domain extraction
-        const domainTags: string[] = Array.from(
-          new Set(
-            tabs
-              .map((t) => {
-                try {
-                  return t.url ? new URL(t.url).hostname.replace(/^www\./, '').split('.')[0] : '';
-                } catch {
-                  return '';
-                }
-              })
-              .filter(Boolean)
-          )
-        ).slice(0, 4);
-
+        const domainTags: string[] = Array.from(new Set(compressed.map((t) => t.domain.split('.')[0]).filter(Boolean))).slice(0, 4);
         return domainTags.length > 0 ? domainTags : ['workspace', 'research'];
       },
     };
 
-    // Route through centralized intelligenceService for caching, telemetry, and logs
     return await intelligenceService.executeTask(executionTask, {
       cacheKey: `tags_${task.id}`,
     });

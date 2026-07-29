@@ -74,9 +74,23 @@ export class OpenAIProvider extends BaseProvider {
     }
   }
 
-  async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
+  async chat(prompt: string, options?: Record<string, unknown>): Promise<string> {
     this.ensureApiKey();
     this.ensureCapability('chat');
+
+    const maxTokens = (options?.maxTokens as number) || 250;
+
+    const payload: Record<string, any> = {
+      model: this.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+    };
+
+    if (this.model.startsWith('o1')) {
+      payload.max_completion_tokens = maxTokens;
+    } else {
+      payload.max_tokens = maxTokens;
+    }
 
     try {
       const res = await fetch(`${this.endpoint}/chat/completions`, {
@@ -85,11 +99,7 @@ export class OpenAIProvider extends BaseProvider {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
         },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {

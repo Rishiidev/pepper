@@ -64,11 +64,13 @@ export class OpenRouterProvider extends BaseProvider {
     }
   }
 
-  async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
+  async chat(prompt: string, options?: Record<string, unknown>): Promise<string> {
     if (!this.apiKey) {
       throw new IntelligenceError('INVALID_KEY', 'OpenRouter API key is missing. Please configure key in Settings.', this.id);
     }
     this.ensureCapability('chat');
+
+    const maxTokens = (options?.maxTokens as number) || 250;
 
     try {
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -82,7 +84,7 @@ export class OpenRouterProvider extends BaseProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 300, // Explicitly specify a low token limit so OpenRouter doesn't block due to large default credit reserves
+          max_tokens: maxTokens,
         }),
       });
 
@@ -91,7 +93,9 @@ export class OpenRouterProvider extends BaseProvider {
         let detailedMsg = `HTTP ${res.status}`;
         try {
           const parsed = JSON.parse(errorBody);
-          if (parsed.error?.message) detailedMsg += `: ${parsed.error.message}`;
+          if (parsed.error?.message) {
+            detailedMsg += `: ${parsed.error.message}`;
+          }
         } catch {
           if (errorBody) detailedMsg += `: ${errorBody.substring(0, 150)}`;
         }

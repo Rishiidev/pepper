@@ -4,6 +4,7 @@ import { IntelligenceTask, TaskResult } from '../interfaces/task';
 import { intelligenceService } from '../intelligence-service';
 import { promptRegistry } from '../registry/prompt-registry';
 import { PepperTab } from '../../types/session';
+import { TokenBudgetEstimator } from '../utils/token-budget';
 
 export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
   readonly id = 'auto-title';
@@ -16,20 +17,12 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
   };
 
   async execute(task: IntelligenceTask<PepperTab[], string>): Promise<TaskResult<string>> {
-    const tabs = task.input;
+    const rawTabs = task.input;
 
-    // Build rich context with Title, URL, and Domain
-    const richContext = tabs
-      .map((t) => {
-        let domain = '';
-        try {
-          if (t.url) domain = new URL(t.url).hostname.replace(/^www\./, '');
-        } catch {
-          domain = '';
-        }
-        return `- ${t.title || 'Untitled'} (${domain || t.url || ''})`;
-      })
-      .slice(0, 10)
+    // Apply smart context compression for prompt size optimization
+    const compressed = TokenBudgetEstimator.compressTabs(rawTabs);
+    const richContext = compressed
+      .map((t) => `- ${t.title} (${t.domain})`)
       .join('\n');
 
     const prompt = promptRegistry.render('auto-title', {
@@ -56,23 +49,10 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
 
         // 2. Check for Mock Provider or Offline Stub
         if (cleaned.startsWith('[Mock AI]') || cleaned.includes('Intelligence Architecture')) {
-          const topDomains = Array.from(
-            new Set(
-              tabs
-                .map((t) => {
-                  try {
-                    return t.url ? new URL(t.url).hostname.replace(/^www\./, '').split('.')[0] : '';
-                  } catch {
-                    return '';
-                  }
-                })
-                .filter(Boolean)
-            )
-          );
-
+          const topDomains = Array.from(new Set(compressed.map((t) => t.domain.split('.')[0]).filter(Boolean)));
           const mainDomain = topDomains[0] || 'Web';
           const capitalizedDomain = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
-          const firstTabTitle = tabs[0]?.title?.split(/[-|–]/)[0].trim() || 'Workspace';
+          const firstTabTitle = compressed[0]?.title || 'Workspace';
 
           return `${capitalizedDomain} ${firstTabTitle}`.substring(0, 35);
         }
@@ -87,7 +67,6 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
       },
     };
 
-    // Route through centralized intelligenceService for caching, telemetry, and logs
     return await intelligenceService.executeTask(executionTask, {
       cacheKey: `title_${task.id}`,
     });

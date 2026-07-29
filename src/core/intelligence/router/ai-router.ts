@@ -3,6 +3,7 @@ import { ModelProvider } from '../interfaces/provider';
 import { CapabilityRequirements } from '../interfaces/capability';
 import { IntelligenceError } from '../interfaces/errors';
 import { IntelligenceTask, TaskResult } from '../interfaces/task';
+import { AI_LIMITS } from '../utils/token-budget';
 
 export class AIRouter {
   private static instance: AIRouter;
@@ -64,39 +65,65 @@ export class AIRouter {
     const startTime = Date.now();
     const provider = await this.resolveProvider(task.requirements, overrideProviderId);
 
-    try {
-      const rawPrompt = typeof task.input === 'string' ? task.input : JSON.stringify(task.input);
-      const rawResponse = await provider.chat(rawPrompt);
+    const limits = AI_LIMITS as Record<string, number>;
+    // Try both task.skillId or a lookup fallback
+    const matchedKey = Object.keys(limits).find(
+      (k) => k.toLowerCase() === task.skillId.toLowerCase() || task.skillId.toLowerCase().includes(k.toLowerCase())
+    );
+    const initialMaxTokens = matchedKey ? limits[matchedKey] : 250;
 
-      const parsedData = task.parseOutput ? task.parseOutput(rawResponse) : (rawResponse as unknown as TOutput);
+    let attempts = 0;
+    const maxAttempts = 3;
+    let currentMaxTokens = initialMaxTokens;
+    const rawPrompt = typeof task.input === 'string' ? task.input : JSON.stringify(task.input);
 
-      return {
-        taskId: task.id,
-        success: true,
-        data: parsedData,
-        providerId: provider.id,
-        durationMs: Date.now() - startTime,
-        cached: false,
-      };
-    } catch (err) {
-      const durationMs = Date.now() - startTime;
-      if (err instanceof IntelligenceError) {
+    while (attempts < maxAttempts) {
+      try {
+        const rawResponse = await provider.chat(rawPrompt, { maxTokens: currentMaxTokens });
+        const parsedData = task.parseOutput ? task.parseOutput(rawResponse) : (rawResponse as unknown as TOutput);
+
+        return {
+          taskId: task.id,
+          success: true,
+          data: parsedData,
+          providerId: provider.id,
+          durationMs: Date.now() - startTime,
+          cached: false,
+        };
+      } catch (err) {
+        attempts++;
+        const errMsg = (err as Error).message || '';
+        const isTokenCreditError =
+          errMsg.includes('402') ||
+          errMsg.toLowerCase().includes('credit') ||
+          errMsg.toLowerCase().includes('token');
+
+        if (isTokenCreditError && attempts < maxAttempts) {
+          currentMaxTokens = Math.max(8, Math.round(currentMaxTokens * 0.5));
+          console.warn(
+            `[AIRouter] Attempt ${attempts} failed with token/credit error. Retrying with 50% reduced maxTokens = ${currentMaxTokens}...`
+          );
+          continue;
+        }
+
+        const durationMs = Date.now() - startTime;
         return {
           taskId: task.id,
           success: false,
-          error: err.message,
+          error: errMsg,
           providerId: provider.id,
           durationMs,
         };
       }
-      return {
-        taskId: task.id,
-        success: false,
-        error: (err as Error).message || 'Unknown execution error',
-        providerId: provider.id,
-        durationMs,
-      };
     }
+
+    return {
+      taskId: task.id,
+      success: false,
+      error: 'Max retry attempts exceeded',
+      providerId: provider.id,
+      durationMs: Date.now() - startTime,
+    };
   }
 }
 

@@ -4,6 +4,7 @@ import { IntelligenceTask, TaskResult } from '../interfaces/task';
 import { intelligenceService } from '../intelligence-service';
 import { promptRegistry } from '../registry/prompt-registry';
 import { PepperSession } from '../../types/session';
+import { TokenBudgetEstimator } from '../utils/token-budget';
 
 export interface WorkspaceSummaryOutput {
   summary: string;
@@ -24,7 +25,10 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
 
   async execute(task: IntelligenceTask<PepperSession, WorkspaceSummaryOutput>): Promise<TaskResult<WorkspaceSummaryOutput>> {
     const session = task.input;
-    const tabListStr = session.tabs.map((t) => `- ${t.title || 'Untitled'} (${t.url || ''})`).join('\n');
+
+    // Apply smart context compression for prompt size optimization
+    const compressed = TokenBudgetEstimator.compressTabs(session.tabs);
+    const tabListStr = compressed.map((t) => `- ${t.title} (${t.domain})`).join('\n');
 
     const prompt = promptRegistry.render('workspace-summary', {
       workspace_name: session.name,
@@ -52,21 +56,8 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
           }
         } catch {}
 
-        // Safe hostname extraction without throwing
-        const safeTopics: string[] = Array.from(
-          new Set(
-            session.tabs
-              .map((t) => {
-                try {
-                  return t.url ? new URL(t.url).hostname.replace(/^www\./, '') : '';
-                } catch {
-                  return '';
-                }
-              })
-              .filter(Boolean)
-          )
-        ).slice(0, 4);
-
+        // Safe hostname extraction
+        const safeTopics = Array.from(new Set(compressed.map((t) => t.domain.split('.')[0]).filter(Boolean))).slice(0, 4);
         const lines = raw.split('\n').filter((l) => l.trim().length > 0);
         const summaryText = lines[0]?.replace(/^Summary:?/i, '').trim() ||
           `Workspace containing ${session.tabCount} active browser tabs for ${session.projectName || 'tasks'}.`;
@@ -80,7 +71,6 @@ export class WorkspaceSummarySkill extends IntelligenceSkill<PepperSession, Work
       },
     };
 
-    // Route through centralized intelligenceService for caching, telemetry, and logs
     return await intelligenceService.executeTask(executionTask, {
       cacheKey: `summary_${task.id}`,
       workspaceId: session.id,

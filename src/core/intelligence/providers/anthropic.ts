@@ -11,7 +11,7 @@ export class AnthropicProvider extends BaseProvider {
   readonly capabilities: ProviderCapabilitiesMap = {
     chat: true,
     summarize: true,
-    embeddings: false, // Anthropic does not provide embeddings directly
+    embeddings: false,
     vision: true,
     code: true,
     structured_output: true,
@@ -41,7 +41,6 @@ export class AnthropicProvider extends BaseProvider {
     }
 
     try {
-      // Light ping to check auth
       const res = await this.chat('ping');
       return {
         isHealthy: true,
@@ -57,11 +56,13 @@ export class AnthropicProvider extends BaseProvider {
     }
   }
 
-  async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
+  async chat(prompt: string, options?: Record<string, unknown>): Promise<string> {
     if (!this.apiKey) {
       throw new IntelligenceError('INVALID_KEY', 'Anthropic API key is missing.', this.id);
     }
     this.ensureCapability('chat');
+
+    const maxTokens = (options?.maxTokens as number) || 250;
 
     try {
       const res = await fetch(`${this.endpoint}/messages`, {
@@ -74,7 +75,7 @@ export class AnthropicProvider extends BaseProvider {
         },
         body: JSON.stringify({
           model: this.model,
-          max_tokens: 1000,
+          max_tokens: maxTokens,
           messages: [{ role: 'user', content: prompt }],
         }),
       });

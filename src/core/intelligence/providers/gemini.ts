@@ -62,11 +62,13 @@ export class GeminiProvider extends BaseProvider {
     }
   }
 
-  async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
+  async chat(prompt: string, options?: Record<string, unknown>): Promise<string> {
     if (!this.apiKey) {
       throw new IntelligenceError('INVALID_KEY', 'Gemini API key is missing.', this.id);
     }
     this.ensureCapability('chat');
+
+    const maxTokens = (options?.maxTokens as number) || 250;
 
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
@@ -75,6 +77,9 @@ export class GeminiProvider extends BaseProvider {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            maxOutputTokens: maxTokens,
+          },
         }),
       });
 

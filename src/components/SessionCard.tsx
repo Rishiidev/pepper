@@ -6,6 +6,7 @@ import { sessionEngine } from '../core/engines/session-engine';
 import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
 import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-summary';
 import { aiLogger } from '../core/intelligence/utils/ai-logger';
+import { TokenBudgetEstimator } from '../core/intelligence/utils/token-budget';
 import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 interface SessionCardProps {
@@ -37,8 +38,13 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     const traceId = `manual_title_${session.id}_${Date.now()}`;
     aiLogger.startTrace(traceId);
 
+    const est = TokenBudgetEstimator.estimateCost('workspaceTitle', 32);
+
     setIsAiGenerating(true);
-    setAiFeedback({ status: 'loading', message: 'Analyzing tabs & generating title...' });
+    setAiFeedback({
+      status: 'loading',
+      message: `Generating title (~${est.outputTokens} output tokens, cost: ${est.costStr})...`,
+    });
 
     try {
       aiLogger.log(traceId, 'COLLECT_TABS', 'info', `Collected ${session.tabs.length} tabs for workspace "${session.name}"`);
@@ -104,8 +110,13 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
     const traceId = `manual_summary_${session.id}_${Date.now()}`;
     aiLogger.startTrace(traceId);
 
+    const est = TokenBudgetEstimator.estimateCost('summary', 180);
+
     setIsAiGenerating(true);
-    setAiFeedback({ status: 'loading', message: 'Generating workspace summary...' });
+    setAiFeedback({
+      status: 'loading',
+      message: `Generating summary (~${est.outputTokens} output tokens, cost: ${est.costStr})...`,
+    });
 
     try {
       const skill = new WorkspaceSummarySkill();

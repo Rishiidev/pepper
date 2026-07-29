@@ -53,8 +53,10 @@ export class OllamaProvider extends BaseProvider {
     }
   }
 
-  async chat(prompt: string, _options?: Record<string, unknown>): Promise<string> {
+  async chat(prompt: string, options?: Record<string, unknown>): Promise<string> {
     this.ensureCapability('chat');
+
+    const maxTokens = (options?.maxTokens as number) || 250;
 
     try {
       const res = await fetch(`${this.endpoint}/api/generate`, {
@@ -64,6 +66,9 @@ export class OllamaProvider extends BaseProvider {
           model: this.model,
           prompt,
           stream: false,
+          options: {
+            num_predict: maxTokens,
+          },
         }),
       });
 
