@@ -82,6 +82,7 @@ export class OpenRouterProvider extends BaseProvider {
         body: JSON.stringify({
           model: this.model,
           messages: [{ role: 'user', content: prompt }],
+          max_tokens: 300, // Explicitly specify a low token limit so OpenRouter doesn't block due to large default credit reserves
         }),
       });
 
