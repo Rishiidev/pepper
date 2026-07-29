@@ -35,11 +35,14 @@ export const IntelligenceSettings: React.FC = () => {
   }, []);
 
   const providersList = [
-    { id: 'openai', name: 'OpenAI (GPT-4o / Mini)', isLocal: false },
-    { id: 'anthropic', name: 'Anthropic (Claude 3.5)', isLocal: false },
-    { id: 'gemini', name: 'Google Gemini (1.5 Flash)', isLocal: false },
-    { id: 'ollama', name: 'Ollama / LM Studio (Local LLM)', isLocal: true },
-    { id: 'openrouter', name: 'OpenRouter Gateway', isLocal: false },
+    { id: 'openai', name: 'OpenAI (GPT-4o / GPT-4o-mini)', isLocal: false },
+    { id: 'anthropic', name: 'Anthropic (Claude 3.5 / Opus)', isLocal: false },
+    { id: 'gemini', name: 'Google Gemini (1.5 Pro / Flash)', isLocal: false },
+    { id: 'openrouter', name: 'OpenRouter Gateway (Unified)', isLocal: false },
+    { id: 'ollama', name: 'Ollama (Local LLM)', isLocal: true },
+    { id: 'lmstudio', name: 'LM Studio (Local Host)', isLocal: true },
+    { id: 'azure', name: 'Azure OpenAI Service', isLocal: false },
+    { id: 'bedrock', name: 'AWS Bedrock Gateway', isLocal: false },
   ];
 
   return (

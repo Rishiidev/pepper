@@ -256,7 +256,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           className="flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-pepper-500 hover:bg-pepper-600 text-white font-bold text-xs transition-colors shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
         >
           <RotateCcw className={`w-3.5 h-3.5 ${isRestoring ? 'animate-spin' : ''}`} />
-          <span>Resume Workspace</span>
+          <span>Reconstruct Memory</span>
         </button>
 
         {/* Secondary options group */}

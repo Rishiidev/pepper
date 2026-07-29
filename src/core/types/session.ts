@@ -51,6 +51,9 @@ export interface PepperSession {
   recentActivity?: string[];
 }
 
+/** First-class brand entity alias */
+export type PepperMemory = PepperSession;
+
 export type TimelineGroup = 'pinned' | 'today' | 'yesterday' | 'this_week' | 'older';
 
 export interface GroupedTimeline {

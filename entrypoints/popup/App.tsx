@@ -200,13 +200,7 @@ export default function App() {
         <div className="flex-1 flex flex-col justify-between space-y-4">
           {/* Header */}
           <header className="flex items-center justify-between border-b border-border pb-3">
-            <div className="flex items-center gap-2.5">
-              <Logo size={24} />
-              <div>
-                <h1 className="font-bold text-base tracking-tight text-text-primary leading-none">PEPPER</h1>
-                <p className="text-[10px] text-text-muted mt-0.5">Workspace Operating System</p>
-              </div>
-            </div>
+            <Logo showText size={24} />
 
             <div className="flex items-center gap-1.5">
               <button
@@ -370,7 +364,7 @@ export default function App() {
               className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-pepper-500 hover:bg-pepper-600 active:bg-pepper-700 font-bold text-xs text-white rounded-xl transition-all shadow-xl shadow-pepper-500/25 disabled:opacity-50 hover:scale-[1.01]"
             >
               <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Saving Workspace…' : `Save Workspace (Enter / ⌘S)`}</span>
+              <span>{isSaving ? 'Capturing Memory…' : `Save Memory (Enter / ⌘S)`}</span>
             </button>
 
             <div className="grid grid-cols-2 gap-1 text-[10px] font-medium text-text-muted text-center pt-0.5">
