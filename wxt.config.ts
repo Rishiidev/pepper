@@ -13,6 +13,13 @@ export default defineConfig({
     short_name: 'PEPPER',
     description: 'Save, search, manage, and restore browser workspaces. Free RAM by organizing tabs.',
     permissions: ['tabs', 'storage', 'contextMenus'],
+    host_permissions: [
+      'https://api.openai.com/*',
+      'https://api.anthropic.com/*',
+      'https://generativelanguage.googleapis.com/*',
+      'https://openrouter.ai/*',
+      'http://localhost:11434/*'
+    ],
     commands: {
       'save-session': {
         suggested_key: {

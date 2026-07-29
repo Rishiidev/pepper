@@ -1,7 +1,7 @@
 import { IntelligenceSkill } from './base-skill';
 import { CapabilityRequirements } from '../interfaces/capability';
 import { IntelligenceTask, TaskResult } from '../interfaces/task';
-import { aiRouter } from '../router/ai-router';
+import { intelligenceService } from '../intelligence-service';
 import { promptRegistry } from '../registry/prompt-registry';
 import { PepperTab } from '../../types/session';
 
@@ -27,7 +27,7 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
         } catch {
           domain = '';
         }
-        return `- ${t.title || 'Untitled'} (${domain || t.url})`;
+        return `- ${t.title || 'Untitled'} (${domain || t.url || ''})`;
       })
       .slice(0, 10)
       .join('\n');
@@ -40,16 +40,28 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
       ...task,
       input: prompt,
       parseOutput: (raw: string) => {
-        let cleaned = raw.replace(/^["']|["']$/g, '').trim();
+        let cleaned = raw.replace(/^["'`]|["'`]$/g, '').trim();
 
-        // If mock provider response, generate heuristic title from domains/titles
+        // 1. Check for JSON output
+        try {
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            const titleVal = parsed.title || parsed.name || parsed.workspace_name;
+            if (typeof titleVal === 'string' && titleVal.trim()) {
+              return titleVal.trim();
+            }
+          }
+        } catch {}
+
+        // 2. Check for Mock Provider or Offline Stub
         if (cleaned.startsWith('[Mock AI]') || cleaned.includes('Intelligence Architecture')) {
           const topDomains = Array.from(
             new Set(
               tabs
                 .map((t) => {
                   try {
-                    return new URL(t.url).hostname.replace(/^www\./, '').split('.')[0];
+                    return t.url ? new URL(t.url).hostname.replace(/^www\./, '').split('.')[0] : '';
                   } catch {
                     return '';
                   }
@@ -65,12 +77,19 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
           return `${capitalizedDomain} ${firstTabTitle}`.substring(0, 35);
         }
 
-        const lines = cleaned.split('\n').filter(Boolean);
-        const titleLine = lines[0] || 'Active Workspace';
-        return titleLine.replace(/^(Title:|Workspace Name:|\*|\#)/i, '').trim();
+        // 3. Clean line prefixes
+        const lines = cleaned.split('\n').map((l) => l.trim()).filter(Boolean);
+        const firstLine = lines[0] || 'Active Workspace';
+        return firstLine
+          .replace(/^(Title:|Workspace Name:|\*|\#|\`)/i, '')
+          .replace(/^["']|["']$/g, '')
+          .trim();
       },
     };
 
-    return await aiRouter.executeTask(executionTask);
+    // Route through centralized intelligenceService for caching, telemetry, and logs
+    return await intelligenceService.executeTask(executionTask, {
+      cacheKey: `title_${task.id}`,
+    });
   }
 }

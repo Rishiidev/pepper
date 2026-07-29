@@ -2,6 +2,7 @@ import { IntelligenceSkill } from './base-skill';
 import { CapabilityRequirements } from '../interfaces/capability';
 import { IntelligenceTask, TaskResult } from '../interfaces/task';
 import { vectorStore } from '../vectors/vector-store';
+import { providerRegistry } from '../registry/provider-registry';
 import { PepperSession } from '../../types/session';
 
 export interface SemanticSearchQuery {
@@ -16,7 +17,7 @@ export class SemanticSearchSkill extends IntelligenceSkill<SemanticSearchQuery, 
   readonly version = '1.0.0';
 
   readonly requirements: CapabilityRequirements = {
-    required: ['embeddings'],
+    required: ['chat'],
   };
 
   async execute(task: IntelligenceTask<SemanticSearchQuery, PepperSession[]>): Promise<TaskResult<PepperSession[]>> {
@@ -24,18 +25,42 @@ export class SemanticSearchSkill extends IntelligenceSkill<SemanticSearchQuery, 
     const startTime = Date.now();
 
     try {
-      // 1. Fetch similar items from VectorStore
-      const mockQueryVector = new Array(1536).fill(0).map(() => Math.random());
-      const vectorMatches = await vectorStore.findSimilar(mockQueryVector, 5, 0.2);
+      const active = providerRegistry.getActiveProvider();
+      let queryVector: number[] | null = null;
 
-      const matchedIds = new Set(vectorMatches.map((m) => m.sessionId));
-      const results = sessions.filter((s) => matchedIds.has(s.id));
+      if (active && active.capabilities.embeddings && typeof (active as any).embed === 'function') {
+        try {
+          queryVector = await (active as any).embed(query);
+        } catch {
+          queryVector = null;
+        }
+      }
+
+      if (queryVector) {
+        const vectorMatches = await vectorStore.findSimilar(queryVector, 5, 0.2);
+        const matchedIds = new Set(vectorMatches.map((m) => m.sessionId));
+        const results = sessions.filter((s) => matchedIds.has(s.id));
+        return {
+          taskId: task.id,
+          success: true,
+          data: results.length > 0 ? results : sessions.slice(0, 3),
+          providerId: active!.id,
+          durationMs: Date.now() - startTime,
+        };
+      }
+
+      // Safe keyword fallback matching if embeddings are not configured/supported
+      const matched = sessions.filter((s) =>
+        s.name.toLowerCase().includes(query.toLowerCase()) ||
+        (s.projectName && s.projectName.toLowerCase().includes(query.toLowerCase())) ||
+        s.tabs.some((t) => t.title.toLowerCase().includes(query.toLowerCase()))
+      );
 
       return {
         taskId: task.id,
         success: true,
-        data: results.length > 0 ? results : sessions.slice(0, 3),
-        providerId: 'local-vector-engine',
+        data: matched.length > 0 ? matched : sessions.slice(0, 3),
+        providerId: 'local-keyword-matching',
         durationMs: Date.now() - startTime,
       };
     } catch (err) {
@@ -43,7 +68,7 @@ export class SemanticSearchSkill extends IntelligenceSkill<SemanticSearchQuery, 
         taskId: task.id,
         success: false,
         error: (err as Error).message,
-        providerId: 'local-vector-engine',
+        providerId: 'local-keyword-matching',
         durationMs: Date.now() - startTime,
       };
     }

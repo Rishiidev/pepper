@@ -119,6 +119,7 @@ export class SessionEngine {
   }
 
   private async triggerAISkills(session: PepperSession): Promise<void> {
+    await featureFlagsManager.hydrateFromStorage();
     if (!featureFlagsManager.isEnabled('aiEnabled')) return;
 
     const autoTitleSkill = new AutoTitleSkill();

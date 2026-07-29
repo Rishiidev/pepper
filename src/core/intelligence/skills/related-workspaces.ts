@@ -21,21 +21,29 @@ export class RelatedWorkspacesSkill extends IntelligenceSkill<RelatedWorkspacesI
   readonly version = '1.0.0';
 
   readonly requirements: CapabilityRequirements = {
-    required: ['classification'],
+    required: ['chat'],
   };
 
   async execute(task: IntelligenceTask<RelatedWorkspacesInput, RelatedWorkspaceMatch[]>): Promise<TaskResult<RelatedWorkspaceMatch[]>> {
     const { targetSession, allSessions } = task.input;
     const startTime = Date.now();
 
-    const targetDomains = new Set(targetSession.tabs.map((t) => new URL(t.url).hostname).filter(Boolean));
+    const getSafeHostname = (url: string): string => {
+      if (!url) return '';
+      try {
+        return new URL(url).hostname;
+      } catch {
+        return '';
+      }
+    };
 
+    const targetDomains = new Set(targetSession.tabs.map((t) => getSafeHostname(t.url)).filter(Boolean));
     const matches: RelatedWorkspaceMatch[] = [];
 
     for (const other of allSessions) {
       if (other.id === targetSession.id) continue;
 
-      const otherDomains = new Set(other.tabs.map((t) => new URL(t.url).hostname).filter(Boolean));
+      const otherDomains = new Set(other.tabs.map((t) => getSafeHostname(t.url)).filter(Boolean));
       let overlap = 0;
 
       for (const domain of targetDomains) {
