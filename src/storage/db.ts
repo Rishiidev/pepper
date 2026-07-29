@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { PepperSession } from '../core/types/session';
+import { FocusSession, DailyJournal } from '../core/types/focus-session';
 
 export interface PepperSnapshot {
   id: string;
@@ -39,6 +40,8 @@ class PepperDatabase extends Dexie {
   cache!: EntityTable<PepperCacheItem, 'key'>;
   embeddings!: EntityTable<PepperEmbedding, 'id'>;
   projects!: EntityTable<PepperProjectEntity, 'id'>;
+  focusSessions!: EntityTable<FocusSession, 'id'>;
+  journals!: EntityTable<DailyJournal, 'id'>;
 
   constructor() {
     super('PepperDatabaseV2');
@@ -56,6 +59,16 @@ class PepperDatabase extends Dexie {
       cache: 'key, expiresAt',
       embeddings: 'id, sessionId, createdAt',
       projects: 'id, name, createdAt',
+    });
+
+    this.version(3).stores({
+      sessions: 'id, name, createdAt, isFavorite, isPinned, projectName, *tags',
+      snapshots: 'id, timestamp, windowId, reason',
+      cache: 'key, expiresAt',
+      embeddings: 'id, sessionId, createdAt',
+      projects: 'id, name, createdAt',
+      focusSessions: 'id, sessionId, startedAt, mode, status, projectName',
+      journals: 'id, dateStr, momentumScore',
     });
   }
 }

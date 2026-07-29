@@ -9,7 +9,8 @@ import { aiLogger } from '../core/intelligence/utils/ai-logger';
 import { TokenBudgetEstimator } from '../core/intelligence/utils/token-budget';
 import { WorkspaceHoverPortal } from './dashboard/WorkspaceHoverPortal';
 import { sanitizeDisplayTitle, sanitizeDisplaySummary } from '../core/utils/text-sanitizer';
-import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, Layers, Clock, ArrowUpRight, Brain, Zap, Eye } from 'lucide-react';
+import { useFocusStore } from '../stores/focus-store';
+import { Star, Pin, Trash2, RotateCcw, ChevronDown, ChevronUp, Globe, Sparkles, RefreshCw, CheckCircle2, AlertTriangle, Layers, Clock, ArrowUpRight, Brain, Zap, Eye, Timer } from 'lucide-react';
 
 const CAPTURE_LABELS: Record<string, { label: string; color: string }> = {
   manual: { label: 'Manual Save', color: 'text-pepper-400 bg-pepper-500/10 border-pepper-500/20' },
@@ -249,7 +250,6 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
 
       {/* LEVEL 5: Actions Area */}
       <div className="flex items-center justify-between gap-3 pt-1">
-        {/* Prominent Resume Work CTA */}
         <button
           onClick={handleRestore}
           disabled={isRestoring}
@@ -257,6 +257,18 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
         >
           <RotateCcw className={`w-3.5 h-3.5 ${isRestoring ? 'animate-spin' : ''}`} />
           <span>Reconstruct Memory</span>
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            useFocusStore.getState().startFocus(session, 'pomodoro', 25);
+          }}
+          className="flex items-center gap-1.5 py-2 px-3 rounded-xl border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 font-bold text-xs transition-colors active:scale-[0.98]"
+          title="Start Focus Session on this Memory"
+        >
+          <Timer className="w-3.5 h-3.5" />
+          <span>Focus</span>
         </button>
 
         {/* Secondary options group */}

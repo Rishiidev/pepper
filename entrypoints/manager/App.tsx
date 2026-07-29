@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
 import { useCommandStore } from '../../src/stores/command-store';
+import { useFocusStore } from '../../src/stores/focus-store';
 import { Logo } from '../../src/components/brand/Logo';
 import { RamBadge } from '../../src/components/brand/RamBadge';
 import { SessionCard } from '../../src/components/SessionCard';
@@ -17,8 +18,11 @@ import { MergeDuplicatesModal } from '../../src/components/modals/MergeDuplicate
 import { CreateProjectModal } from '../../src/components/modals/CreateProjectModal';
 import { OnboardingModal } from '../../src/components/modals/OnboardingModal';
 import { MemoryReconstructionOverlay } from '../../src/components/MemoryReconstructionOverlay';
+import { FocusView } from '../../src/components/focus/FocusView';
+import { InsightsView } from '../../src/components/focus/InsightsView';
+import { SessionCompleteModal } from '../../src/components/focus/SessionCompleteModal';
 import { PepperSession } from '../../src/core/types/session';
-import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles } from 'lucide-react';
+import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, Pause, Play, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const {
@@ -37,8 +41,20 @@ export default function App() {
   } = useSessionStore();
   const { settings, isHydrated, fetchSettings } = useSettingsStore();
   const { openPalette } = useCommandStore();
+  const {
+    activeSession,
+    activeMemory,
+    isRunning,
+    isPaused,
+    elapsedSeconds,
+    completedSessionForModal,
+    pauseFocus,
+    resumeFocus,
+    completeFocus,
+    clearCompletedModal,
+  } = useFocusStore();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'projects' | 'timeline' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'projects' | 'focus' | 'timeline' | 'insights' | 'settings'>('home');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
@@ -70,7 +86,7 @@ export default function App() {
     }
   };
 
-  const handleNavClick = (tab: 'home' | 'memories' | 'projects' | 'timeline' | 'settings') => {
+  const handleNavClick = (tab: 'home' | 'memories' | 'projects' | 'focus' | 'timeline' | 'insights' | 'settings') => {
     setActiveTab(tab);
     resetFilters();
   };
@@ -88,12 +104,26 @@ export default function App() {
     downloadAnchor.remove();
   };
 
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="min-h-screen bg-surface text-text-primary flex flex-col font-sans selection:bg-pepper-500 selection:text-white">
+    <div className="min-h-screen bg-surface text-text-primary flex flex-col font-sans selection:bg-pepper-500 selection:text-white pb-16">
       <CommandPalette />
 
       {/* Interactive Onboarding Tour Modal */}
       <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
+
+      {/* AI Session Completion Modal */}
+      {completedSessionForModal && (
+        <SessionCompleteModal
+          session={completedSessionForModal}
+          onClose={() => clearCompletedModal()}
+        />
+      )}
 
       {/* Memory Reconstruction Overlay */}
       {reconstructingMemory && (
@@ -220,6 +250,19 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => handleNavClick('focus')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                activeTab === 'focus'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <Timer className="w-4 h-4 text-pepper-400" />
+              <span>Focus System</span>
+              {isRunning && <span className="w-2 h-2 rounded-full bg-pepper-500 animate-pulse ml-auto" />}
+            </button>
+
+            <button
               onClick={() => handleNavClick('timeline')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'timeline'
@@ -229,6 +272,18 @@ export default function App() {
             >
               <Clock className="w-4 h-4" />
               <span>Timeline</span>
+            </button>
+
+            <button
+              onClick={() => handleNavClick('insights')}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                activeTab === 'insights'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-amber-400" />
+              <span>Insights &amp; Journal</span>
             </button>
 
             <button
@@ -327,6 +382,10 @@ export default function App() {
 
           {activeTab === 'settings' ? (
             <IntelligenceSettings />
+          ) : activeTab === 'focus' ? (
+            <FocusView />
+          ) : activeTab === 'insights' ? (
+            <InsightsView />
           ) : activeTab === 'timeline' ? (
             <VisualTimelineView sessions={sessions} />
           ) : activeTab === 'projects' ? (
@@ -441,6 +500,59 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {/* Global Floating Focus Bar (Visible when Focus timer is running across any tab) */}
+      {isRunning && activeSession && activeMemory && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-card/95 backdrop-blur-xl border border-pepper-500/40 rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-5 text-xs text-text-primary animate-slide-up">
+          <div className="flex items-center gap-2.5">
+            <Logo size={20} state={isPaused ? 'normal' : 'saving'} />
+            <div className="leading-tight">
+              <span className="font-bold text-text-primary block truncate max-w-[180px]">
+                {activeMemory.name}
+              </span>
+              <span className="text-[10px] font-mono text-text-muted font-bold uppercase">
+                {activeSession.mode} &bull; {isPaused ? 'PAUSED' : 'ACTIVE'}
+              </span>
+            </div>
+          </div>
+
+          <div className="font-mono font-extrabold text-base text-pepper-400 px-3 py-1 rounded-lg bg-pepper-500/10 border border-pepper-500/20">
+            {formatTime(
+              activeSession.mode === 'stopwatch'
+                ? elapsedSeconds
+                : Math.max(0, activeSession.durationSeconds - elapsedSeconds)
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {isPaused ? (
+              <button
+                onClick={resumeFocus}
+                className="p-1.5 rounded-lg bg-pepper-500 hover:bg-pepper-600 text-white font-bold transition-colors"
+                title="Resume"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+              </button>
+            ) : (
+              <button
+                onClick={pauseFocus}
+                className="p-1.5 rounded-lg bg-surface border border-border hover:bg-surface-hover text-text-primary transition-colors"
+                title="Pause"
+              >
+                <Pause className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <button
+              onClick={() => completeFocus()}
+              className="p-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors"
+              title="Complete Session"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
