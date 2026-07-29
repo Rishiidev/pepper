@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -8,18 +9,19 @@
   --color-pepper-600: #E03026;
   --color-pepper-700: #B8221A;
   
-  --color-surface: #0B0B0E;
-  --color-surface-card: #12121A;
-  --color-surface-hover: #1A1A24;
-  --color-surface-active: #222230;
-  --color-border: #242432;
-  --color-border-subtle: #1C1C28;
+  --color-surface: #070709;
+  --color-surface-card: #0F0F15;
+  --color-surface-hover: #151520;
+  --color-surface-active: #1D1D2C;
+  --color-border: #1E1E2B;
+  --color-border-subtle: #14141F;
   
-  --color-text-primary: #FAFAFA;
-  --color-text-secondary: #A0A0B0;
-  --color-text-muted: #626274;
+  --color-text-primary: #F3F3F5;
+  --color-text-secondary: #9E9EAF;
+  --color-text-muted: #5F5F70;
 
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 @layer base {
@@ -33,6 +35,24 @@
   }
 }
 
+/* Glassmorphic refinement variables */
+.glass-panel {
+  background: rgba(15, 15, 21, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.glass-panel-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(21, 21, 32, 0.85);
+  border-color: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -42,9 +62,25 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #242432;
+  background: #1E1E2B;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #343446;
+  background: #2D2D3F;
+}
+
+/* Smooth micro-animations */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

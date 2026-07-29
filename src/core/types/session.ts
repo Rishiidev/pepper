@@ -22,6 +22,11 @@ export interface PepperSession {
   timeWorkedMinutes?: number;
   windowId?: number;
   estimatedRamSavedMb?: number;
+  
+  // Workspace Memory Additions
+  clipboardSnippet?: string;
+  recentDownloads?: string[];
+  recentActivity?: string[];
 }
 
 export type TimelineGroup = 'pinned' | 'today' | 'yesterday' | 'this_week' | 'older';

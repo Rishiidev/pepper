@@ -90,29 +90,29 @@ export default function App() {
 
       {/* Toast Feedback Notification */}
       {feedbackMsg && (
-        <div className="fixed top-4 right-4 z-50 bg-pepper-500 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl animate-bounce">
+        <div className="fixed top-6 right-6 z-50 bg-pepper-500 text-white text-xs font-semibold px-4.5 py-3.5 rounded-xl shadow-2xl border border-pepper-500/20 animate-slide-up">
           {feedbackMsg}
         </div>
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-border px-6 py-3.5 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-surface/85 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Logo size={28} />
+          <Logo size={24} />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg tracking-tight text-text-primary">PEPPER</h1>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
-                v2.0 OS
+              <h1 className="font-extrabold text-sm tracking-widest text-text-primary uppercase">PEPPER</h1>
+              <span className="text-[9px] font-extrabold tracking-widest px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
+                V2.1 OS
               </span>
             </div>
-            <p className="text-xs text-text-muted">The Workspace Operating System</p>
+            <p className="text-[10px] tracking-wider text-text-muted uppercase">Workspace Memory Engine</p>
           </div>
         </div>
 
         {/* Global Search Focus Input */}
         <div className="flex-1 max-w-xl mx-8 relative">
-          <Search className="w-4 h-4 text-text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
@@ -120,8 +120,8 @@ export default function App() {
             onKeyDown={(e) => {
               if (e.key === 'Escape') clearSearch();
             }}
-            placeholder="Search workspaces, projects, tabs, or domains… (ESC to clear, ⌘K)"
-            className="w-full bg-surface-card border border-border rounded-xl pl-9 pr-16 py-2 text-xs font-medium text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
+            placeholder="Search meaning, tabs, projects... (⌘K)"
+            className="w-full bg-surface-card border border-border/80 rounded-xl pl-10 pr-16 py-2 text-xs font-semibold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
           />
           {searchQuery ? (
             <button
@@ -134,7 +134,7 @@ export default function App() {
           ) : null}
           <kbd
             onClick={openPalette}
-            className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[10px] bg-border/60 text-text-secondary rounded cursor-pointer hover:bg-border font-mono"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-extrabold bg-border/40 text-text-secondary rounded cursor-pointer hover:bg-border font-mono border border-border/20"
           >
             ⌘K
           </kbd>
@@ -145,7 +145,7 @@ export default function App() {
           {stats && <RamBadge mbSaved={stats.estimatedRamSavedMb} label="SAVED" className="py-1 px-3 text-xs" />}
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-colors shadow-lg shadow-pepper-500/20"
+            className="flex items-center gap-2 px-4.5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             <span>Save Workspace</span>
@@ -153,32 +153,33 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main OS Layout */}
+      {/* Main Layout Grid */}
       <div className="flex-1 flex max-w-7xl w-full mx-auto px-6 py-6 gap-8">
+        
         {/* Sidebar Navigation */}
-        <aside className="w-60 shrink-0 space-y-6">
+        <aside className="w-56 shrink-0 space-y-6">
           <div className="space-y-1">
-            <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
-              Navigation
+            <div className="px-3 text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">
+              Workspace OS
             </div>
 
             <button
               onClick={() => handleNavClick('home')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'home' && !selectedProject
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Home className="w-4 h-4" />
-              <span>Home (Continue)</span>
+              <span>Continue Working</span>
             </button>
 
             <button
               onClick={() => handleNavClick('projects')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'projects'
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
@@ -188,65 +189,64 @@ export default function App() {
 
             <button
               onClick={() => handleNavClick('timeline')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'timeline'
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Clock className="w-4 h-4" />
-              <span>Timeline Activity</span>
+              <span>Memory Timeline</span>
             </button>
 
             <button
               onClick={() => handleNavClick('pinned')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'pinned'
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Pin className="w-4 h-4" />
-              <span>Pinned</span>
-              <span className="ml-auto text-[10px] opacity-70 font-mono">{timeline.pinned.length}</span>
+              <span>Pinned Contexts</span>
+              <span className="ml-auto text-[10px] font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
+                {timeline.pinned.length}
+              </span>
             </button>
 
             <button
               onClick={() => handleNavClick('favorites')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'favorites'
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Star className="w-4 h-4" />
               <span>Favorites</span>
-              <span className="ml-auto text-[10px] opacity-70 font-mono">
+              <span className="ml-auto text-[10px] font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
                 {sessions.filter((s) => s.isFavorite).length}
               </span>
             </button>
 
             <button
               onClick={() => handleNavClick('intelligence')}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
                 activeTab === 'intelligence'
-                  ? 'bg-pepper-500/10 text-pepper-400 font-semibold border border-pepper-500/20'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Cpu className="w-4 h-4 text-pepper-400" />
               <span>Intelligence Platform</span>
-              <span className="ml-auto text-[9px] uppercase font-bold px-1 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                v2.0
-              </span>
             </button>
           </div>
 
           {/* First-Class Projects Quick Filter */}
           {projects.length > 0 && (
-            <div className="space-y-1 pt-4 border-t border-border">
-              <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
-                Projects
+            <div className="space-y-1 pt-4 border-t border-border/80">
+              <div className="px-3 text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">
+                Active Projects
               </div>
               {projects.map((proj) => (
                 <button
@@ -256,13 +256,13 @@ export default function App() {
                     clearSearch();
                     setSelectedProject(selectedProject === proj ? null : proj);
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-left ${
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
                     selectedProject === proj
-                      ? 'bg-surface-hover text-text-primary font-semibold'
+                      ? 'bg-surface-hover text-text-primary font-bold border-l-2 border-pepper-500 pl-2.5'
                       : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5 text-pepper-500" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-pepper-500/30 border border-pepper-500/60" />
                   <span className="truncate">{proj}</span>
                 </button>
               ))}
@@ -270,13 +270,13 @@ export default function App() {
           )}
 
           {/* Backup & Tools */}
-          <div className="space-y-2 pt-4 border-t border-border">
-            <div className="px-3 text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2">
-              Storage &amp; Backup
+          <div className="space-y-2 pt-4 border-t border-border/80">
+            <div className="px-3 text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">
+              Storage Systems
             </div>
             <button
               onClick={exportJSON}
-              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export JSON Backup</span>
@@ -286,18 +286,19 @@ export default function App() {
 
         {/* Main View Area */}
         <main className="flex-1 space-y-6 min-w-0">
-          {/* Active Search Filter Banner */}
+          
+          {/* Semantic Search Match Banner */}
           {searchQuery && (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-pepper-500/10 border border-pepper-500/20 text-xs text-text-primary">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-pepper-500/10 border border-pepper-500/20 text-xs text-text-primary">
+              <div className="flex items-center gap-3">
                 <Search className="w-4 h-4 text-pepper-400" />
-                <span>
-                  Filtering for <strong className="text-pepper-400">"{searchQuery}"</strong> ({displayedSessions.length} match{displayedSessions.length !== 1 ? 'es' : ''})
+                <span className="font-medium">
+                  Semantic results for <strong className="text-pepper-400 font-bold">"{searchQuery}"</strong> &bull; {displayedSessions.length} context matches found
                 </span>
               </div>
               <button
                 onClick={clearSearch}
-                className="flex items-center gap-1 text-[11px] font-semibold text-pepper-400 hover:underline"
+                className="flex items-center gap-1 text-[11px] font-bold text-pepper-400 hover:underline"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Clear Filter</span>
@@ -320,10 +321,10 @@ export default function App() {
 
               {displayedSessions.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-border">
-                  <div className="text-xs font-bold uppercase tracking-wider text-text-muted">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">
                     {selectedProject ? `Workspaces in ${selectedProject}` : 'All Project Workspaces'} ({displayedSessions.length})
                   </div>
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-3.5">
                     {displayedSessions.map((s) => (
                       <SessionCard key={s.id} session={s} />
                     ))}
@@ -338,9 +339,9 @@ export default function App() {
                 <HardDrive className="w-10 h-10" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-text-primary">No workspaces yet</h3>
+                <h3 className="text-base font-bold text-text-primary">No workspaces memory captures yet</h3>
                 <p className="text-xs text-text-muted max-w-sm mt-1">
-                  Save your current browser session to create your first workspace.
+                  Save your current browser session to capture your first workspace memory.
                 </p>
               </div>
               <button
