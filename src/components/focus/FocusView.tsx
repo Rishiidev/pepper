@@ -102,14 +102,25 @@ export const FocusView: React.FC = () => {
         {/* Pomodoro Round Indicator */}
         {activeSession.mode === 'pomodoro' && (
           <div className="flex items-center justify-center gap-2 text-xs font-mono text-text-muted">
-            <span>Round 1 of 4</span>
+            <span>
+              Round {activeSession.pomodoroRound || 1} of {activeSession.totalRounds || 4}
+            </span>
             <div className="flex gap-1.5">
-              {[1, 2, 3, 4].map((r) => (
-                <div
-                  key={r}
-                  className={`w-2.5 h-2.5 rounded-full ${r === 1 ? 'bg-pepper-500 animate-pulse' : 'bg-border'}`}
-                />
-              ))}
+              {Array.from({ length: activeSession.totalRounds || 4 }, (_, i) => i + 1).map((r) => {
+                const currentRound = activeSession.pomodoroRound || 1;
+                return (
+                  <div
+                    key={r}
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      r === currentRound
+                        ? 'bg-pepper-500 animate-pulse'
+                        : r < currentRound
+                        ? 'bg-emerald-500'
+                        : 'bg-border'
+                    }`}
+                  />
+                );
+              })}
             </div>
           </div>
         )}

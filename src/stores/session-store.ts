@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { PepperSession, GroupedTimeline, SessionStats } from '../core/types/session';
+import { PepperSession, PepperTab, GroupedTimeline, SessionStats } from '../core/types/session';
 import { sessionEngine } from '../core/engines/session-engine';
 import { workspaceEngine } from '../core/engines/workspace-engine';
 import { restoreEngine } from '../core/engines/restore-engine';
@@ -23,7 +23,7 @@ interface SessionState {
   clearSearch: () => void;
   setSelectedProject: (project: string | null) => void;
   resetFilters: () => void;
-  saveWorkspace: (customName?: string) => Promise<PepperSession | null>;
+  saveWorkspace: (customName?: string, selectedTabs?: PepperTab[], projectName?: string) => Promise<PepperSession | null>;
   restoreSession: (id: string, tabIndices?: number[]) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
@@ -113,9 +113,9 @@ export const useSessionStore = create<SessionState>((set, get) => {
       set({ filteredSessions: filtered, timeline });
     },
 
-    saveWorkspace: async (customName?: string) => {
+    saveWorkspace: async (customName?: string, selectedTabs?: PepperTab[], projectName?: string) => {
       try {
-        const session = await workspaceEngine.saveWorkspace(customName);
+        const session = await workspaceEngine.saveWorkspace(customName, selectedTabs, projectName);
         if (session) {
           await get().fetchSessions();
         }

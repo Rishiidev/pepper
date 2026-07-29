@@ -22,9 +22,10 @@ export class FeatureFlagsManager {
   private static instance: FeatureFlagsManager;
   private flags: IntelligenceFeatureFlags = { ...DEFAULT_INTELLIGENCE_FLAGS };
   private readonly STORAGE_KEY = 'pepper_v2_intelligence_flags';
+  private hydrationPromise: Promise<IntelligenceFeatureFlags> | null = null;
 
   private constructor() {
-    this.hydrateFromStorage();
+    this.hydrationPromise = this.hydrateFromStorage();
   }
 
   static getInstance(): FeatureFlagsManager {
@@ -32,6 +33,13 @@ export class FeatureFlagsManager {
       FeatureFlagsManager.instance = new FeatureFlagsManager();
     }
     return FeatureFlagsManager.instance;
+  }
+
+  async ensureHydrated(): Promise<IntelligenceFeatureFlags> {
+    if (this.hydrationPromise) {
+      await this.hydrationPromise;
+    }
+    return this.getFlags();
   }
 
   async hydrateFromStorage(): Promise<IntelligenceFeatureFlags> {

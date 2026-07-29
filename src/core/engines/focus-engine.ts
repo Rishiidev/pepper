@@ -31,8 +31,12 @@ export class FocusEngine {
       )
     ).slice(0, 5);
 
+    const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+
     const session: FocusSession = {
-      id: `focus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: `focus_${uniqueId}`,
       sessionId: memory.id,
       workspaceName: memory.name,
       projectName: memory.projectName || 'General',
@@ -48,7 +52,7 @@ export class FocusEngine {
     };
 
     await db.focusSessions.add(session);
-    eventBus.emit('focus:started' as any, { session });
+    eventBus.emit('focus:started', { session });
     return session;
   }
 
@@ -95,7 +99,7 @@ export class FocusEngine {
     }
 
     await db.focusSessions.put(session);
-    eventBus.emit('focus:completed' as any, { session });
+    eventBus.emit('focus:completed', { session });
     return session;
   }
 
@@ -105,6 +109,7 @@ export class FocusEngine {
       session.status = 'paused';
       session.elapsedSeconds = elapsedSeconds;
       await db.focusSessions.put(session);
+      eventBus.emit('focus:paused', { sessionId });
     }
   }
 
@@ -115,6 +120,7 @@ export class FocusEngine {
       session.elapsedSeconds = elapsedSeconds;
       session.endedAt = Date.now();
       await db.focusSessions.put(session);
+      eventBus.emit('focus:canceled', { sessionId });
     }
   }
 
@@ -123,11 +129,11 @@ export class FocusEngine {
   }
 
   async getSessionsForWorkspace(workspaceId: string): Promise<FocusSession[]> {
-    return await db.focusSessions
+    const sessions = await db.focusSessions
       .where('sessionId')
       .equals(workspaceId)
-      .reverse()
-      .sortBy('startedAt');
+      .toArray();
+    return sessions.sort((a, b) => b.startedAt - a.startedAt);
   }
 }
 

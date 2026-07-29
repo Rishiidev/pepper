@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
 import { useCommandStore } from '../../src/stores/command-store';
@@ -6,6 +6,7 @@ import { Logo } from '../../src/components/brand/Logo';
 import { DomainTabAccordion } from '../../src/components/popup/DomainTabAccordion';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
 import { workspaceEngine } from '../../src/core/engines/workspace-engine';
+import { sessionEngine } from '../../src/core/engines/session-engine';
 import { AutoTitleSkill } from '../../src/core/intelligence/skills/auto-title';
 import { projectRepo } from '../../src/storage/repositories/project-repo';
 import { PepperTab, PepperSession } from '../../src/core/types/session';
@@ -50,6 +51,20 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<PepperSession | null>(null);
 
+  // BUG-07 FIX: Use refs to avoid stale closures in keyboard listener
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+  const selectedIndicesRef = useRef(selectedIndices);
+  selectedIndicesRef.current = selectedIndices;
+  const aiTitleRef = useRef(aiTitle);
+  aiTitleRef.current = aiTitle;
+  const detectedProjectRef = useRef(detectedProject);
+  detectedProjectRef.current = detectedProject;
+  const customTagsRef = useRef(customTags);
+  customTagsRef.current = customTags;
+  const isSavingRef = useRef(isSaving);
+  isSavingRef.current = isSaving;
+
   useEffect(() => {
     fetchSessions();
     fetchSettings();
@@ -64,7 +79,7 @@ export default function App() {
         window.close();
       } else if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
         e.preventDefault();
-        generateAiTitle(tabs);
+        generateAiTitle(tabsRef.current);
       }
     };
 
@@ -130,14 +145,31 @@ export default function App() {
   };
 
   const handleSave = async () => {
-    if (selectedIndices.size === 0 || isSaving) return;
+    const currentSelected = selectedIndicesRef.current;
+    const currentTabs = tabsRef.current;
+    const currentSaving = isSavingRef.current;
+    const currentTitle = aiTitleRef.current;
+    const currentProject = detectedProjectRef.current;
+    const currentTagsStr = customTagsRef.current;
+
+    if (currentSelected.size === 0 || currentSaving) return;
     setIsSaving(true);
     try {
-      const selectedTabs = tabs.filter((_, idx) => selectedIndices.has(idx));
-      const titleToUse = aiTitle.trim() || 'Saved Workspace';
-      const session = await workspaceEngine.saveWorkspace(titleToUse, selectedTabs);
+      const selectedTabs = currentTabs.filter((_, idx) => currentSelected.has(idx));
+      const titleToUse = currentTitle.trim() || 'Saved Workspace';
+      // BUG-08 FIX: Propagate detected/selected project name to workspaceEngine
+      const session = await workspaceEngine.saveWorkspace(titleToUse, selectedTabs, currentProject);
 
       if (session) {
+        // BUG-13 FIX: Parse and save custom tags entered in Advanced Options
+        const parsedTags = currentTagsStr
+          .split(',')
+          .map((t) => t.trim())
+          .filter(Boolean);
+        if (parsedTags.length > 0) {
+          await sessionEngine.updateSession(session.id, { tags: parsedTags });
+        }
+
         setLastSaved(session);
         setView('success');
       }
@@ -277,7 +309,7 @@ export default function App() {
                   setAiTitle(e.target.value);
                   setIsEditingTitle(true);
                 }}
-                disabled={isGeneratingTitle && !isEditingTitle}
+                disabled={isGeneratingTitle}
                 placeholder={isGeneratingTitle ? '✨ Analyzing tabs & generating title...' : 'e.g. Shopify Checkout'}
                 className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-text-primary placeholder:text-pepper-400/70 focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
               />
@@ -304,8 +336,8 @@ export default function App() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                96% Match
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
+                Auto-detected
               </span>
             </div>
           </div>

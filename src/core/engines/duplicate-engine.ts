@@ -11,15 +11,21 @@ export interface DuplicatePair {
 
 export class DuplicateEngine {
   findDuplicates(sessions: PepperSession[], threshold = 0.3): DuplicatePair[] {
+    const targetSessions = sessions.length > 200 ? sessions.slice(0, 200) : sessions;
     const pairs: DuplicatePair[] = [];
 
-    for (let i = 0; i < sessions.length; i++) {
-      for (let j = i + 1; j < sessions.length; j++) {
-        const sA = sessions[i];
-        const sB = sessions[j];
+    // Pre-calculate cleaned URL sets to avoid re-parsing inside the loop
+    const sessionUrlSets = targetSessions.map((s) => ({
+      session: s,
+      urls: new Set(s.tabs.map((t) => this.cleanUrl(t.url)).filter(Boolean)),
+    }));
 
-        const urlsA = new Set(sA.tabs.map((t) => this.cleanUrl(t.url)).filter(Boolean));
-        const urlsB = new Set(sB.tabs.map((t) => this.cleanUrl(t.url)).filter(Boolean));
+    for (let i = 0; i < sessionUrlSets.length; i++) {
+      for (let j = i + 1; j < sessionUrlSets.length; j++) {
+        const { session: sA, urls: urlsA } = sessionUrlSets[i];
+        const { session: sB, urls: urlsB } = sessionUrlSets[j];
+
+        if (urlsA.size === 0 || urlsB.size === 0) continue;
 
         const sharedUrls: string[] = [];
         for (const u of urlsA) {

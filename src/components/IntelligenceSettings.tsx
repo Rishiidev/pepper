@@ -23,6 +23,7 @@ export const IntelligenceSettings: React.FC = () => {
   const [savedConfigs, setSavedConfigs] = useState<ProviderConfigsMap>({});
   const [selectedProvider, setSelectedProvider] = useState<{ id: string; name: string; isLocal?: boolean } | null>(null);
   const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
+  const [registeredCommands, setRegisteredCommands] = useState<Array<{ name?: string; description?: string; shortcut?: string }>>([]);
 
   const fetchConfigs = async () => {
     const configs = await keyVaultRepo.getAll();
@@ -30,8 +31,29 @@ export const IntelligenceSettings: React.FC = () => {
     refreshMetrics();
   };
 
+  const fetchChromeCommands = async () => {
+    if (typeof chrome !== 'undefined' && chrome.commands) {
+      try {
+        const cmds = await chrome.commands.getAll();
+        setRegisteredCommands(cmds);
+      } catch (err) {
+        console.warn('Failed to fetch Chrome commands:', err);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchConfigs();
+    fetchChromeCommands();
+
+    const handleFocus = () => fetchChromeCommands();
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleFocus);
+    };
   }, []);
 
   const providersList = [
@@ -268,6 +290,97 @@ export const IntelligenceSettings: React.FC = () => {
             />
           </label>
         </div>
+      </div>
+
+      {/* Keyboard Shortcuts Settings (Dynamic Chrome API) */}
+      <div className="bg-surface-card border border-border rounded-xl p-5 space-y-4 shadow-sm">
+        <div className="flex items-center justify-between pb-3 border-b border-border">
+          <div>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-pepper-400" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                Keyboard Shortcuts ({registeredCommands.length} Commands Registered)
+              </h3>
+            </div>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              Managed directly by Chrome Extension Shortcuts Manager
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchChromeCommands}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text-secondary hover:text-text-primary text-xs font-semibold transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Refresh Shortcuts</span>
+            </button>
+
+            <button
+              onClick={async () => {
+                if (typeof chrome !== 'undefined' && chrome.tabs) {
+                  try {
+                    await chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+                  } catch {
+                    alert('Open chrome://extensions/shortcuts in Chrome address bar to manage keybindings.');
+                  }
+                } else {
+                  alert('Open chrome://extensions/shortcuts in Chrome address bar to manage keybindings.');
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 text-xs font-bold transition-colors"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Change in Chrome</span>
+            </button>
+          </div>
+        </div>
+
+        {registeredCommands.length === 0 ? (
+          <div className="p-4 rounded-xl border border-dashed border-border/60 text-center text-xs text-text-muted">
+            Reading commands from Chrome extension runtime... If not loaded, reload extension via <code>chrome://extensions</code>.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {registeredCommands.map((cmd) => (
+              <div key={cmd.name} className="p-3.5 rounded-xl border border-border/80 bg-surface/50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-text-primary tracking-tight">
+                    {cmd.description || cmd.name}
+                  </span>
+
+                  {cmd.shortcut ? (
+                    <kbd className="px-2 py-0.5 rounded bg-pepper-500/10 font-mono text-[10px] text-pepper-400 font-extrabold border border-pepper-500/20">
+                      {cmd.shortcut}
+                    </kbd>
+                  ) : (
+                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
+                      Not assigned
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-[10px] text-text-muted pt-1">
+                  <span className="font-mono text-pepper-400/80">Command: {cmd.name}</span>
+                  <button
+                    onClick={async () => {
+                      if (typeof chrome !== 'undefined' && chrome.tabs) {
+                        try {
+                          await chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+                        } catch {
+                          alert('Open chrome://extensions/shortcuts to edit.');
+                        }
+                      }
+                    }}
+                    className="font-bold text-pepper-400 hover:underline"
+                  >
+                    Change in Chrome &rarr;
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Telemetry Log Output */}

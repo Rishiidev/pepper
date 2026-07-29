@@ -1,6 +1,7 @@
 export type NamingMode = 'prefilled' | 'ask' | 'auto' | 'template';
 export type SaveScope = 'window' | 'selected' | 'all_windows';
 export type AppTheme = 'dark' | 'light' | 'system';
+export type QuickSaveDestination = 'inbox' | 'current_workspace' | 'ask';
 
 export interface PepperSettings {
   namingMode: NamingMode;
@@ -13,6 +14,11 @@ export interface PepperSettings {
   aiAutoNaming: boolean;
   selectedAiProvider: string;
   hasCompletedOnboarding?: boolean;
+
+  // === Quick Save & Shortcut Settings ===
+  quickSaveDestination: QuickSaveDestination;
+  quickSaveFeedback: boolean;
+  quickSaveEnableUndo: boolean;
 }
 
 export const DEFAULT_SETTINGS: PepperSettings = {
@@ -26,4 +32,7 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   aiAutoNaming: false,
   selectedAiProvider: 'none',
   hasCompletedOnboarding: false,
+  quickSaveDestination: 'inbox',
+  quickSaveFeedback: true,
+  quickSaveEnableUndo: true,
 };

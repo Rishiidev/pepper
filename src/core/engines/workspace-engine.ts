@@ -53,7 +53,7 @@ export class WorkspaceEngine {
     }
   }
 
-  async saveWorkspace(customName?: string, selectedTabs?: PepperTab[]): Promise<PepperSession | null> {
+  async saveWorkspace(customName?: string, selectedTabs?: PepperTab[], projectName?: string, closeTabs?: boolean): Promise<PepperSession | null> {
     const settings = await settingsRepo.get();
     const allTabs = await this.getActiveWindowTabs();
     const tabsToSave = selectedTabs && selectedTabs.length > 0 ? selectedTabs : allTabs;
@@ -63,12 +63,23 @@ export class WorkspaceEngine {
       return null;
     }
 
-    const sessionName = sessionNamingSkill.generateDefaultName(settings, tabsToSave, customName);
+    const sessionName = customName && customName.trim() ? customName.trim() : sessionNamingSkill.generateDefaultName(settings, tabsToSave);
     const session = await sessionEngine.createSession(sessionName, tabsToSave, {
-      projectName: settings.defaultProjectName,
+      projectName: projectName || settings.defaultProjectName,
     });
 
-    if (settings.closeTabsOnSave !== false) {
+    if (!session || !session.id) {
+      throw new Error('PEPPER Storage Error: Workspace creation failed.');
+    }
+
+    // Storage readback verification
+    const verified = await sessionEngine.getSessionById(session.id);
+    if (!verified || verified.tabs.length === 0) {
+      throw new Error('PEPPER Storage Verification Error: Session readback failed. Tabs remain open.');
+    }
+
+    const shouldClose = closeTabs !== undefined ? closeTabs : (settings.closeTabsOnSave !== false);
+    if (shouldClose) {
       await this.closeSavedTabs(tabsToSave);
     }
 

@@ -19,10 +19,11 @@ import { CreateProjectModal } from '../../src/components/modals/CreateProjectMod
 import { OnboardingModal } from '../../src/components/modals/OnboardingModal';
 import { MemoryReconstructionOverlay } from '../../src/components/MemoryReconstructionOverlay';
 import { FocusView } from '../../src/components/focus/FocusView';
-import { InsightsView } from '../../src/components/focus/InsightsView';
 import { SessionCompleteModal } from '../../src/components/focus/SessionCompleteModal';
+import { HistoryView } from '../../src/components/history/HistoryView';
+import { InsightsDashboard } from '../../src/components/insights/InsightsDashboard';
 import { PepperSession } from '../../src/core/types/session';
-import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, Pause, Play, CheckCircle2 } from 'lucide-react';
+import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, Pause, Play, CheckCircle2, History } from 'lucide-react';
 
 export default function App() {
   const {
@@ -54,7 +55,7 @@ export default function App() {
     clearCompletedModal,
   } = useFocusStore();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'projects' | 'focus' | 'timeline' | 'insights' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'insights' | 'settings'>('home');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
@@ -86,7 +87,7 @@ export default function App() {
     }
   };
 
-  const handleNavClick = (tab: 'home' | 'memories' | 'projects' | 'focus' | 'timeline' | 'insights' | 'settings') => {
+  const handleNavClick = (tab: 'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'insights' | 'settings') => {
     setActiveTab(tab);
     resetFilters();
   };
@@ -223,30 +224,18 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => handleNavClick('memories')}
+              onClick={() => handleNavClick('workspaces')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'memories'
+                activeTab === 'workspaces'
                   ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Brain className="w-4 h-4" />
-              <span>Memories</span>
+              <span>Workspaces</span>
               <span className="ml-auto text-[10px] font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
                 {sessions.length}
               </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('projects')}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'projects'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <FolderKanban className="w-4 h-4" />
-              <span>Projects</span>
             </button>
 
             <button
@@ -258,20 +247,20 @@ export default function App() {
               }`}
             >
               <Timer className="w-4 h-4 text-pepper-400" />
-              <span>Focus System</span>
+              <span>Focus</span>
               {isRunning && <span className="w-2 h-2 rounded-full bg-pepper-500 animate-pulse ml-auto" />}
             </button>
 
             <button
-              onClick={() => handleNavClick('timeline')}
+              onClick={() => handleNavClick('history')}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'timeline'
+                activeTab === 'history'
                   ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <Clock className="w-4 h-4" />
-              <span>Timeline</span>
+              <History className="w-4 h-4 text-emerald-400" />
+              <span>History</span>
             </button>
 
             <button
@@ -283,7 +272,7 @@ export default function App() {
               }`}
             >
               <TrendingUp className="w-4 h-4 text-amber-400" />
-              <span>Insights &amp; Journal</span>
+              <span>Insights</span>
             </button>
 
             <button
@@ -320,7 +309,7 @@ export default function App() {
                 <button
                   key={proj}
                   onClick={() => {
-                    setActiveTab('memories');
+                    setActiveTab('workspaces');
                     clearSearch();
                     setSelectedProject(selectedProject === proj ? null : proj);
                   }}
@@ -384,10 +373,10 @@ export default function App() {
             <IntelligenceSettings />
           ) : activeTab === 'focus' ? (
             <FocusView />
+          ) : activeTab === 'history' ? (
+            <HistoryView />
           ) : activeTab === 'insights' ? (
-            <InsightsView />
-          ) : activeTab === 'timeline' ? (
-            <VisualTimelineView sessions={sessions} />
+            <InsightsDashboard />
           ) : activeTab === 'projects' ? (
             <div className="space-y-6">
               <ProjectsOverview
@@ -472,8 +461,8 @@ export default function App() {
                 </div>
               )}
 
-              {/* Memories List View */}
-              {(activeTab === 'memories' || searchQuery) && (
+              {/* Workspaces List View */}
+              {(activeTab === 'workspaces' || searchQuery) && (
                 <div className="space-y-4 pt-2">
                   <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
                     <span className="font-semibold uppercase tracking-wider flex items-center gap-2">

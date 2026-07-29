@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PepperSession } from '../core/types/session';
 import { useSessionStore } from '../stores/session-store';
+import { useSettingsStore } from '../stores/settings-store';
 import { healthEngine } from '../core/engines/health-engine';
 import { sessionEngine } from '../core/engines/session-engine';
 import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
@@ -32,6 +33,7 @@ interface SessionCardProps {
 
 export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
   const { restoreSession, deleteSession, toggleFavorite, togglePin, fetchSessions } = useSessionStore();
+  const { settings } = useSettingsStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -302,7 +304,14 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
           </button>
 
           <button
-            onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (settings.confirmDelete !== false) {
+                const confirmed = window.confirm(`Are you sure you want to delete "${session.name}"?`);
+                if (!confirmed) return;
+              }
+              deleteSession(session.id);
+            }}
             className="p-2 rounded-xl border border-border/50 hover:border-red-500/30 hover:bg-red-500/5 text-text-muted hover:text-red-400 transition-colors"
             title="Delete Workspace"
           >

@@ -4,16 +4,16 @@ const SETTINGS_STORAGE_KEY = 'pepper_v2_settings';
 
 export class SettingsRepository {
   async get(): Promise<PepperSettings> {
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
         const data = await chrome.storage.local.get(SETTINGS_STORAGE_KEY);
         return { ...DEFAULT_SETTINGS, ...data[SETTINGS_STORAGE_KEY] };
+      } catch {
+        // Fallback to localStorage if chrome.storage fails
       }
-    } catch {
-      // Fallback for non-extension environments (e.g. tests)
     }
 
-    const local = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const local = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_STORAGE_KEY) : null;
     return local ? { ...DEFAULT_SETTINGS, ...JSON.parse(local) } : DEFAULT_SETTINGS;
   }
 
@@ -21,15 +21,12 @@ export class SettingsRepository {
     const current = await this.get();
     const updated = { ...current, ...settings };
 
-    try {
-      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
-        await chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: updated });
-      }
-    } catch {
-      // Fallback
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      await chrome.storage.local.set({ [SETTINGS_STORAGE_KEY]: updated });
+    } else if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
     }
 
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
     return updated;
   }
 }

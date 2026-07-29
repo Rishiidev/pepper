@@ -1,5 +1,6 @@
 import { PepperSession, GroupedTimeline } from '../types/session';
 import { PepperSettings } from '../types/settings';
+import { FocusSession } from '../types/focus-session';
 
 export type PepperEvents = {
   'session:created': { session: PepperSession };
@@ -12,4 +13,8 @@ export type PepperEvents = {
   'search:query': { query: string };
   'command:execute': { commandId: string };
   'capture:auto': { windowId: number; tabCount: number };
+  'focus:started': { session: FocusSession };
+  'focus:completed': { session: FocusSession };
+  'focus:paused': { sessionId: string };
+  'focus:canceled': { sessionId: string };
 };

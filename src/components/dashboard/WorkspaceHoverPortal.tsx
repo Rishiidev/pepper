@@ -8,6 +8,19 @@ interface Props {
 }
 
 export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => {
+  const portalRef = React.useRef<HTMLDivElement>(null);
+  const [positionClass, setPositionClass] = React.useState<'top-full mt-2' | 'bottom-full mb-2'>('top-full mt-2');
+
+  React.useLayoutEffect(() => {
+    if (portalRef.current) {
+      const rect = portalRef.current.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      if (rect.bottom > windowHeight - 10) {
+        setPositionClass('bottom-full mb-2');
+      }
+    }
+  }, []);
+
   // Generate safe fallbacks if not stored to preserve truthfulness
   const downloads = session.recentDownloads && session.recentDownloads.length > 0 
     ? session.recentDownloads 
@@ -27,7 +40,10 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
   const summaryText = session.summary || 'Workspace memory saved. Resume to re-hydrate context.';
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-80 bg-surface-card border border-border/80 rounded-2xl p-4 shadow-2xl glass-panel z-50 animate-slide-up space-y-4 pointer-events-auto">
+    <div
+      ref={portalRef}
+      className={`absolute left-1/2 -translate-x-1/2 ${positionClass} w-80 bg-surface-card border border-border/80 rounded-2xl p-4 shadow-2xl glass-panel z-50 animate-slide-up space-y-4 pointer-events-auto`}
+    >
       {/* Header */}
       <div>
         <div className="text-[10px] uppercase font-bold tracking-widest text-pepper-400 mb-1 flex items-center gap-1">

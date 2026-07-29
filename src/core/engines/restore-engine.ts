@@ -31,6 +31,13 @@ export class RestoreEngine {
       focused: true,
     });
 
+    if (firstTab.pinned && newWindow.id) {
+      const createdTabs = newWindow.tabs || (await chrome.tabs.query({ windowId: newWindow.id }));
+      if (createdTabs && createdTabs[0]?.id) {
+        await chrome.tabs.update(createdTabs[0].id, { pinned: true });
+      }
+    }
+
     // Append remaining tabs to the new window
     if (newWindow.id && tabsToRestore.length > 1) {
       for (let i = 1; i < tabsToRestore.length; i++) {

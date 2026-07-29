@@ -51,42 +51,37 @@ export class IntelligenceQueue {
     });
   }
 
-  private async processNext(): Promise<void> {
-    if (this.isProcessing || this.activeCount >= this.concurrencyLimit || this.queue.length === 0) {
-      return;
-    }
+  private processNext(): void {
+    while (this.activeCount < this.concurrencyLimit && this.queue.length > 0) {
+      const item = this.queue.shift();
+      if (!item) break;
 
-    this.isProcessing = true;
-    const item = this.queue.shift();
-    if (!item) {
-      this.isProcessing = false;
-      return;
-    }
+      this.activeCount++;
 
-    this.activeCount++;
-    this.isProcessing = false;
+      (async () => {
+        try {
+          const result = await aiRouter.executeTask(item.task);
 
-    try {
-      const result = await aiRouter.executeTask(item.task);
-
-      if (!result.success && item.retryCount < (item.task.maxRetries ?? 2)) {
-        item.retryCount++;
-        console.warn(`[IntelligenceQueue] Retrying task ${item.task.id} (Attempt ${item.retryCount})`);
-        this.queue.unshift(item);
-      } else {
-        if (result.success) {
-          intelligenceEventBus.emit('task.completed', { taskId: item.task.id, durationMs: result.durationMs });
-        } else {
-          intelligenceEventBus.emit('task.failed', { taskId: item.task.id, error: result.error || 'Execution failed' });
+          if (!result.success && item.retryCount < (item.task.maxRetries ?? 2)) {
+            item.retryCount++;
+            console.warn(`[IntelligenceQueue] Retrying task ${item.task.id} (Attempt ${item.retryCount})`);
+            this.queue.unshift(item);
+          } else {
+            if (result.success) {
+              intelligenceEventBus.emit('task.completed', { taskId: item.task.id, durationMs: result.durationMs });
+            } else {
+              intelligenceEventBus.emit('task.failed', { taskId: item.task.id, error: result.error || 'Execution failed' });
+            }
+            item.resolve(result);
+          }
+        } catch (err) {
+          intelligenceEventBus.emit('task.failed', { taskId: item.task.id, error: (err as Error).message });
+          item.reject(err);
+        } finally {
+          this.activeCount--;
+          this.processNext();
         }
-        item.resolve(result);
-      }
-    } catch (err) {
-      intelligenceEventBus.emit('task.failed', { taskId: item.task.id, error: (err as Error).message });
-      item.reject(err);
-    } finally {
-      this.activeCount--;
-      this.processNext();
+      })();
     }
   }
 

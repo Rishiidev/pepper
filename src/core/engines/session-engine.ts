@@ -31,8 +31,12 @@ export class SessionEngine {
       throw new Error('Cannot create an empty workspace');
     }
 
+    const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+
     const session: PepperSession = {
-      id: `session_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+      id: `session_${uniqueId}`,
       name,
       tabs: tabs.map((t, i) => ({
         url: t.url || '',
