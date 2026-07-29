@@ -1,140 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Pepper OS is the operating system for human memory. Leave any workspace instantly, return as if you never left.">
-  <meta property="og:title" content="PEPPER OS — Operating System for Human Memory">
-  <meta property="og:description" content="Pepper OS is the operating system for human memory. Leave any workspace instantly, return as if you never left.">
-  <meta property="og:image" content="https://raw.githubusercontent.com/Rishiidev/pepper/main/assets/social-preview.svg">
-  <title>PEPPER OS — Operating System for Human Memory</title>
-  <style>
-    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-    :root{--bg:#050507;--bg2:#0D0D12;--bg3:#14141C;--border:#181822;--subtle:#101017;--text:#F4F4F6;--muted:#9E9EAF;--faint:#5F5F70;--red:#FF3B30;--blue:#58a6ff;--green:#3fb950;--purple:#d2a8ff}
-    html{scroll-behavior:smooth}
-    body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.6}
-    a{color:inherit;text-decoration:none}
-    nav{position:sticky;top:0;z-index:100;background:rgba(5,5,7,.88);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--border);height:60px;padding:0 32px;display:flex;align-items:center;justify-content:space-between}
-    .nav-brand{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;font-family:monospace;letter-spacing:2px}
-    .nav-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0}
-    .nav-links{display:flex;gap:24px}
-    .nav-links a{font-size:14px;color:var(--muted);transition:color .15s}
-    .nav-links a:hover{color:var(--text)}
-    .nav-star{background:var(--red);color:#ffffff;padding:8px 18px;border-radius:8px;font-size:14px;font-weight:700;transition:opacity .15s}
-    .nav-star:hover{opacity:.88}
-    .hero{max-width:900px;margin:0 auto;padding:80px 32px 56px}
-    .hero-eyebrow{font-size:12px;color:var(--red);text-transform:uppercase;letter-spacing:3px;font-weight:700;margin-bottom:20px}
-    .hero-headline{font-size:clamp(48px,8vw,80px);font-weight:800;line-height:.95;letter-spacing:-2px;margin-bottom:24px}
-    .hero-sub{font-size:18px;color:var(--muted);max-width:540px;margin-bottom:40px;line-height:1.65}
-    .terminal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:600px;box-shadow:0 20px 50px rgba(0,0,0,0.6)}
-    .t-bar{background:var(--bg3);padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--subtle)}
-    .dot{width:11px;height:11px;border-radius:50%}
-    .dot-r{background:#ff5f56}.dot-y{background:#ffbd2e}.dot-g{background:#27c93f}
-    .t-title{font-size:12px;color:var(--faint);margin:0 auto;font-family:monospace}
-    .t-body{padding:20px 24px}
-    .t-line{font-family:monospace;font-size:clamp(13px,2.2vw,15px)}
-    .t-prompt{color:var(--faint)}.t-cmd{color:var(--red)}.t-out{color:var(--green);margin-top:8px;font-size:13px}
-    .t-actions{display:flex;align-items:center;gap:12px;margin-top:16px}
-    .t-copy{background:var(--bg3);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:0 16px;height:40px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
-    .t-copy:hover{border-color:var(--muted);color:var(--text)}
-    .t-hint{font-size:12px;color:var(--faint)}
-    .section{max-width:900px;margin:0 auto;padding:0 32px 64px}
-    .section-head{margin-bottom:28px}
-    .section-head h2{font-size:24px;font-weight:700;margin-bottom:6px}
-    .section-head p{font-size:15px;color:var(--muted)}
-    .output-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .output-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px}
-    .output-title{font-size:15px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-    .output-dot{width:8px;height:8px;border-radius:50%}
-    .checklist{display:flex;flex-direction:column;gap:10px}
-    .check-item{font-size:13px;color:var(--muted);display:flex;gap:8px;line-height:1.45}
-    .check-icon{color:var(--green);flex-shrink:0}
-    footer{border-top:1px solid var(--border)}
-    .footer-inner{max-width:900px;margin:0 auto;padding:32px;display:flex;align-items:center;justify-content:space-between}
-    .footer-left{font-size:13px;color:var(--faint)}
-    .footer-left a{color:var(--muted);transition:color .15s}
-    .footer-left a:hover{color:var(--text)}
-    .footer-star{background:var(--bg2);border:1px solid var(--border);color:var(--muted);padding:8px 18px;border-radius:8px;font-size:13px;transition:all .15s}
-    .footer-star:hover{border-color:var(--muted);color:var(--text)}
-  </style>
-</head>
-<body>
-<nav>
-  <div class="nav-brand"><div class="nav-dot"></div>PEPPER OS</div>
-  <div class="nav-links">
-    <a href="https://github.com/Rishiidev/pepper/archive/refs/heads/main.zip">Direct Download (.zip)</a>
-    <a href="#install">install</a>
-    <a href="#features">features</a>
-    <a href="https://github.com/Rishiidev/pepper#readme">docs</a>
-    <a href="https://github.com/Rishiidev/pepper">GitHub</a>
-  </div>
-  <a href="https://github.com/Rishiidev/pepper" class="nav-star">⭐ Star</a>
-</nav>
+<html lang="en" class="dark scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pepper — Save Your Work. Close Your Tabs.</title>
+    <meta
+      name="description"
+      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
+    />
+    <meta name="theme-color" content="#08090F" />
 
-<section class="hero" id="install">
-  <div class="hero-eyebrow">Operating System for Human Memory</div>
-  <div class="hero-headline">20 min → 0s downtime.</div>
-  <p class="hero-sub">Computers remember files. Browsers remember history. People remember ideas. Pepper remembers work.</p>
-  <div class="terminal">
-    <div class="t-bar">
-      <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
-      <div class="t-title">pepper — installation</div>
-    </div>
-    <div class="t-body">
-      <div class="t-line"><span class="t-prompt">$ </span><span class="t-cmd">git clone https://github.com/Rishiidev/pepper.git</span></div>
-      <div class="t-line t-out">✓ Cloned. Run "npm run build" and load in chrome://extensions/</div>
-      <div class="t-actions">
-        <button class="t-copy" id="copy-btn" onclick="copyInstall()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy Clone Command
-        </button>
-        <a href="https://github.com/Rishiidev/pepper/archive/refs/heads/main.zip" class="t-copy" style="color:var(--red);border-color:rgba(255,59,48,0.3)">
-          📥 Direct Download (.zip)
-        </a>
-      </div>
-    </div>
-  </div>
-</section>
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Pepper — Save Your Work. Close Your Tabs." />
+    <meta
+      property="og:description"
+      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
+    />
+    <meta property="og:site_name" content="PEPPER Work Memory Engine" />
 
-<section class="section" id="features">
-  <div class="section-head"><h2>Frustrations Pepper Slays</h2><p>Never save tabs again. Preserve momentum.</p></div>
-  <div class="output-grid">
-    <div class="output-card">
-      <div class="output-title"><div class="output-dot" style="background:var(--red)"></div>Frustrations Solved</div>
-      <div class="checklist">
-        <div class="check-item"><span class="check-icon">✓</span>Slays 20-minute context rebuilding penalty</div>
-        <div class="check-item"><span class="check-icon">✓</span>Eliminates tab hoarding & 12GB RAM paralysis</div>
-        <div class="check-item"><span class="check-icon">✓</span>Removes manual tab saver filing cabinet friction</div>
-      </div>
-    </div>
-    <div class="output-card">
-      <div class="output-title"><div class="output-dot" style="background:var(--blue)"></div>Full OS Feature Suite</div>
-      <div class="checklist">
-        <div class="check-item"><span class="check-icon">✓</span>Silent Context Auto-Capture on window close</div>
-        <div class="check-item"><span class="check-icon">✓</span>Work Memory Recall (⌘K) with 8-weighted field search</div>
-        <div class="check-item"><span class="check-icon">✓</span>Context Reconstruction portal overlay ("I'm Back")</div>
-        <div class="check-item"><span class="check-icon">✓</span>BYOK 8-Provider AI (OpenAI, Claude, Gemini, Ollama)</div>
-      </div>
-    </div>
-  </div>
-</section>
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pepper — Save Your Work. Close Your Tabs." />
+    <meta
+      name="twitter:description"
+      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
+    />
 
-<footer>
-  <div class="footer-inner">
-    <div class="footer-left">MIT License · <a href="https://github.com/Rishiidev/pepper">GitHub</a> · Built by <a href="https://github.com/Rishiidev">Rishiidev</a></div>
-    <a href="https://github.com/Rishiidev/pepper" class="footer-star">⭐ Star on GitHub</a>
-  </div>
-</footer>
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FF4D43'/><text x='50' y='68' font-size='60' font-weight='900' text-anchor='middle' fill='white' font-family='sans-serif'>P</text></svg>" />
 
-<script>
-  function copyInstall(){
-    const cmd='git clone https://github.com/Rishiidev/pepper.git';
-    navigator.clipboard.writeText(cmd).then(()=>{
-      const btn=document.getElementById('copy-btn');
-      btn.innerHTML='Copied!';
-      setTimeout(()=>{ btn.innerHTML='Copy Clone Command'; },2000);
-    });
-  }
-</script>
-</body>
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "PEPPER Work Memory Engine",
+        "operatingSystem": "Chrome OS, macOS, Windows, Linux",
+        "applicationCategory": "ProductivityApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "description": "Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter, and restores your work when you need it."
+      }
+    </script>
+    <script type="module" crossorigin src="/pepper/assets/index-6edm4uEJ.js"></script>
+    <link rel="stylesheet" crossorigin href="/pepper/assets/index-Cvzi_uLc.css">
+  </head>
+  <body class="bg-[#08090F] text-[#F4F5F7] antialiased selection:bg-[#FF4D43] selection:text-white">
+    <div id="root"></div>
+  </body>
 </html>
