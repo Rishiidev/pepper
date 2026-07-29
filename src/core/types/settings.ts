@@ -12,6 +12,7 @@ export interface PepperSettings {
   theme: AppTheme;
   aiAutoNaming: boolean;
   selectedAiProvider: string;
+  hasCompletedOnboarding?: boolean;
 }
 
 export const DEFAULT_SETTINGS: PepperSettings = {
@@ -24,4 +25,5 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   theme: 'dark',
   aiAutoNaming: false,
   selectedAiProvider: 'none',
+  hasCompletedOnboarding: false,
 };

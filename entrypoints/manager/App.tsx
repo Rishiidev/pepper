@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSessionStore } from '../../src/stores/session-store';
+import { useSettingsStore } from '../../src/stores/settings-store';
 import { useCommandStore } from '../../src/stores/command-store';
 import { Logo } from '../../src/components/brand/Logo';
 import { RamBadge } from '../../src/components/brand/RamBadge';
@@ -14,9 +15,10 @@ import { DomainFilterStrip } from '../../src/components/dashboard/DomainFilterSt
 import { VisualTimelineView } from '../../src/components/dashboard/VisualTimelineView';
 import { MergeDuplicatesModal } from '../../src/components/modals/MergeDuplicatesModal';
 import { CreateProjectModal } from '../../src/components/modals/CreateProjectModal';
+import { OnboardingModal } from '../../src/components/modals/OnboardingModal';
 import { MemoryReconstructionOverlay } from '../../src/components/MemoryReconstructionOverlay';
 import { PepperSession } from '../../src/core/types/session';
-import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban } from 'lucide-react';
+import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles } from 'lucide-react';
 
 export default function App() {
   const {
@@ -33,19 +35,29 @@ export default function App() {
     resetFilters,
     saveWorkspace,
   } = useSessionStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const { openPalette } = useCommandStore();
 
   const [activeTab, setActiveTab] = useState<'home' | 'memories' | 'projects' | 'timeline' | 'settings'>('home');
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Active Memory Reconstruction Animation Overlay
   const [reconstructingMemory, setReconstructingMemory] = useState<PepperSession | null>(null);
 
   useEffect(() => {
     fetchSessions();
+    fetchSettings();
   }, []);
+
+  // Automatically trigger Onboarding Tour on first launch if not completed
+  useEffect(() => {
+    if (settings && settings.hasCompletedOnboarding === false) {
+      setIsOnboardingOpen(true);
+    }
+  }, [settings]);
 
   const handleSaveMemory = async () => {
     const session = await saveWorkspace();
@@ -79,6 +91,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-surface text-text-primary flex flex-col font-sans selection:bg-pepper-500 selection:text-white">
       <CommandPalette />
+
+      {/* Interactive Onboarding Tour Modal */}
+      <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
 
       {/* Memory Reconstruction Overlay */}
       {reconstructingMemory && (
@@ -267,11 +282,18 @@ export default function App() {
             </div>
           )}
 
-          {/* Export & Backup */}
+          {/* Product Tour & Export */}
           <div className="space-y-2 pt-4 border-t border-border/80">
             <div className="px-3 text-[10px] font-extrabold text-text-muted uppercase tracking-widest mb-3">
-              Memory Storage
+              Memory Systems
             </div>
+            <button
+              onClick={() => setIsOnboardingOpen(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-pepper-500/30 bg-pepper-500/5 text-xs font-semibold text-pepper-400 hover:bg-pepper-500/10 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Welcome Product Tour</span>
+            </button>
             <button
               onClick={exportJSON}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
@@ -339,13 +361,22 @@ export default function App() {
                   Close any window or click Save Memory to capture your current browser momentum.
                 </p>
               </div>
-              <button
-                onClick={handleSaveMemory}
-                className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Save Memory</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsOnboardingOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-border hover:bg-surface-hover text-text-primary font-semibold text-xs rounded-xl transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
+                  <span>Launch Product Tour</span>
+                </button>
+                <button
+                  onClick={handleSaveMemory}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Save Memory</span>
+                </button>
+              </div>
             </div>
           ) : (
             <>
