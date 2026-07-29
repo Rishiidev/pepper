@@ -1,5 +1,6 @@
 import React from 'react';
 import { Github, Shield } from 'lucide-react';
+import { PepperLogo } from './PepperLogo';
 
 export const Footer: React.FC = () => {
   return (
@@ -8,13 +9,8 @@ export const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           {/* Brand */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-[#FF4D43] flex items-center justify-center text-white font-black text-xs shadow-md">
-                P
-              </div>
-              <span className="font-bold text-sm text-[#F4F5F7]">PEPPER</span>
-            </div>
-            <p className="text-xs text-[#8E94A5]">Your browser remembers. Your computer breathes.</p>
+            <PepperLogo showText size={24} />
+            <p className="text-xs text-[#8E94A5] pt-1">Your browser remembers. Your computer breathes.</p>
           </div>
 
           {/* Navigation Links */}

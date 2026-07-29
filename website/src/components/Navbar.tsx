@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, ArrowRight } from 'lucide-react';
+import { PepperLogo } from './PepperLogo';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -23,16 +24,8 @@ export const Navbar: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Brand Logo */}
-        <a href="#" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-[#FF4D43] flex items-center justify-center text-white font-black text-sm shadow-lg shadow-[#FF4D43]/30 group-hover:scale-105 transition-transform">
-            P
-          </div>
-          <div className="flex flex-col">
-            <span className="font-bold text-base tracking-wider text-[#F4F5F7]">PEPPER</span>
-            <span className="text-[10px] text-[#8E94A5] font-medium -mt-1 tracking-widest uppercase">
-              Work Memory
-            </span>
-          </div>
+        <a href="#" className="hover:opacity-90 transition-opacity">
+          <PepperLogo showText size={28} />
         </a>
 
         {/* Desktop Navigation Links */}

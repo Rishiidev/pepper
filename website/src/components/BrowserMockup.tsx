@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, CheckCircle2, Globe } from 'lucide-react';
+import { PepperLogo } from './PepperLogo';
 
 export const BrowserMockup: React.FC = () => {
   const [selectedTabs, setSelectedTabs] = useState<number[]>([0, 1, 2, 3, 4, 5]);
@@ -32,7 +33,7 @@ export const BrowserMockup: React.FC = () => {
   const ramFreed = selectedTabs.length * 125;
 
   return (
-    <div className="w-full max-w-4xl mx-auto rounded-2xl bg-[#11131C] border border-white/10 shadow-2xl overflow-hidden glow-red transition-all">
+    <div className="w-full max-w-4xl mx-auto rounded-2xl bg-[#11131C] border border-white/10 shadow-2xl overflow-hidden glow-red transition-all text-left">
       {/* Chrome Window Top Bar */}
       <div className="bg-[#08090F] px-4 py-3 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -56,9 +57,7 @@ export const BrowserMockup: React.FC = () => {
         {/* Header Stats */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#FF4D43] flex items-center justify-center text-white font-black text-base shadow-lg shadow-[#FF4D43]/30">
-              P
-            </div>
+            <PepperLogo size={32} />
             <div>
               <h3 className="text-sm font-bold text-[#F4F5F7] tracking-wide">PEPPER OS</h3>
               <p className="text-xs text-[#8E94A5] font-medium">WORK MEMORY ENGINE</p>
