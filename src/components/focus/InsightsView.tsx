@@ -86,7 +86,7 @@ export const InsightsView: React.FC = () => {
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Momentum Score</span>
               </span>
-              <h3 className="text-3xl font-extrabold text-white tracking-tight flex items-baseline gap-3 pt-2">
+              <h3 className="text-3xl font-extrabold text-text-primary tracking-tight flex items-baseline gap-3 pt-2">
                 <span>{momentum.score}</span>
                 <span className="text-xs font-bold text-pepper-400 font-mono">/ 100 &bull; {momentum.label}</span>
               </h3>

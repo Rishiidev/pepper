@@ -46,7 +46,7 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <button aria-label="Refresh Diagnostic"
               onClick={runCheck}
               disabled={isRefreshing}
               className="p-1.5 rounded-lg border border-border text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
@@ -54,7 +54,7 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover">
+            <button onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg text-text-muted hover:bg-surface-hover">
               <X className="w-4 h-4" />
             </button>
           </div>

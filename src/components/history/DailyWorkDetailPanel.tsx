@@ -53,7 +53,7 @@ export const DailyWorkDetailPanel: React.FC<Props> = ({ record, onClose, onSaveN
           <h2 className="text-lg font-bold text-text-primary tracking-tight pt-1">{formattedDate}</h2>
         </div>
 
-        <button
+        <button aria-label="Close detail panel"
           onClick={onClose}
           className="p-2 rounded-xl border border-border hover:bg-surface-hover text-text-muted hover:text-text-primary transition-colors"
           title="Close detail panel"

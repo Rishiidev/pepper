@@ -98,7 +98,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
             <span className="text-[10px] font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
               Work Activity Matrix
             </span>
-            <button
+            <button aria-label="How is activity calculated?"
               onClick={() => setShowScoringHelp(!showScoringHelp)}
               className="text-text-muted hover:text-pepper-400 transition-colors"
               title="How is activity calculated?"

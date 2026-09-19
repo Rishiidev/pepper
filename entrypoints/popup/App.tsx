@@ -6,7 +6,11 @@ import { Logo } from '../../src/components/brand/Logo';
 import { DomainTabAccordion } from '../../src/components/popup/DomainTabAccordion';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
 import { workspaceEngine } from '../../src/core/engines/workspace-engine';
-import { sessionEngine } from '../../src/core/engines/session-engine';
+import { sessionEngine, RAM_PER_TAB_MB } from '../../src/core/engines/session-engine';
+import { recoveryEngine, LastClosed } from '../../src/core/engines/recovery-engine';
+import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
+import { InlineRename } from '../../src/components/feedback/InlineRename';
+import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
 import { AutoTitleSkill } from '../../src/core/intelligence/skills/auto-title';
 import { projectRepo } from '../../src/storage/repositories/project-repo';
 import { PepperTab, PepperSession } from '../../src/core/types/session';
@@ -27,6 +31,7 @@ import {
   Folder,
   Plus,
   Zap,
+  Undo2,
 } from 'lucide-react';
 
 export default function App() {
@@ -50,6 +55,8 @@ export default function App() {
   const [customTags, setCustomTags] = useState<string>('checkout, research');
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<PepperSession | null>(null);
+  const [lastClosed, setLastClosed] = useState<LastClosed | null>(null);
+  const [reopenError, setReopenError] = useState<string | null>(null);
 
   // BUG-07 FIX: Use refs to avoid stale closures in keyboard listener
   const tabsRef = useRef(tabs);
@@ -69,6 +76,7 @@ export default function App() {
     fetchSessions();
     fetchSettings();
     loadCurrentTabsAndAI();
+    recoveryEngine.peekLastClosed().then(setLastClosed).catch(() => setLastClosed(null));
 
     // Keyboard Navigation Listener
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -204,6 +212,17 @@ export default function App() {
     }
   };
 
+  const handleReopen = async () => {
+    setReopenError(null);
+    try {
+      await recoveryEngine.reopenLastClosedWindow();
+      window.close();
+    } catch (err) {
+      setReopenError('Could not reopen that window.');
+      console.warn('Reopen failed:', err);
+    }
+  };
+
   const openManager = () => {
     if (typeof chrome !== 'undefined' && chrome.tabs) {
       chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
@@ -212,7 +231,7 @@ export default function App() {
     }
   };
 
-  const estimatedRamMb = Math.round(selectedIndices.size * 125);
+  const estimatedRamMb = Math.round(selectedIndices.size * RAM_PER_TAB_MB);
   const domainCount = new Set(
     tabs.map((t) => {
       try {
@@ -239,18 +258,40 @@ export default function App() {
                 onClick={() => setView('settings')}
                 className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
                 title="Settings"
-              >
+              
+              aria-label="Settings">
                 <Settings className="w-4 h-4" />
               </button>
               <button
                 onClick={openManager}
                 className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
                 title="Open Manager"
-              >
+              aria-label="Open Manager">
                 <LayoutGrid className="w-4 h-4" />
               </button>
             </div>
           </header>
+
+          <RecoveryBanner compact />
+
+          {lastClosed && (
+            <div>
+              <button
+                type="button"
+                onClick={handleReopen}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-surface-card hover:bg-surface-hover text-left transition-colors"
+              >
+                <Undo2 className="w-4 h-4 text-pepper-400 shrink-0" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-bold text-text-primary">Reopen last closed window</span>
+                  <span className="block text-[10px] text-text-muted truncate">
+                    {lastClosed.tabCount} tab{lastClosed.tabCount !== 1 ? 's' : ''} · {lastClosed.label}
+                  </span>
+                </span>
+              </button>
+              {reopenError && <p role="alert" className="text-[11px] text-red-500 mt-1">{reopenError}</p>}
+            </div>
+          )}
 
           {/* Top Metrics Strip */}
           <div className="bg-surface-card border border-pepper-500/30 rounded-xl p-2.5 grid grid-cols-4 gap-2 text-center text-xs shadow-inner">
@@ -433,6 +474,11 @@ export default function App() {
               </div>
 
               <div className="flex items-center justify-between py-2 border-t border-border/50">
+                <div className="font-semibold text-text-primary">Theme</div>
+                <ThemeToggle />
+              </div>
+
+              <div className="flex items-center justify-between py-2 border-t border-border/50">
                 <div>
                   <div className="font-semibold text-text-primary">Close Tabs After Saving</div>
                   <div className="text-[10px] text-text-muted font-medium">Free RAM immediately</div>
@@ -462,7 +508,18 @@ export default function App() {
           <CheckCircle2 className="w-12 h-12 text-pepper-500 animate-bounce" />
           <div className="space-y-1">
             <h2 className="text-base font-bold text-text-primary">✓ Workspace Saved!</h2>
-            <p className="text-xs font-semibold text-pepper-400">{lastSaved?.name}</p>
+            {lastSaved && (
+              <InlineRename
+                value={lastSaved.name}
+                label="Rename saved workspace"
+                autoFocus
+                className="text-xs text-pepper-400 justify-center"
+                onSave={async (name) => {
+                  const updated = await sessionEngine.updateSession(lastSaved.id, { name });
+                  setLastSaved(updated);
+                }}
+              />
+            )}
             <div className="text-xs text-text-muted space-y-0.5 pt-1">
               <p>✓ {lastSaved?.tabCount} tabs closed &bull; {estimatedRamMb} MB Recovered</p>
               <p>✓ AI Summary Generated &bull; Assigned to {detectedProject}</p>

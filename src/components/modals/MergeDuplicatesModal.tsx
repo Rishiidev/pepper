@@ -48,7 +48,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
             <X className="w-4 h-4" />
           </button>
         </div>

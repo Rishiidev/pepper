@@ -43,7 +43,7 @@ export const TabChecklist: React.FC<TabChecklistProps> = ({
                 isSelected ? 'bg-surface-card text-text-primary' : 'text-text-muted hover:bg-surface-hover'
               }`}
             >
-              <button type="button" className="shrink-0 text-pepper-500">
+              <button type="button" role="checkbox" aria-checked={isSelected} aria-label={`Select ${tab.title || tab.url}`} className="shrink-0 text-pepper-500">
                 {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-text-muted" />}
               </button>
 

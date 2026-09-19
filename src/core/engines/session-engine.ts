@@ -180,7 +180,9 @@ export class SessionEngine {
     });
 
     const updates: Partial<PepperSession> = {};
-    if (titleResult && titleResult.success && titleResult.data && typeof titleResult.data === 'string') {
+    // Only apply the AI title if the user has not renamed the session in the meantime
+    const latest = await this.getSessionById(session.id);
+    if (titleResult && titleResult.success && titleResult.data && typeof titleResult.data === 'string' && latest?.name === session.name) {
       updates.name = titleResult.data;
     }
     if (tagsResult.success && Array.isArray(tagsResult.data)) {

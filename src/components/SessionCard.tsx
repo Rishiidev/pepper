@@ -3,6 +3,7 @@ import { PepperSession } from '../core/types/session';
 import { useSessionStore } from '../stores/session-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { healthEngine } from '../core/engines/health-engine';
+import { InlineRename } from './feedback/InlineRename';
 import { sessionEngine } from '../core/engines/session-engine';
 import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
 import { WorkspaceSummarySkill } from '../core/intelligence/skills/workspace-summary';
@@ -18,6 +19,7 @@ const CAPTURE_LABELS: Record<string, { label: string; color: string }> = {
   auto_window_close: { label: 'Auto-captured', color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
   auto_idle: { label: 'Idle Capture', color: 'text-blue-400 bg-blue-500/10 border-blue-500/20' },
   keyboard_shortcut: { label: 'Shortcut', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+  crash_recovery: { label: 'Recovered', color: 'text-amber-500 bg-amber-500/10 border-amber-500/30' },
 };
 
 const formatDuration = (seconds: number): string => {
@@ -148,7 +150,14 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             </div>
             
             <h3 className="text-base font-bold text-text-primary tracking-tight truncate leading-tight">
-              {sanitizeDisplayTitle(session.name, session.tabs)}
+              <InlineRename
+                value={sanitizeDisplayTitle(session.name, session.tabs)}
+                label="Workspace name"
+                className="text-base font-bold tracking-tight max-w-full"
+                onSave={async (name) => {
+                  await sessionEngine.updateSession(session.id, { name });
+                }}
+              />
             </h3>
           </div>
         </div>
@@ -275,7 +284,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
 
         {/* Secondary options group */}
         <div className="flex items-center gap-1">
-          <button
+          <button aria-label={`${session.isFavorite ? 'Unfavorite' : 'Favorite'} ${session.name}`} aria-pressed={!!session.isFavorite}
             onClick={(e) => { e.stopPropagation(); toggleFavorite(session.id); }}
             className={`p-2 rounded-xl border border-border/50 hover:bg-surface transition-colors ${
               session.isFavorite ? 'text-amber-400 bg-amber-500/5' : 'text-text-muted hover:text-text-primary'
@@ -285,7 +294,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             <Star className={`w-4 h-4 ${session.isFavorite ? 'fill-amber-400' : ''}`} />
           </button>
 
-          <button
+          <button aria-label={`${session.isPinned ? 'Unpin' : 'Pin'} ${session.name}`} aria-pressed={!!session.isPinned}
             onClick={(e) => { e.stopPropagation(); togglePin(session.id); }}
             className={`p-2 rounded-xl border border-border/50 hover:bg-surface transition-colors ${
               session.isPinned ? 'text-pepper-400 bg-pepper-500/5' : 'text-text-muted hover:text-text-primary'
@@ -295,7 +304,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             <Pin className={`w-4 h-4 ${session.isPinned ? 'fill-pepper-400' : ''}`} />
           </button>
 
-          <button
+          <button aria-label={`${isExpanded ? 'Hide' : 'Show'} tabs in ${session.name}`} aria-expanded={isExpanded}
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-2 rounded-xl border border-border/50 hover:bg-surface text-text-muted hover:text-text-primary transition-colors"
             title="Toggle tab details list"
@@ -303,7 +312,7 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
 
-          <button
+          <button aria-label={`Delete ${session.name}`}
             onClick={(e) => {
               e.stopPropagation();
               if (settings.confirmDelete !== false) {

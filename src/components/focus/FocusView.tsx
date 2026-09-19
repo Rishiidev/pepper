@@ -55,7 +55,7 @@ export const FocusView: React.FC = () => {
             <Sparkles className="w-3.5 h-3.5" />
             <span>Active Focus Engine &bull; {activeSession.mode.toUpperCase()}</span>
           </span>
-          <h2 className="text-2xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl font-extrabold text-text-primary tracking-tight">
             {activeMemory.name}
           </h2>
           <p className="text-xs text-text-secondary font-medium">
@@ -90,7 +90,7 @@ export const FocusView: React.FC = () => {
           {/* Center Display */}
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1">
             <Logo size={36} state={isPaused ? 'normal' : 'saving'} />
-            <div className="text-4xl font-extrabold font-mono text-white tracking-tight pt-2">
+            <div className="text-4xl font-extrabold font-mono text-text-primary tracking-tight pt-2">
               {formatTime(displaySecs)}
             </div>
             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
@@ -157,7 +157,7 @@ export const FocusView: React.FC = () => {
             onClick={cancelFocus}
             className="p-3 rounded-2xl border border-border hover:bg-surface-hover text-text-muted hover:text-pepper-400 transition-colors"
             title="Cancel Session"
-          >
+              aria-label="Cancel Session">
             <Square className="w-4 h-4" />
           </button>
         </div>

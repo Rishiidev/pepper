@@ -50,7 +50,7 @@ export const CreateProjectModal: React.FC<Props> = ({ isOpen, onClose, onCreated
               <p className="text-[11px] text-text-muted">Organize workspaces into first-class project hubs</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
+          <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
             <X className="w-4 h-4" />
           </button>
         </div>

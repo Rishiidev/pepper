@@ -102,12 +102,19 @@ export const CommandPalette: React.FC = () => {
 
   const handleKeyNav = (e: React.KeyboardEvent) => {
     const totalItems = rankedResults.length + (searchQuery ? 0 : 2); // +2 for quick actions
+    if (totalItems === 0 && e.key !== 'Enter') return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setSelectedIndex((prev) => (prev + 1) % totalItems);
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+    } else if (e.key === 'Home' && totalItems > 0) {
+      e.preventDefault();
+      setSelectedIndex(0);
+    } else if (e.key === 'End' && totalItems > 0) {
+      e.preventDefault();
+      setSelectedIndex(totalItems - 1);
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (!searchQuery) {
@@ -139,31 +146,44 @@ export const CommandPalette: React.FC = () => {
     if (!type || type === 'manual') return null;
     if (type === 'auto_window_close') return 'Auto-captured';
     if (type === 'keyboard_shortcut') return 'Shortcut';
+    if (type === 'crash_recovery') return 'Recovered';
     return 'Auto';
   };
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/70 backdrop-blur-sm"
+      role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) closePalette();
       }}
     >
-      <div className="w-full max-w-xl bg-surface-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[65vh] animate-slide-up">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search your work memory"
+        className="w-full max-w-xl bg-surface-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[65vh] animate-slide-up"
+      >
         {/* Search Input */}
         <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border bg-surface">
           <Search className="w-5 h-5 text-pepper-400 shrink-0" />
           <input
             ref={inputRef}
             type="text"
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="pepper-palette-list"
+            aria-activedescendant={`pepper-palette-item-${selectedIndex}`}
+            aria-autocomplete="list"
+            aria-label="Search your work memory"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleKeyNav}
-            placeholder="Search your work memory... (e.g. 'that pricing research')"
+            placeholder="Search by what you remember, e.g. 'pricing research last week'"
             className="w-full bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none text-sm font-medium"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="p-1 text-text-muted hover:text-text-primary rounded">
+            <button onClick={() => setSearchQuery('')} aria-label="Clear search" className="p-1 text-text-muted hover:text-text-primary rounded">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -173,7 +193,7 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Results */}
-        <div className="overflow-y-auto p-2 space-y-0.5">
+        <div id="pepper-palette-list" role="listbox" aria-label="Results" className="overflow-y-auto p-2 space-y-0.5">
           {/* Quick Actions (shown when no query) */}
           {!searchQuery && (
             <div className="pb-2 space-y-0.5">
@@ -181,6 +201,10 @@ export const CommandPalette: React.FC = () => {
                 Quick Actions
               </div>
               <button
+                id="pepper-palette-item-0"
+                role="option"
+                aria-selected={selectedIndex === 0}
+                tabIndex={-1}
                 onClick={handleSave}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-text-primary rounded-xl transition-colors text-left ${
                   selectedIndex === 0 ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover'
@@ -193,6 +217,10 @@ export const CommandPalette: React.FC = () => {
                 <kbd className="px-1.5 py-0.5 text-[9px] bg-border/40 text-text-secondary rounded font-mono">⌘⇧S</kbd>
               </button>
               <button
+                id="pepper-palette-item-1"
+                role="option"
+                aria-selected={selectedIndex === 1}
+                tabIndex={-1}
                 onClick={handleOpenManager}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-text-primary rounded-xl transition-colors text-left ${
                   selectedIndex === 1 ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover'
@@ -239,6 +267,12 @@ export const CommandPalette: React.FC = () => {
                 return (
                   <div
                     key={session.id}
+                    id={`pepper-palette-item-${itemIndex}`}
+                    role="option"
+                    aria-selected={isSelected}
+                    ref={(el) => {
+                      if (isSelected && el) el.scrollIntoView({ block: 'nearest' });
+                    }}
                     className={`flex items-center justify-between px-3 py-2.5 rounded-xl group transition-all cursor-pointer ${
                       isSelected ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover border border-transparent'
                     }`}
@@ -283,6 +317,7 @@ export const CommandPalette: React.FC = () => {
                           e.stopPropagation();
                           toggleFavorite(session.id);
                         }}
+                        aria-label={`Favorite ${session.name}`}
                         className="p-1 text-text-muted hover:text-amber-400 rounded"
                       >
                         <Star className="w-3.5 h-3.5" />
@@ -292,6 +327,7 @@ export const CommandPalette: React.FC = () => {
                           e.stopPropagation();
                           deleteSession(session.id);
                         }}
+                        aria-label={`Delete ${session.name}`}
                         className="p-1 text-text-muted hover:text-red-400 rounded"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -312,8 +348,8 @@ export const CommandPalette: React.FC = () => {
             <span>ESC Close</span>
           </div>
           <span className="flex items-center gap-1">
-            <Brain className="w-3 h-3 text-pepper-400" />
-            Work Memory Engine
+            <Brain className="w-3 h-3 text-pepper-400" aria-hidden="true" />
+            Works offline — no AI setup needed
           </span>
         </div>
       </div>

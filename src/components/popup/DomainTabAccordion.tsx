@@ -110,6 +110,8 @@ export const DomainTabAccordion: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => toggleCollapse(group.domain)}
+                aria-expanded={!isCollapsed}
+                aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${group.domain}`}
                 className="p-1 text-text-muted hover:text-text-primary shrink-0 ml-1"
               >
                 {isCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}

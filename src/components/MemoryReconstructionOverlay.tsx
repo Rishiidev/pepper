@@ -57,7 +57,7 @@ export const MemoryReconstructionOverlay: React.FC<Props> = ({ memory, onComplet
             <span>Context Reconstruction</span>
           </span>
 
-          <h2 className="text-2xl font-extrabold tracking-tight text-white">
+          <h2 className="text-2xl font-extrabold tracking-tight text-text-primary">
             {phase === 'ready' ? "I'm Back." : 'Rebuilding Momentum…'}
           </h2>
 

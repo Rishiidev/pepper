@@ -93,7 +93,7 @@ export const ProjectsOverview: React.FC<Props> = ({
               </div>
               {proj.description && <p className="text-[11px] text-text-muted truncate">{proj.description}</p>}
 
-              <button
+              <button aria-label="Delete Project"
                 onClick={(e) => handleDeleteProject(e, proj.id)}
                 className="absolute right-2 bottom-2 p-1 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Delete Project"

@@ -109,7 +109,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
               onClick={handleDismiss}
               className="p-1 text-text-muted hover:text-text-primary rounded-lg transition-colors"
               title="Skip Tour"
-            >
+              aria-label="Skip Tour">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -123,7 +123,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-xl font-extrabold text-white tracking-tight">
+              <h3 className="text-xl font-extrabold text-text-primary tracking-tight">
                 Computers remember files. Pepper remembers work.
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
@@ -156,7 +156,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-xl font-extrabold text-white tracking-tight">
+              <h3 className="text-xl font-extrabold text-text-primary tracking-tight">
                 Silent Context Auto-Capture
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
@@ -189,7 +189,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-xl font-extrabold text-white tracking-tight">
+              <h3 className="text-xl font-extrabold text-text-primary tracking-tight">
                 Work Memory Recall (⌘K)
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
@@ -215,7 +215,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
 
             <div className="space-y-2 max-w-md mx-auto">
-              <h3 className="text-xl font-extrabold text-white tracking-tight">
+              <h3 className="text-xl font-extrabold text-text-primary tracking-tight">
                 Bring Your Own Keys (BYOK)
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
