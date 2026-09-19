@@ -109,6 +109,14 @@ function titleCase(words: string[]): string {
   return words.map((w) => (w.length <= 3 && /^[a-z]+$/.test(w) && w === w.toUpperCase() ? w : w.charAt(0).toUpperCase() + w.slice(1))).join(' ');
 }
 
+/** Meaningful words for one tab: title words plus its site name. Used to match tabs to workspaces. */
+export function tabTokens(tab: PepperTab): string[] {
+  const host = hostOf(tab.url);
+  const brand = host ? baseDomain(host).split('.')[0] : '';
+  const tokens = tokenize(cleanTitle(tab.title, host), new Set());
+  return [...new Set(brand.length >= 3 ? [...tokens, brand] : tokens)];
+}
+
 /** The one or two words that recur across tab titles (e.g. "stripe webhooks"). */
 export function extractTopic(tabs: PepperTab[], activeTabIndex = 0): string {
   const brands = new Set<string>();

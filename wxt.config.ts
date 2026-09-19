@@ -17,7 +17,7 @@ export default defineConfig({
       48: 'icons/icon-48.png',
       128: 'icons/icon-128.png',
     },
-    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting', 'activeTab', 'unlimitedStorage', 'sessions'],
+    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting', 'activeTab', 'unlimitedStorage', 'sessions', 'alarms', 'idle'],
     host_permissions: [
       'https://api.openai.com/*',
       'https://api.anthropic.com/*',
@@ -51,12 +51,20 @@ export default defineConfig({
         },
         description: 'Save current window workspace to Pepper',
       },
+      // Chrome allows only four suggested shortcuts. Cmd+Shift+O is also Chrome's
+      // Bookmark Manager, so this one is left for the user to bind if wanted.
       'open-manager': {
-        suggested_key: {
-          default: 'Alt+Shift+O',
-          mac: 'Command+Shift+O',
-        },
         description: 'Open PEPPER Workspace Manager Dashboard',
+      },
+      'add-tab-to-workspace': {
+        suggested_key: {
+          default: 'Alt+Shift+A',
+          mac: 'Command+Shift+A',
+        },
+        description: 'Add the current tab to the active workspace',
+      },
+      'open-side-panel': {
+        description: 'Open the Pepper side panel (timer, timeline, quick add)',
       },
       'restore-last': {
         description: 'Restore most recent workspace',

@@ -3,10 +3,16 @@ import { workspaceEngine } from '../src/core/engines/workspace-engine';
 import { restoreEngine } from '../src/core/engines/restore-engine';
 import { sessionEngine, RAM_PER_TAB_MB } from '../src/core/engines/session-engine';
 import { captureEngine } from '../src/core/engines/capture-engine';
+import { sessionRecorder } from '../src/core/engines/session-recorder';
 import { quickSaveEngine } from '../src/core/engines/quick-save-engine';
 import { projectRepo } from '../src/storage/repositories/project-repo';
 import { providerRegistry, featureFlagsManager } from '../src/core/intelligence';
 import { isSaveableUrl } from '../src/core/utils/url';
+import { rebuildContextMenus, MENU } from '../src/core/engines/context-menus';
+import { workspaceMembership } from '../src/core/engines/workspace-membership';
+import { announceAdded, announceCapture } from '../src/core/engines/capture-feedback';
+import { generateSessionName, baseDomain } from '../src/core/engines/session-naming';
+import { syncFocusAlarms, handleFocusAlarm, FOCUS_STATE_KEY } from '../src/core/engines/focus-background';
 import { PEPPER_COMMANDS } from '../src/core/constants/commands';
 
 async function openManager(query = ''): Promise<void> {
@@ -21,6 +27,40 @@ async function openManager(query = ''): Promise<void> {
   }
 }
 
+function tabToPepperTab(tab: chrome.tabs.Tab) {
+  return { id: tab.id, url: tab.url || '', title: tab.title || 'Untitled', favIconUrl: tab.favIconUrl || '', index: tab.index ?? 0, pinned: tab.pinned || false };
+}
+
+async function openSidePanel(windowId?: number): Promise<void> {
+  try {
+    const target = windowId ?? (await chrome.windows.getLastFocused()).id;
+    if (target !== undefined && chrome.sidePanel) await chrome.sidePanel.open({ windowId: target });
+  } catch (err) {
+    console.warn('Could not open side panel:', err);
+  }
+}
+
+/** Shared by the shortcut and the "Add to workspace" menu entries. */
+async function addTabFromMenu(tab: chrome.tabs.Tab | undefined, target: 'active' | 'new' | string): Promise<void> {
+  const active = tab ?? (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+  if (!active?.url || !isSaveableUrl(active.url)) return;
+  const pt = tabToPepperTab(active);
+
+  if (target === 'new') {
+    const host = new URL(active.url).hostname;
+    const name = generateSessionName([pt], [baseDomain(host)]);
+    const created = await workspaceMembership.createFromTabs(name, [pt]);
+    await workspaceMembership.setActiveWorkspace(created.id);
+    await announceCapture(created);
+  } else if (target === 'active') {
+    const res = await workspaceMembership.addToActiveOrInbox([pt]);
+    if (res) await announceAdded(res.workspace.name, res.added, res.skipped);
+  } else {
+    const res = await workspaceMembership.addTabs(target, [pt]);
+    await announceAdded(res.workspace.name, res.added, res.skipped);
+  }
+}
+
 export default defineBackground(() => {
   // Hydrate BYOK providers and feature flags on Service Worker boot
   featureFlagsManager.hydrateFromStorage().then(() => {
@@ -29,6 +69,9 @@ export default defineBackground(() => {
 
   // === MEMORY ENGINE: Initialize silent auto-capture ===
   captureEngine.initialize();
+
+  // === BROWSER SESSION TIMELINE (opt-in; no-op until enabled in settings) ===
+  sessionRecorder.initialize();
 
   // Toolbar icon opens popup.html (default_popup); the action badge is not persisted across restarts.
   sessionEngine.refreshBadge();
@@ -46,23 +89,7 @@ export default defineBackground(() => {
       }
     }
 
-    // Context Menus
-    try {
-      chrome.contextMenus.removeAll(() => {
-        chrome.contextMenus.create({
-          id: 'pepper-v2-save-window',
-          title: 'Save current window tabs to PEPPER',
-          contexts: ['action', 'page'],
-        });
-        chrome.contextMenus.create({
-          id: 'pepper-v2-open-manager',
-          title: 'Open PEPPER Workspace Manager',
-          contexts: ['action', 'page'],
-        });
-      });
-    } catch (err) {
-      console.error('Context menu setup failed:', err);
-    }
+    await rebuildContextMenus();
 
     await sessionEngine.refreshBadge();
   });
@@ -84,19 +111,34 @@ export default defineBackground(() => {
     }
   });
 
+  // Keep the "Add to workspace" list fresh when workspaces or the active workspace change
+  let menuTimer: ReturnType<typeof setTimeout> | null = null;
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !(changes.pepper_last_updated || changes.pepper_v2_settings)) return;
+    if (menuTimer) clearTimeout(menuTimer);
+    menuTimer = setTimeout(() => void rebuildContextMenus(), 1000);
+  });
+
   // Context Menu Clicks
-  chrome.contextMenus.onClicked.addListener(async (info) => {
-    if (info.menuItemId === 'pepper-v2-save-window') {
-      try {
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    try {
+      const id = String(info.menuItemId);
+      if (id === MENU.SAVE_WINDOW) {
         const result = await workspaceEngine.saveWorkspace();
-        if (!result) {
-          console.log('PEPPER: No saveable web tabs were found to save.');
-        }
-      } catch (err) {
-        console.error('Context menu save failed:', err);
+        if (!result) console.log('PEPPER: No saveable web tabs were found to save.');
+      } else if (id === MENU.OPEN_MANAGER) {
+        await openManager();
+      } else if (id === MENU.OPEN_SIDE_PANEL) {
+        await openSidePanel(tab?.windowId);
+      } else if (id === MENU.ADD_ACTIVE) {
+        await addTabFromMenu(tab, 'active');
+      } else if (id === MENU.ADD_NEW) {
+        await addTabFromMenu(tab, 'new');
+      } else if (id.startsWith(MENU.ADD_PREFIX)) {
+        await addTabFromMenu(tab, id.slice(MENU.ADD_PREFIX.length));
       }
-    } else if (info.menuItemId === 'pepper-v2-open-manager') {
-      await chrome.tabs.create({ url: chrome.runtime.getURL('manager.html'), active: true });
+    } catch (err) {
+      console.error('Context menu action failed:', err);
     }
   });
 
@@ -122,6 +164,13 @@ export default defineBackground(() => {
       }
     });
   }
+
+  // Pomodoro runs in the background: alarms finish it and keep the badge current
+  chrome.alarms?.onAlarm.addListener((alarm) => void handleFocusAlarm(alarm.name));
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes[FOCUS_STATE_KEY]) void syncFocusAlarms();
+  });
+  void syncFocusAlarms();
 
   // Best-effort: write the last-known window state before Chrome unloads the worker
   chrome.runtime.onSuspend?.addListener(() => {
@@ -227,6 +276,10 @@ export default defineBackground(() => {
             focused: true,
           });
         }
+      } else if (command === PEPPER_COMMANDS.ADD_TAB) {
+        await addTabFromMenu(undefined, 'active');
+      } else if (command === PEPPER_COMMANDS.OPEN_SIDE_PANEL) {
+        await openSidePanel();
       } else if (command === PEPPER_COMMANDS.OPEN_MANAGER) {
         const managerUrl = chrome.runtime.getURL('manager.html');
         const existing = await chrome.tabs.query({ url: managerUrl });
@@ -242,10 +295,15 @@ export default defineBackground(() => {
         const currentState = data.pepper_active_focus_state;
 
         if (currentState && currentState.activeSession) {
+          // Resuming must add the pause length to the total or the timer jumps forward
+          const pausing = !currentState.isPaused;
           const updated = {
             ...currentState,
-            isPaused: !currentState.isPaused,
-            _pausedAtWallClock: !currentState.isPaused ? Date.now() : currentState._pausedAtWallClock,
+            isPaused: pausing,
+            _pausedAtWallClock: pausing ? Date.now() : null,
+            _totalPausedMs: pausing
+              ? currentState._totalPausedMs
+              : (currentState._totalPausedMs || 0) + (currentState._pausedAtWallClock ? Date.now() - currentState._pausedAtWallClock : 0),
           };
           await chrome.storage.local.set({ pepper_active_focus_state: updated });
 

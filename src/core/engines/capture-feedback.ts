@@ -70,3 +70,34 @@ export async function announceCapture(session: PepperSession, kind: CaptureAnnou
     // non-fatal
   }
 }
+
+/** Brief green badge text (e.g. "+1") that reverts to the normal badge. */
+export async function flashBadge(text: string): Promise<void> {
+  try {
+    if (typeof chrome === 'undefined' || !chrome.action) return;
+    await chrome.action.setBadgeBackgroundColor({ color: FLASH_COLOR });
+    await chrome.action.setBadgeText({ text });
+    setTimeout(() => void sessionEngine.refreshBadge(), FLASH_MS);
+  } catch {
+    // non-fatal
+  }
+}
+
+/** Quiet confirmation after adding tabs to a workspace. */
+export async function announceAdded(workspaceName: string, added: number, skipped: number): Promise<void> {
+  await flashBadge(added > 0 ? `+${added}` : '✓');
+  try {
+    if (chrome.notifications) {
+      chrome.notifications.create(`pepper_added_${Date.now()}`, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon-128.png'),
+        title: added > 0 ? `Added ${added} tab${added !== 1 ? 's' : ''} to ${workspaceName}` : `Already in ${workspaceName}`,
+        message: skipped > 0 && added > 0 ? `${skipped} already there.` : workspaceName,
+        silent: true,
+        priority: 0,
+      });
+    }
+  } catch {
+    // non-fatal
+  }
+}

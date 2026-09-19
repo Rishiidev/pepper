@@ -1,4 +1,5 @@
 import { INBOX_SESSION_ID } from '../constants/ids';
+import { focusBadgeText } from './focus-timing';
 import { PepperSession, PepperTab, SessionStats, CaptureType } from '../types/session';
 import { sessionRepo } from '../../storage/repositories/session-repo';
 import { eventBus } from '../events/event-bus';
@@ -137,6 +138,13 @@ export class SessionEngine {
   async refreshBadge(): Promise<void> {
     try {
       if (typeof chrome !== 'undefined' && chrome.action) {
+        // A running focus timer owns the badge
+        const focus = (await chrome.storage.local.get('pepper_active_focus_state')).pepper_active_focus_state;
+        if (focus?.isRunning && focus.activeSession) {
+          await chrome.action.setBadgeBackgroundColor({ color: '#FF3B30' });
+          await chrome.action.setBadgeText({ text: focus.isPaused ? '❚❚' : focusBadgeText(focus, Date.now()) });
+          return;
+        }
         const sessions = await this.getAllSessions();
         const count = sessions.length;
         if (count > 0) {

@@ -67,6 +67,8 @@ export class FocusEngine {
   ): Promise<FocusSession> {
     const session = await db.focusSessions.get(sessionId);
     if (!session) throw new Error(`Focus session ${sessionId} not found.`);
+    // Both the background timer and an open page may finish the same session
+    if (session.status === 'completed') return session;
 
     const now = Date.now();
     session.elapsedSeconds = elapsedSeconds;

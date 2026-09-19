@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { PepperSession } from '../core/types/session';
 import { FocusSession, DailyJournal } from '../core/types/focus-session';
+import { BrowserSession, TimelineEvent } from '../core/types/timeline';
 
 export interface PepperSnapshot {
   id: string;
@@ -42,6 +43,8 @@ class PepperDatabase extends Dexie {
   projects!: EntityTable<PepperProjectEntity, 'id'>;
   focusSessions!: EntityTable<FocusSession, 'id'>;
   journals!: EntityTable<DailyJournal, 'id'>;
+  browserSessions!: EntityTable<BrowserSession, 'id'>;
+  timelineEvents!: EntityTable<TimelineEvent, 'id'>;
 
   constructor() {
     super('PepperDatabaseV2');
@@ -69,6 +72,18 @@ class PepperDatabase extends Dexie {
       projects: 'id, name, createdAt',
       focusSessions: 'id, sessionId, startedAt, mode, status, projectName',
       journals: 'id, dateStr, momentumScore',
+    });
+
+    this.version(4).stores({
+      sessions: 'id, name, createdAt, isFavorite, isPinned, projectName, *tags',
+      snapshots: 'id, timestamp, windowId, reason',
+      cache: 'key, expiresAt',
+      embeddings: 'id, sessionId, createdAt',
+      projects: 'id, name, createdAt',
+      focusSessions: 'id, sessionId, startedAt, mode, status, projectName',
+      journals: 'id, dateStr, momentumScore',
+      browserSessions: 'id, startedAt',
+      timelineEvents: '++id, sessionId, ts, type',
     });
   }
 }

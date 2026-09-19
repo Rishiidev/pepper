@@ -5,6 +5,8 @@ export const PEPPER_COMMANDS = {
   TOGGLE_FOCUS: 'toggle-focus-timer',
   EXECUTE_ACTION: '_execute_action',
   RESTORE_LAST: 'restore-last',
+  ADD_TAB: 'add-tab-to-workspace',
+  OPEN_SIDE_PANEL: 'open-side-panel',
 } as const;
 
 export type PepperCommandName = typeof PEPPER_COMMANDS[keyof typeof PEPPER_COMMANDS];

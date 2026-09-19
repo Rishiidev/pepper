@@ -27,6 +27,16 @@ export interface PepperSettings {
   autoCaptureRetentionDays: number;
   /** Keep at most this many auto-captures (0 = unlimited) */
   maxAutoCaptures: number;
+
+  // === Browser session timeline (opt-in, local only) ===
+  /** Record tab opens, closes, navigations and active time into a timeline */
+  sessionTrackingEnabled: boolean;
+  /** Domains that are never recorded (matches subdomains too) */
+  trackingBlocklist: string[];
+  /** Delete timeline data older than this many days (0 = keep forever) */
+  timelineRetentionDays: number;
+  /** New tabs and the add-tab shortcut go to this workspace */
+  activeWorkspaceId: string | null;
 }
 
 export const DEFAULT_SETTINGS: PepperSettings = {
@@ -46,4 +56,8 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   notifyOnAutoCapture: true,
   autoCaptureRetentionDays: 30,
   maxAutoCaptures: 200,
+  sessionTrackingEnabled: false,
+  trackingBlocklist: [],
+  timelineRetentionDays: 30,
+  activeWorkspaceId: null,
 };

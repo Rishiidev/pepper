@@ -1,6 +1,7 @@
 import { PepperSession } from '../types/session';
 import { sessionEngine } from './session-engine';
 import { selectExpired } from './retention-policy';
+import { timelineStore } from './timeline-store';
 import { settingsRepo } from '../../storage/repositories/settings-repo';
 
 const LAST_RUN_KEY = 'pepper_retention_last_run';
@@ -22,6 +23,8 @@ export class RetentionEngine {
     for (const s of expired) {
       await sessionEngine.deleteSession(s.id);
     }
+    const settings = await settingsRepo.get();
+    await timelineStore.pruneOlderThan(settings.timelineRetentionDays);
     return expired.length;
   }
 
