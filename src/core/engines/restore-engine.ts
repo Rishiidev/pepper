@@ -1,4 +1,4 @@
-import { sessionEngine } from './session-engine';
+import { sessionEngine, INBOX_SESSION_ID } from './session-engine';
 import { PepperTab } from '../types/session';
 import { eventBus } from '../events/event-bus';
 
@@ -24,29 +24,44 @@ export class RestoreEngine {
       return;
     }
 
-    // Open first tab in a new focused window
-    const firstTab = tabsToRestore[0];
-    const newWindow = await chrome.windows.create({
-      url: firstTab.url,
-      focused: true,
-    });
+    // Only the tab the user was on is kept loaded; the rest are discarded so
+    // restoring a big workspace does not load every page (and its RAM) at once.
+    const activeIdx =
+      !selectedTabIndices?.length && session.activeTabIndex !== undefined && session.activeTabIndex < tabsToRestore.length
+        ? session.activeTabIndex
+        : 0;
 
-    if (firstTab.pinned && newWindow.id) {
-      const createdTabs = newWindow.tabs || (await chrome.tabs.query({ windowId: newWindow.id }));
-      if (createdTabs && createdTabs[0]?.id) {
-        await chrome.tabs.update(createdTabs[0].id, { pinned: true });
-      }
+    const activeTab = tabsToRestore[activeIdx];
+    const newWindow = await chrome.windows.create({ url: activeTab.url, focused: true });
+    if (newWindow.id === undefined) throw new Error('Failed to create window for restore');
+    const windowId = newWindow.id;
+
+    const firstTabs = newWindow.tabs || (await chrome.tabs.query({ windowId }));
+    if (activeTab.pinned && firstTabs[0]?.id !== undefined) {
+      await chrome.tabs.update(firstTabs[0].id, { pinned: true });
     }
 
-    // Append remaining tabs to the new window
-    if (newWindow.id && tabsToRestore.length > 1) {
-      for (let i = 1; i < tabsToRestore.length; i++) {
-        await chrome.tabs.create({
-          windowId: newWindow.id,
+    // Create the others in saved order; tabs before the active one go before it.
+    let insertIndex = 0;
+    for (let i = 0; i < tabsToRestore.length; i++) {
+      if (i === activeIdx) {
+        insertIndex++;
+        continue;
+      }
+      try {
+        const created = await chrome.tabs.create({
+          windowId,
           url: tabsToRestore[i].url,
+          index: insertIndex,
           active: false,
           pinned: tabsToRestore[i].pinned || false,
         });
+        insertIndex++;
+        if (created.id !== undefined) {
+          await chrome.tabs.discard(created.id).catch(() => undefined);
+        }
+      } catch (err) {
+        console.warn('PEPPER: Failed to restore tab', tabsToRestore[i].url, err);
       }
     }
 
@@ -56,7 +71,8 @@ export class RestoreEngine {
   async restoreLastSession(): Promise<void> {
     const sessions = await sessionEngine.getAllSessions();
     if (sessions.length === 0) return;
-    const latest = sessions[0];
+    const latest = sessions.find((s) => s.id !== INBOX_SESSION_ID);
+    if (!latest) return;
     await this.restoreSession(latest.id);
   }
 }

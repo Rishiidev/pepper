@@ -5,6 +5,7 @@ import { QuickCaptureOverlay, QuickCaptureTabMeta } from '../src/components/over
 
 export default defineContentScript({
   matches: ['<all_urls>'],
+  registration: 'runtime',
   runAt: 'document_idle',
   main() {
     console.log('PEPPER v2 — Content Script initialized');
@@ -82,15 +83,15 @@ export default defineContentScript({
       if (message && message.type === 'PEPPER_PING') {
         console.debug('[PEPPER DEBUG] Content script ping received');
         sendResponse({ ok: true, source: 'pepper-content-script' });
-        return true;
+        return false;
       }
       if (message && message.type === 'PEPPER_TOGGLE_QUICK_CAPTURE') {
         console.debug('[PEPPER DEBUG] Quick Capture message received');
         openOverlay(message.payload);
         sendResponse({ received: true });
-        return true;
+        return false;
       }
-      return true;
+      return false;
     });
   },
 });

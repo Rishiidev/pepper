@@ -1,72 +1,15 @@
 import { defineBackground } from 'wxt/sandbox';
 import { workspaceEngine } from '../src/core/engines/workspace-engine';
 import { restoreEngine } from '../src/core/engines/restore-engine';
-import { sessionEngine } from '../src/core/engines/session-engine';
+import { sessionEngine, RAM_PER_TAB_MB } from '../src/core/engines/session-engine';
 import { captureEngine } from '../src/core/engines/capture-engine';
 import { quickSaveEngine } from '../src/core/engines/quick-save-engine';
 import { projectRepo } from '../src/storage/repositories/project-repo';
 import { providerRegistry, featureFlagsManager } from '../src/core/intelligence';
+import { isSaveableUrl } from '../src/core/utils/url';
 import { PEPPER_COMMANDS } from '../src/core/constants/commands';
 
-function isSaveableWebUrl(url?: string): boolean {
-  if (!url) return false;
-  const forbidden = ['chrome://', 'chrome-extension://', 'about:', 'edge://', 'brave://', 'view-source:'];
-  return !forbidden.some((p) => url.startsWith(p));
-}
-
-export async function openOrFocusPepper(entryFile: string = 'window.html'): Promise<void> {
-  if (typeof chrome === 'undefined' || !chrome.windows) return;
-
-  const targetUrl = chrome.runtime.getURL(entryFile);
-  const windows = await chrome.windows.getAll({ populate: true });
-
-  // 1. Locate an existing Pepper window by checking its tabs
-  const existingPepperWindow = windows.find((w) =>
-    w.tabs?.some((tab) => tab.url === targetUrl || (tab.url && tab.url.startsWith(targetUrl)))
-  );
-
-  if (existingPepperWindow && typeof existingPepperWindow.id === 'number') {
-    await chrome.windows.update(existingPepperWindow.id, {
-      focused: true,
-      state: 'normal',
-    });
-    return;
-  }
-
-  // 2. Calculate centered position relative to current focused Chrome window
-  const PEPPER_WIDTH = 760;
-  const PEPPER_HEIGHT = 850;
-
-  let currentWindow: chrome.windows.Window | null = null;
-  try {
-    currentWindow = await chrome.windows.getLastFocused({ populate: false });
-  } catch {
-    currentWindow = await chrome.windows.getCurrent().catch(() => null);
-  }
-
-  const currentLeft = currentWindow?.left ?? 0;
-  const currentTop = currentWindow?.top ?? 0;
-  const currentWidth = currentWindow?.width ?? 1440;
-  const currentHeight = currentWindow?.height ?? 900;
-
-  const left = Math.max(0, Math.round(currentLeft + (currentWidth - PEPPER_WIDTH) / 2));
-  const top = Math.max(0, Math.round(currentTop + (currentHeight - PEPPER_HEIGHT) / 2));
-
-  // 3. Create dedicated centered Pepper window
-  await chrome.windows.create({
-    url: targetUrl,
-    type: 'popup',
-    width: PEPPER_WIDTH,
-    height: PEPPER_HEIGHT,
-    left,
-    top,
-    focused: true,
-  });
-}
-
 export default defineBackground(() => {
-  console.log('[PEPPER DEBUG] Background service worker loaded', new Date().toISOString());
-
   // Hydrate BYOK providers and feature flags on Service Worker boot
   featureFlagsManager.hydrateFromStorage().then(() => {
     providerRegistry.hydrateFromStorage();
@@ -75,12 +18,8 @@ export default defineBackground(() => {
   // === MEMORY ENGINE: Initialize silent auto-capture ===
   captureEngine.initialize();
 
-  // Extension Toolbar Icon Click -> Opens Centered Pepper Window
-  if (typeof chrome !== 'undefined' && chrome.action) {
-    chrome.action.onClicked.addListener(async () => {
-      await openOrFocusPepper('window.html');
-    });
-  }
+  // Toolbar icon opens popup.html (default_popup); the action badge is not persisted across restarts.
+  sessionEngine.refreshBadge();
 
   // Install Event
   chrome.runtime.onInstalled.addListener(async (details) => {
@@ -156,11 +95,6 @@ export default defineBackground(() => {
         await quickSaveEngine.undoLastSave();
       }
     });
-    chrome.notifications.onClicked.addListener(async (notificationId) => {
-      if (notificationId.startsWith('pepper_quicksave_')) {
-        await quickSaveEngine.undoLastSave();
-      }
-    });
   }
 
   // Keyboard Shortcuts Handler
@@ -197,7 +131,7 @@ export default defineBackground(() => {
         const metaPayload = {
           tabs,
           domainCount: domainSet.size,
-          estimatedRamSavedMb: Math.round(tabs.length * 55),
+          estimatedRamSavedMb: Math.round(tabs.length * RAM_PER_TAB_MB),
           projects: ['General', ...projectNames.filter((p) => p !== 'General')],
         };
 
@@ -219,7 +153,7 @@ export default defineBackground(() => {
           }
 
           // Step 2: If ping failed and tab is a normal webpage, dynamically inject content script
-          if (!pingOk && activeTab.url && isSaveableWebUrl(activeTab.url)) {
+          if (!pingOk && activeTab.url && isSaveableUrl(activeTab.url)) {
             try {
               if (chrome.scripting) {
                 await chrome.scripting.executeScript({

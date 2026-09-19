@@ -1,8 +1,9 @@
 import { PepperTab, PepperSession } from '../types/session';
 import { SavedTabRecord } from '../types/saved-tab';
-import { sessionEngine } from './session-engine';
+import { sessionEngine, INBOX_SESSION_ID } from './session-engine';
 import { settingsRepo } from '../../storage/repositories/settings-repo';
 import { eventBus } from '../events/event-bus';
+import { isSaveableUrl } from '../utils/url';
 
 interface UndoState {
   savedRecord: SavedTabRecord;
@@ -10,11 +11,37 @@ interface UndoState {
   targetSessionId: string;
   originalWindowId?: number;
   originalTabIndex?: number;
+  /** false when the URL was already in the workspace, so undo must not remove it */
+  appended: boolean;
 }
+
+const UNDO_KEY = 'pepper_quicksave_undo_v1';
 
 export class QuickSaveEngine {
   private processingTabIds = new Set<number>();
   private lastUndoState: UndoState | null = null;
+
+  // Undo state lives in storage.session so it survives service worker restarts.
+  private async saveUndoState(state: UndoState | null): Promise<void> {
+    this.lastUndoState = state;
+    try {
+      if (state) await chrome.storage.session?.set({ [UNDO_KEY]: state });
+      else await chrome.storage.session?.remove(UNDO_KEY);
+    } catch {
+      // storage.session unavailable
+    }
+  }
+
+  private async loadUndoState(): Promise<UndoState | null> {
+    if (this.lastUndoState) return this.lastUndoState;
+    try {
+      const res = await chrome.storage.session?.get(UNDO_KEY);
+      this.lastUndoState = (res?.[UNDO_KEY] as UndoState | undefined) ?? null;
+    } catch {
+      // ignore
+    }
+    return this.lastUndoState;
+  }
 
   /**
    * Main Transactional Quick Save & Close Flow
@@ -54,7 +81,7 @@ export class QuickSaveEngine {
     try {
       // Step 2: Validate tab URL
       const rawUrl = activeTab.url || '';
-      if (!this.isSaveableUrl(rawUrl)) {
+      if (!isSaveableUrl(rawUrl)) {
         this.showNotification(
           'Pepper Quick Save',
           'This tab cannot be saved by Pepper (internal/restricted page). The tab remains open.'
@@ -68,55 +95,46 @@ export class QuickSaveEngine {
 
       let targetSession: PepperSession | null = null;
 
+      const asTab = (t: chrome.tabs.Tab, index: number): PepperTab => ({
+        id: t.id,
+        url: t.url || '',
+        title: t.title || 'Untitled Tab',
+        favIconUrl: t.favIconUrl || '',
+        index,
+        pinned: t.pinned || false,
+      });
+
       if (settings.quickSaveDestination === 'current_workspace') {
-        // Try to find matching active workspace or latest workspace
-        targetSession = allSessions.find((s) => s.isPinned || s.isFavorite) || allSessions[0] || null;
+        // Most recently touched workspace that is not the inbox
+        targetSession =
+          allSessions
+            .filter((s) => s.id !== INBOX_SESSION_ID)
+            .sort((x, y) => (y.updatedAt ?? y.createdAt) - (x.updatedAt ?? x.createdAt))[0] || null;
       }
 
-      // Default: Pepper Inbox workspace
+      // Default: Pepper Inbox workspace (fixed ID, created on first use)
+      let createdInbox = false;
       if (!targetSession) {
-        let inbox = allSessions.find((s) => s.id === 'pepper_inbox' || s.name === 'Pepper Inbox');
-        if (!inbox) {
-          inbox = await sessionEngine.createSession(
-            'Pepper Inbox',
-            [
-              {
-                url: activeTab.url || '',
-                title: activeTab.title || 'Untitled Tab',
-                favIconUrl: activeTab.favIconUrl || '',
-                index: 0,
-                pinned: activeTab.pinned || false,
-              },
-            ],
-            { projectName: 'General', isPinned: true }
-          );
-          // Set explicit inbox ID
-          inbox.id = 'pepper_inbox';
-          await sessionEngine.updateSession(inbox.id, { name: 'Pepper Inbox', isPinned: true });
-          targetSession = inbox;
-        } else {
-          targetSession = inbox;
+        targetSession = allSessions.find((s) => s.id === INBOX_SESSION_ID) || null;
+        if (!targetSession) {
+          targetSession = await sessionEngine.createSession('Pepper Inbox', [asTab(activeTab, 0)], {
+            id: INBOX_SESSION_ID,
+            projectName: 'General',
+            isPinned: true,
+            userNamed: true,
+          });
+          createdInbox = true;
         }
       }
 
       // Step 4: Duplicate Check & Tab Record Creation
       const cleanTargetUrl = this.cleanUrl(rawUrl);
-      const existingTab = targetSession.tabs.find((t) => this.cleanUrl(t.url) === cleanTargetUrl);
-
-      if (existingTab) {
-        console.log(`PEPPER QuickSave: Tab URL "${rawUrl}" already saved in workspace ${targetSession.name}.`);
-      }
+      const alreadySaved =
+        createdInbox || targetSession.tabs.some((t) => this.cleanUrl(t.url) === cleanTargetUrl);
 
       const stablePepperId = `saved_tab_${typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now()}`;
 
-      const tabToAppend: PepperTab = {
-        id: activeTab.id,
-        url: rawUrl,
-        title: activeTab.title || 'Untitled Tab',
-        favIconUrl: activeTab.favIconUrl || '',
-        index: targetSession.tabs.length,
-        pinned: activeTab.pinned || false,
-      };
+      const tabToAppend = asTab(activeTab, targetSession.tabs.length);
 
       const savedTabRecord: SavedTabRecord = {
         id: stablePepperId,
@@ -133,13 +151,15 @@ export class QuickSaveEngine {
         status: 'saved',
       };
 
-      // Step 5: Write to persistent storage
-      const updatedTabs = [...targetSession.tabs, tabToAppend];
-      await sessionEngine.updateSession(targetSession.id, {
-        tabs: updatedTabs,
-        tabCount: updatedTabs.length,
-        updatedAt: Date.now(),
-      });
+      // Step 5: Write to persistent storage (skip if this URL is already in the workspace)
+      if (!alreadySaved) {
+        const updatedTabs = [...targetSession.tabs, tabToAppend];
+        await sessionEngine.updateSession(targetSession.id, {
+          tabs: updatedTabs,
+          tabCount: updatedTabs.length,
+          updatedAt: Date.now(),
+        });
+      }
 
       // Step 6: Verify Persistent Readback
       const verifiedSession = await sessionEngine.getSessionById(targetSession.id);
@@ -150,13 +170,14 @@ export class QuickSaveEngine {
       }
 
       // Store Undo State
-      this.lastUndoState = {
+      await this.saveUndoState({
         savedRecord: savedTabRecord,
         tabData: tabToAppend,
         targetSessionId: targetSession.id,
         originalWindowId: activeTab.windowId,
         originalTabIndex: activeTab.index,
-      };
+        appended: !alreadySaved,
+      });
 
       // Step 7: Handle Single-Tab Window Edge Case & Close Tab
       const windowTabs = await chrome.tabs.query({ windowId: activeTab.windowId });
@@ -174,7 +195,7 @@ export class QuickSaveEngine {
         this.showNotification(
           'pepper_quicksave_' + Date.now(),
           `✓ Tab Saved to Pepper: "${activeTab.title || 'Untitled'}"`,
-          `Saved to ${targetSession.name}. Click notification or open Pepper to Undo.`
+          `Saved to ${targetSession.name}. Use the Undo button to restore it.`
         );
       }
 
@@ -195,11 +216,12 @@ export class QuickSaveEngine {
    * Undo Last Save & Close Action
    */
   async undoLastSave(): Promise<boolean> {
-    if (!this.lastUndoState || typeof chrome === 'undefined' || !chrome.tabs) {
+    const undo = await this.loadUndoState();
+    if (!undo || typeof chrome === 'undefined' || !chrome.tabs) {
       return false;
     }
 
-    const { savedRecord, tabData, targetSessionId, originalWindowId, originalTabIndex } = this.lastUndoState;
+    const { savedRecord, targetSessionId, originalWindowId, originalTabIndex, appended } = undo;
 
     try {
       // 1. Re-open Tab in Chrome
@@ -212,7 +234,7 @@ export class QuickSaveEngine {
         }
       }
 
-      const createdTab = await chrome.tabs.create({
+      await chrome.tabs.create({
         windowId: targetWindowId,
         url: savedRecord.url,
         index: originalTabIndex,
@@ -222,7 +244,7 @@ export class QuickSaveEngine {
 
       // 2. Remove Tab from Pepper Workspace
       const session = await sessionEngine.getSessionById(targetSessionId);
-      if (session) {
+      if (session && appended) {
         const remainingTabs = session.tabs.filter((t) => this.cleanUrl(t.url) !== this.cleanUrl(savedRecord.url));
         await sessionEngine.updateSession(targetSessionId, {
           tabs: remainingTabs,
@@ -230,7 +252,7 @@ export class QuickSaveEngine {
         });
       }
 
-      this.lastUndoState = null;
+      await this.saveUndoState(null);
       this.showNotification('Pepper Quick Save', `✓ Tab restored: "${savedRecord.title}"`);
       return true;
     } catch (err) {
@@ -239,18 +261,6 @@ export class QuickSaveEngine {
     }
   }
 
-  private isSaveableUrl(url?: string): boolean {
-    if (!url) return false;
-    const forbiddenPrefixes = [
-      'chrome://',
-      'chrome-extension://',
-      'about:',
-      'edge://',
-      'brave://',
-      'view-source:',
-    ];
-    return !forbiddenPrefixes.some((prefix) => url.startsWith(prefix));
-  }
 
   private cleanUrl(url: string): string {
     if (!url) return '';
@@ -273,7 +283,7 @@ export class QuickSaveEngine {
           title: idOrTitle.startsWith('pepper_') ? 'Pepper Quick Save' : idOrTitle,
           message: message,
           contextMessage: context || 'Pepper Workspace Platform',
-          buttons: [{ title: 'Undo' }],
+          ...(notifId.startsWith('pepper_quicksave_') ? { buttons: [{ title: 'Undo' }] } : {}),
           priority: 2,
         },
         () => {}

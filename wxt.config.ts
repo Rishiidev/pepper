@@ -12,7 +12,12 @@ export default defineConfig({
     name: 'PEPPER — Workspace Platform',
     short_name: 'PEPPER',
     description: 'Save, search, manage, and restore browser workspaces. Free RAM by organizing tabs.',
-    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting'],
+    icons: {
+      16: 'icons/icon-16.png',
+      48: 'icons/icon-48.png',
+      128: 'icons/icon-128.png',
+    },
+    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting', 'activeTab'],
     host_permissions: [
       'https://api.openai.com/*',
       'https://api.anthropic.com/*',
@@ -30,7 +35,7 @@ export default defineConfig({
           default: 'Alt+Shift+P',
           mac: 'Command+Shift+P',
         },
-        description: 'Open Pepper Centered Window',
+        description: 'Open the Pepper popup',
       },
       'save-and-close-current-tab': {
         suggested_key: {

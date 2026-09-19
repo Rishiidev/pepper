@@ -16,6 +16,7 @@
 import { PepperTab, PepperSession, CaptureType } from '../types/session';
 import { sessionEngine } from './session-engine';
 import { eventBus } from '../events/event-bus';
+import { isSaveableUrl } from '../utils/url';
 
 interface TabActivationRecord {
   tabId: number;
@@ -29,6 +30,16 @@ interface WindowTabSnapshot {
   capturedAt: number;
 }
 
+const STATE_KEY = 'pepper_capture_state_v1';
+const SNAPSHOT_DEBOUNCE_MS = 400;
+
+/** JSON-safe shape persisted to chrome.storage.session so state survives service worker restarts. */
+interface PersistedCaptureState {
+  snapshots: Record<number, WindowTabSnapshot>;
+  durations: Record<number, Record<number, number>>;
+  active: Record<number, TabActivationRecord>;
+}
+
 export class CaptureEngine {
   /** Current active tab per window */
   private activeTabByWindow: Map<number, TabActivationRecord> = new Map();
@@ -39,25 +50,17 @@ export class CaptureEngine {
   /** Pre-cached tab snapshots per window (updated on tab changes) */
   private windowSnapshots: Map<number, WindowTabSnapshot> = new Map();
 
-  /** Set of window IDs we should NOT auto-capture (e.g., extension windows) */
-  private ignoredWindows: Set<number> = new Set();
+  private snapshotTimers: Map<number, ReturnType<typeof setTimeout>> = new Map();
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+  private ready: Promise<void> = Promise.resolve();
 
   /** Minimum number of saveable tabs to trigger auto-capture */
   private readonly MIN_TABS_FOR_CAPTURE = 2;
 
-  /** URLs that should never be captured */
-  private readonly FORBIDDEN_PREFIXES = [
-    'chrome://',
-    'chrome-extension://',
-    'about:',
-    'edge://',
-    'brave://',
-    'devtools://',
-  ];
-
   /**
    * Initialize all browser event listeners.
-   * Call this once from background.ts on service worker boot.
+   * Call this once, synchronously, from background.ts on service worker boot
+   * so Chrome can wake the worker for these events.
    */
   initialize(): void {
     if (typeof chrome === 'undefined' || !chrome.tabs) {
@@ -65,55 +68,105 @@ export class CaptureEngine {
       return;
     }
 
-    // Track tab activation (attention signal)
+    this.ready = this.loadState().then(() => this.initializeExistingWindows());
+
     chrome.tabs.onActivated.addListener((activeInfo) => {
-      this.handleTabActivated(activeInfo.tabId, activeInfo.windowId);
+      void this.ready.then(() => {
+        this.handleTabActivated(activeInfo.tabId, activeInfo.windowId);
+        this.schedulePersist();
+      });
     });
 
-    // Pre-cache window state when tabs change
-    chrome.tabs.onUpdated.addListener((_tabId, _changeInfo, tab) => {
-      if (tab.windowId) {
-        this.refreshWindowSnapshot(tab.windowId);
-      }
+    chrome.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+      const relevant =
+        changeInfo.url !== undefined ||
+        changeInfo.title !== undefined ||
+        changeInfo.pinned !== undefined ||
+        changeInfo.status === 'complete';
+      if (relevant && tab.windowId) this.scheduleSnapshot(tab.windowId);
     });
 
     chrome.tabs.onCreated.addListener((tab) => {
-      if (tab.windowId) {
-        this.refreshWindowSnapshot(tab.windowId);
-      }
+      if (tab.windowId) this.scheduleSnapshot(tab.windowId);
     });
 
+    chrome.tabs.onMoved.addListener((_tabId, moveInfo) => this.scheduleSnapshot(moveInfo.windowId));
+    chrome.tabs.onAttached.addListener((_tabId, info) => this.scheduleSnapshot(info.newWindowId));
+    chrome.tabs.onDetached.addListener((_tabId, info) => this.scheduleSnapshot(info.oldWindowId));
+
     chrome.tabs.onRemoved.addListener((_tabId, removeInfo) => {
-      if (!removeInfo.isWindowClosing) {
-        this.refreshWindowSnapshot(removeInfo.windowId);
-      }
+      // When the whole window is closing, keep the last good snapshot for handleWindowClosed.
+      if (!removeInfo.isWindowClosing) this.scheduleSnapshot(removeInfo.windowId);
     });
 
     // Auto-capture on window close — this is the core product
     chrome.windows.onRemoved.addListener((windowId) => {
-      this.handleWindowClosed(windowId);
+      void this.ready.then(() => this.handleWindowClosed(windowId));
     });
-
-    // Identify extension/popup windows to ignore
-    chrome.windows.onCreated.addListener((window) => {
-      if (window.id && window.type !== 'normal') {
-        this.ignoredWindows.add(window.id);
-      }
-    });
-
-    // Pre-cache all existing windows on startup
-    this.initializeExistingWindows();
 
     console.log('[CaptureEngine] Initialized — silently watching browser activity.');
   }
 
+  // ---------- persistence (survives MV3 service worker suspension) ----------
+
+  private async loadState(): Promise<void> {
+    try {
+      const store = chrome.storage?.session;
+      if (!store) return;
+      const res = await store.get(STATE_KEY);
+      const saved = res[STATE_KEY] as PersistedCaptureState | undefined;
+      if (!saved) return;
+      for (const [w, snap] of Object.entries(saved.snapshots || {})) {
+        this.windowSnapshots.set(Number(w), snap);
+      }
+      for (const [w, perTab] of Object.entries(saved.durations || {})) {
+        this.tabDurations.set(
+          Number(w),
+          new Map(Object.entries(perTab).map(([t, secs]) => [Number(t), secs]))
+        );
+      }
+      for (const [w, rec] of Object.entries(saved.active || {})) {
+        this.activeTabByWindow.set(Number(w), rec);
+      }
+    } catch (err) {
+      console.warn('[CaptureEngine] Failed to load persisted state:', err);
+    }
+  }
+
+  private schedulePersist(): void {
+    if (this.persistTimer) return;
+    this.persistTimer = setTimeout(() => {
+      this.persistTimer = null;
+      void this.persistNow();
+    }, 250);
+  }
+
+  private async persistNow(): Promise<void> {
+    try {
+      const store = chrome.storage?.session;
+      if (!store) return;
+      const state: PersistedCaptureState = {
+        snapshots: Object.fromEntries(this.windowSnapshots),
+        durations: Object.fromEntries(
+          Array.from(this.tabDurations, ([w, m]) => [w, Object.fromEntries(m)])
+        ),
+        active: Object.fromEntries(this.activeTabByWindow),
+      };
+      await store.set({ [STATE_KEY]: state });
+    } catch (err) {
+      console.warn('[CaptureEngine] Failed to persist state:', err);
+    }
+  }
+
+  // ---------- attention tracking ----------
+
   /**
    * Track tab activation to measure time spent per tab.
+   * Pass tabId -1 to only finalize the previous tab (window closing).
    */
   private handleTabActivated(tabId: number, windowId: number): void {
     const now = Date.now();
 
-    // Finalize duration for the previously active tab in this window
     const prev = this.activeTabByWindow.get(windowId);
     if (prev) {
       const duration = Math.round((now - prev.activatedAt) / 1000);
@@ -122,17 +175,15 @@ export class CaptureEngine {
           this.tabDurations.set(windowId, new Map());
         }
         const windowDurations = this.tabDurations.get(windowId)!;
-        const existing = windowDurations.get(prev.tabId) || 0;
-        windowDurations.set(prev.tabId, existing + duration);
+        windowDurations.set(prev.tabId, (windowDurations.get(prev.tabId) || 0) + duration);
       }
     }
 
-    // Record the new active tab
-    this.activeTabByWindow.set(windowId, {
-      tabId,
-      windowId,
-      activatedAt: now,
-    });
+    if (tabId >= 0) {
+      this.activeTabByWindow.set(windowId, { tabId, windowId, activatedAt: now });
+    } else {
+      this.activeTabByWindow.delete(windowId);
+    }
   }
 
   /**
@@ -140,15 +191,14 @@ export class CaptureEngine {
    * This is the primary capture mechanism — no user interaction needed.
    */
   private async handleWindowClosed(windowId: number): Promise<void> {
-    // Skip non-normal windows (popups, devtools, extension panels)
-    if (this.ignoredWindows.has(windowId)) {
-      this.ignoredWindows.delete(windowId);
-      return;
-    }
-
     // Finalize the last active tab's duration
     this.handleTabActivated(-1, windowId);
 
+    const pending = this.snapshotTimers.get(windowId);
+    if (pending) clearTimeout(pending);
+    this.snapshotTimers.delete(windowId);
+
+    // Non-normal windows (popups, devtools, extension panels) never get a snapshot.
     const snapshot = this.windowSnapshots.get(windowId);
     if (!snapshot || snapshot.tabs.length < this.MIN_TABS_FOR_CAPTURE) {
       this.cleanupWindow(windowId);
@@ -156,24 +206,26 @@ export class CaptureEngine {
     }
 
     try {
+      // Skip if the user already saved (or just restored) exactly this set of tabs.
+      if (await this.isAlreadySaved(snapshot.tabs)) {
+        console.log(`[CaptureEngine] Window ${windowId} already saved, skipping auto-capture.`);
+        return;
+      }
+
       // Build duration map (tab index → seconds spent)
       const durations = this.tabDurations.get(windowId);
       const tabDurationMap: Record<number, number> = {};
       if (durations) {
         for (const tab of snapshot.tabs) {
-          if (tab.id && durations.has(tab.id)) {
+          if (tab.id !== undefined && durations.has(tab.id)) {
             tabDurationMap[tab.index] = durations.get(tab.id)!;
           }
         }
       }
 
-      // Extract domain clusters
       const domainClusters = this.extractDomainClusters(snapshot.tabs);
-
-      // Generate a smart default name from domain clusters
       const sessionName = this.generateContextName(snapshot.tabs, domainClusters);
 
-      // Create session with full memory metadata
       await sessionEngine.createSession(sessionName, snapshot.tabs, {
         captureType: 'auto_window_close',
         activeTabIndex: snapshot.activeTabIndex,
@@ -190,17 +242,39 @@ export class CaptureEngine {
     }
   }
 
+  private async isAlreadySaved(tabs: PepperTab[]): Promise<boolean> {
+    const key = (urls: string[]) => [...urls].sort().join('\n');
+    const target = key(tabs.map((t) => t.url));
+    const sessions = await sessionEngine.getAllSessions();
+    return sessions.some((s) => key(s.tabs.map((t) => t.url)) === target);
+  }
+
+  /** Debounced snapshot refresh so bursts of tab events cost one query. */
+  private scheduleSnapshot(windowId: number): void {
+    const existing = this.snapshotTimers.get(windowId);
+    if (existing) clearTimeout(existing);
+    this.snapshotTimers.set(
+      windowId,
+      setTimeout(() => {
+        this.snapshotTimers.delete(windowId);
+        void this.refreshWindowSnapshot(windowId);
+      }, SNAPSHOT_DEBOUNCE_MS)
+    );
+  }
+
   /**
-   * Refresh the pre-cached snapshot for a window.
-   * We cache this because when onRemoved fires, the tabs are already gone.
+   * Refresh the cached snapshot for a window (persisted, since when
+   * windows.onRemoved fires the tabs are already gone).
    */
   private async refreshWindowSnapshot(windowId: number): Promise<void> {
     try {
+      await this.ready;
       const tabs = await chrome.tabs.query({ windowId, windowType: 'normal' });
-      const saveableTabs = tabs.filter((t) => this.isSaveableUrl(t.url));
+      const saveableTabs = tabs.filter((t) => isSaveableUrl(t.url));
 
       if (saveableTabs.length === 0) {
         this.windowSnapshots.delete(windowId);
+        this.schedulePersist();
         return;
       }
 
@@ -219,6 +293,7 @@ export class CaptureEngine {
         activeTabIndex: activeIndex,
         capturedAt: Date.now(),
       });
+      this.schedulePersist();
     } catch {
       // Window may have been closed during query
     }
@@ -307,16 +382,27 @@ export class CaptureEngine {
   }
 
   /**
-   * Pre-cache all existing windows on startup.
+   * Pre-cache all existing windows on startup and seed the active tab
+   * so attention time is measured from the first tab, not the first switch.
    */
   private async initializeExistingWindows(): Promise<void> {
     try {
       const windows = await chrome.windows.getAll({ windowTypes: ['normal'] });
       for (const win of windows) {
-        if (win.id) {
-          await this.refreshWindowSnapshot(win.id);
+        if (win.id === undefined) continue;
+        await this.refreshWindowSnapshot(win.id);
+        if (!this.activeTabByWindow.has(win.id)) {
+          const [active] = await chrome.tabs.query({ windowId: win.id, active: true });
+          if (active?.id !== undefined) {
+            this.activeTabByWindow.set(win.id, {
+              tabId: active.id,
+              windowId: win.id,
+              activatedAt: Date.now(),
+            });
+          }
         }
       }
+      this.schedulePersist();
     } catch {
       // Extension API unavailable
     }
@@ -329,13 +415,9 @@ export class CaptureEngine {
     this.windowSnapshots.delete(windowId);
     this.tabDurations.delete(windowId);
     this.activeTabByWindow.delete(windowId);
-    this.ignoredWindows.delete(windowId);
+    this.schedulePersist();
   }
 
-  private isSaveableUrl(url?: string): boolean {
-    if (!url) return false;
-    return !this.FORBIDDEN_PREFIXES.some((prefix) => url.startsWith(prefix));
-  }
 }
 
 export const captureEngine = new CaptureEngine();

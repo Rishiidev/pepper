@@ -71,7 +71,7 @@ export class AnthropicProvider extends BaseProvider {
           'Content-Type': 'application/json',
           'x-api-key': this.apiKey,
           'anthropic-version': '2023-06-01',
-          'dangerously-allow-browser': 'true',
+          'anthropic-dangerous-direct-browser-access': 'true',
         },
         body: JSON.stringify({
           model: this.model,

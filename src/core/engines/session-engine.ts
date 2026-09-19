@@ -6,7 +6,15 @@ import { intelligenceQueue } from '../intelligence/queue/intelligence-queue';
 import { AutoTitleSkill } from '../intelligence/skills/auto-title';
 import { AutoTaggingSkill } from '../intelligence/skills/auto-tagging';
 
+/** Rough per-tab memory estimate used everywhere RAM savings are shown. */
+export const INBOX_SESSION_ID = 'pepper_inbox';
+export const RAM_PER_TAB_MB = 100;
+
 export interface CreateSessionOptions {
+  /** Fixed ID for well-known sessions (e.g. the Pepper Inbox). */
+  id?: string;
+  /** True when the user typed the name; AI auto-titling must not overwrite it. */
+  userNamed?: boolean;
   isFavorite?: boolean;
   isPinned?: boolean;
   projectName?: string;
@@ -36,7 +44,7 @@ export class SessionEngine {
       : `${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
 
     const session: PepperSession = {
-      id: `session_${uniqueId}`,
+      id: options.id ?? `session_${uniqueId}`,
       name,
       tabs: tabs.map((t, i) => ({
         url: t.url || '',
@@ -51,7 +59,7 @@ export class SessionEngine {
       isFavorite: options.isFavorite ?? false,
       isPinned: options.isPinned ?? false,
       projectName: options.projectName || 'General',
-      estimatedRamSavedMb: Math.round(tabs.length * 125),
+      estimatedRamSavedMb: Math.round(tabs.length * RAM_PER_TAB_MB),
 
       // === Memory Engine fields ===
       captureType: options.captureType || 'manual',
@@ -66,7 +74,7 @@ export class SessionEngine {
     await this.notifyCrossContextSync();
 
     // Asynchronous non-blocking AI enhancement task
-    this.triggerAISkills(session).catch((err) => {
+    this.triggerAISkills(session, options.userNamed ?? false).catch((err) => {
       console.warn('[SessionEngine] AI enhancement background task error:', err);
     });
 
@@ -111,7 +119,7 @@ export class SessionEngine {
   async getStats(): Promise<SessionStats> {
     const sessions = await this.getAllSessions();
     const totalTabsSaved = sessions.reduce((acc, s) => acc + s.tabCount, 0);
-    const estimatedRamSavedMb = sessions.reduce((acc, s) => acc + (s.estimatedRamSavedMb || s.tabCount * 125), 0);
+    const estimatedRamSavedMb = sessions.reduce((acc, s) => acc + (s.estimatedRamSavedMb || s.tabCount * RAM_PER_TAB_MB), 0);
     const autoCaptures = sessions.filter((s) => s.captureType && s.captureType !== 'manual').length;
     const manualCaptures = sessions.length - autoCaptures;
 
@@ -143,14 +151,16 @@ export class SessionEngine {
     }
   }
 
-  private async triggerAISkills(session: PepperSession): Promise<void> {
+  private async triggerAISkills(session: PepperSession, userNamed: boolean): Promise<void> {
     await featureFlagsManager.hydrateFromStorage();
     if (!featureFlagsManager.isEnabled('aiEnabled')) return;
+    // Never rename inbox or user-named sessions
+    const keepName = userNamed || session.id === INBOX_SESSION_ID;
 
     const autoTitleSkill = new AutoTitleSkill();
     const autoTaggingSkill = new AutoTaggingSkill();
 
-    const titleResult = await intelligenceQueue.enqueue({
+    const titleResult = keepName ? null : await intelligenceQueue.enqueue({
       id: `task_title_${session.id}`,
       skillId: autoTitleSkill.id,
       priority: 'HIGH',
@@ -169,7 +179,7 @@ export class SessionEngine {
     });
 
     const updates: Partial<PepperSession> = {};
-    if (titleResult.success && titleResult.data && typeof titleResult.data === 'string') {
+    if (titleResult && titleResult.success && titleResult.data && typeof titleResult.data === 'string') {
       updates.name = titleResult.data;
     }
     if (tagsResult.success && Array.isArray(tagsResult.data)) {

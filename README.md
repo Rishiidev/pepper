@@ -57,9 +57,9 @@ Pepper OS is not a tab manager. It is **The Operating System for Human Memory**.
 - **"I'm Back" Emotional Goal**: Full-screen geometric portal expansion overlay when resuming work.
 - **Re-Hydration Stream**: Re-opens your exact tabs in order, placing you right back in your flow state.
 
-### 4. 🤖 BYOK 8-Provider Intelligence Engine
-- **Supported Providers**: OpenAI (GPT-4o), Anthropic (Claude 3.5), Google Gemini (1.5 Flash), OpenRouter, Ollama (Local LLM), LM Studio, Azure OpenAI, AWS Bedrock.
-- **Local First**: API keys stored in local encrypted vault.
+### 4. 🤖 BYOK 5-Provider Intelligence Engine
+- **Supported Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, and Ollama (local LLM).
+- **Local First**: API keys are stored only in this browser's local extension storage (`chrome.storage.local`). They are never synced or sent anywhere except the provider you choose. They are not encrypted at rest.
 
 ### 5. 🎨 Linear / Apple Dark Mode Design System
 - **Ultra-Clean Monochrome**: Custom `#050507` background, high-contrast typography, maximum whitespace.
@@ -111,7 +111,7 @@ Then load `.output/chrome-mv3` in `chrome://extensions/`.
 #### 3. Setting Up AI Providers (BYOK)
 - Go to **Settings** in the dashboard.
 - Select your provider (OpenAI, Anthropic, Gemini, OpenRouter, Ollama Local LLM).
-- Paste your API key → saved in your browser's local encrypted storage.
+- Paste your API key → saved in this browser's local extension storage (not synced, not encrypted at rest).
 
 ---
 

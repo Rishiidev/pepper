@@ -13,5 +13,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Work Memory Recall (⌘K)**: Ranked full-text search across 8 weighted fields with match-reason indicators and recency boosting.
 - **Memory Reconstruction Overlay**: Portal expansion animation and emotional re-hydration flow ("I'm Back.").
 - **Linear/Apple Dark Mode Design System**: Ultra-clean `#050507` monochrome palette, high-contrast typography, and keyframe motion.
-- **BYOK 8-Provider Intelligence Engine**: First-class support for OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio, Azure OpenAI, and AWS Bedrock.
+- **BYOK Intelligence Engine**: Support for OpenAI, Anthropic, Gemini, OpenRouter, and Ollama.
 - **Interactive 4-Step Onboarding**: Step-by-step product tour introducing Work Memory, Silent Auto-Capture, ⌘K Recall, and BYOK.
