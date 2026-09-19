@@ -346,7 +346,8 @@ export class CaptureEngine {
       windowId,
       setTimeout(() => {
         this.snapshotTimers.delete(windowId);
-        void this.refreshWindowSnapshot(windowId);
+        // Wait for startup recovery so a stale on-disk snapshot is never overwritten before it is read
+        void this.ready.then(() => this.refreshWindowSnapshot(windowId));
       }, SNAPSHOT_DEBOUNCE_MS)
     );
   }
@@ -357,7 +358,6 @@ export class CaptureEngine {
    */
   private async refreshWindowSnapshot(windowId: number): Promise<void> {
     try {
-      await this.ready;
       const tabs = await chrome.tabs.query({ windowId, windowType: 'normal' });
       const saveableTabs = tabs.filter((t) => isSaveableUrl(t.url));
 

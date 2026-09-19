@@ -5,6 +5,7 @@ import { intelligenceService } from '../intelligence-service';
 import { promptRegistry } from '../registry/prompt-registry';
 import { PepperTab } from '../../types/session';
 import { TokenBudgetEstimator } from '../utils/token-budget';
+import { baseDomain, generateSessionName } from '../../engines/session-naming';
 
 export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
   readonly id = 'auto-title';
@@ -101,24 +102,16 @@ export class AutoTitleSkill extends IntelligenceSkill<PepperTab[], string> {
     return cleaned;
   }
 
+  /** Offline title used when no AI provider answers: topic from titles plus intent from domains. */
   private fallbackTitle(compressed: Array<{ title: string; domain: string }>): string {
-    const topDomains = Array.from(
-      new Set(
-        compressed
-          .map((t) => {
-            const base = t.domain.replace(/^www\./, '').split('.')[0];
-            return base.charAt(0).toUpperCase() + base.slice(1);
-          })
-          .filter(Boolean)
-      )
-    ).slice(0, 2);
-
-    if (topDomains.length >= 2) {
-      return `${topDomains[0]} & ${topDomains[1]}`;
-    } else if (topDomains.length === 1) {
-      const firstTabTitle = (compressed[0]?.title || 'Workspace').split(/[-|–:]/)[0].trim();
-      return `${topDomains[0]} — ${firstTabTitle.substring(0, 20)}`;
-    }
-    return 'Active Workspace';
+    if (compressed.length === 0) return 'Active Workspace';
+    const tabs: PepperTab[] = compressed.map((t, index) => ({
+      url: `https://${t.domain}/`,
+      title: t.title,
+      favIconUrl: '',
+      index,
+    }));
+    const clusters = [...new Set(compressed.map((t) => baseDomain(t.domain)).filter(Boolean))];
+    return generateSessionName(tabs, clusters);
   }
 }

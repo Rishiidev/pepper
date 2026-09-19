@@ -24,8 +24,7 @@ export class RestoreEngine {
       return;
     }
 
-    // Only the tab the user was on is kept loaded; the rest are discarded so
-    // restoring a big workspace does not load every page (and its RAM) at once.
+    // Reopen every tab in saved order and focus the one the user was on.
     const activeIdx =
       !selectedTabIndices?.length && session.activeTabIndex !== undefined && session.activeTabIndex < tabsToRestore.length
         ? session.activeTabIndex
@@ -49,7 +48,7 @@ export class RestoreEngine {
         continue;
       }
       try {
-        const created = await chrome.tabs.create({
+        await chrome.tabs.create({
           windowId,
           url: tabsToRestore[i].url,
           index: insertIndex,
@@ -57,9 +56,6 @@ export class RestoreEngine {
           pinned: tabsToRestore[i].pinned || false,
         });
         insertIndex++;
-        if (created.id !== undefined) {
-          await chrome.tabs.discard(created.id).catch(() => undefined);
-        }
       } catch (err) {
         console.warn('PEPPER: Failed to restore tab', tabsToRestore[i].url, err);
       }

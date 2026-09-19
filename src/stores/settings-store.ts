@@ -11,24 +11,34 @@ interface SettingsState {
   updateSettings: (updates: Partial<PepperSettings>) => Promise<void>;
 }
 
-export const useSettingsStore = create<SettingsState>((set) => ({
-  settings: DEFAULT_SETTINGS,
-  isLoading: true,
-  isHydrated: false,
+export const useSettingsStore = create<SettingsState>((set) => {
+  // Keep every open Pepper page (popup, dashboard) in sync when settings change elsewhere
+  if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      const next = changes.pepper_v2_settings?.newValue;
+      if (area === 'local' && next) set({ settings: { ...DEFAULT_SETTINGS, ...next }, isHydrated: true });
+    });
+  }
 
-  fetchSettings: async () => {
-    set({ isLoading: true });
-    try {
-      const settings = await settingsRepo.get();
-      set({ settings, isLoading: false, isHydrated: true });
-    } catch {
-      set({ isLoading: false, isHydrated: true });
-    }
-  },
+  return {
+    settings: DEFAULT_SETTINGS,
+    isLoading: true,
+    isHydrated: false,
 
-  updateSettings: async (updates: Partial<PepperSettings>) => {
-    const updated = await settingsRepo.save(updates);
-    set({ settings: updated, isHydrated: true });
-    eventBus.emit('settings:updated', { settings: updated });
-  },
-}));
+    fetchSettings: async () => {
+      set({ isLoading: true });
+      try {
+        const settings = await settingsRepo.get();
+        set({ settings, isLoading: false, isHydrated: true });
+      } catch {
+        set({ isLoading: false, isHydrated: true });
+      }
+    },
+
+    updateSettings: async (updates: Partial<PepperSettings>) => {
+      const updated = await settingsRepo.save(updates);
+      set({ settings: updated, isHydrated: true });
+      eventBus.emit('settings:updated', { settings: updated });
+    },
+  };
+});

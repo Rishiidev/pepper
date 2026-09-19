@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Logo, LogoState } from '../brand/Logo';
 import { useSettingsStore } from '../../stores/settings-store';
-import { useSessionStore } from '../../stores/session-store';
+import { OnboardingDemo } from './OnboardingDemo';
 import {
   Brain,
   Zap,
@@ -10,6 +10,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Key,
+  PlayCircle,
   ShieldCheck,
   X,
 } from 'lucide-react';
@@ -21,14 +22,29 @@ interface Props {
 
 export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { updateSettings } = useSettingsStore();
-  const { saveWorkspace } = useSessionStore();
   const [step, setStep] = useState<number>(1);
   const [selectedProvider, setSelectedProvider] = useState<string>('none');
-  const [isCapturingFirst, setIsCapturingFirst] = useState<boolean>(false);
+  const [demoPhase, setDemoPhase] = useState<string>('idle');
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog on open and on each step, close on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    dialogRef.current?.querySelector<HTMLElement>('[data-autofocus]')?.focus();
+  }, [isOpen, step]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDismiss();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   if (!isOpen) return null;
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const handleDismiss = () => {
     updateSettings({ hasCompletedOnboarding: true });
@@ -44,20 +60,11 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   const handleComplete = async () => {
-    setIsCapturingFirst(true);
-    try {
-      await updateSettings({
-        hasCompletedOnboarding: true,
-        selectedAiProvider: selectedProvider,
-      });
-      // Capture the user's active window tabs as their very first memory!
-      await saveWorkspace('First Memory Capture');
-    } catch (err) {
-      console.warn('First memory capture skipped:', err);
-    } finally {
-      setIsCapturingFirst(false);
-      onClose();
-    }
+    await updateSettings({
+      hasCompletedOnboarding: true,
+      selectedAiProvider: selectedProvider,
+    });
+    onClose();
   };
 
   const logoStates: Record<number, LogoState> = {
@@ -65,20 +72,27 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
     2: 'saving',
     3: 'restoring',
     4: 'ai',
+    5: 'restoring',
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-xl animate-fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-xl animate-fade-in" role="presentation">
       {/* Background Portal Glow */}
       <div className="absolute w-96 h-96 bg-pepper-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
 
-      <div className="relative w-full max-w-xl bg-surface-card border border-border/80 rounded-3xl p-8 shadow-2xl space-y-8 glass-panel animate-portal-expand">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+        className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto bg-surface-card border border-border/80 rounded-3xl p-8 shadow-2xl space-y-8 glass-panel animate-portal-expand"
+      >
         {/* Top Header & Close */}
         <div className="flex items-center justify-between border-b border-border/60 pb-4">
           <div className="flex items-center gap-3">
             <Logo size={28} state={logoStates[step]} />
             <div>
-              <h2 className="font-extrabold text-sm tracking-widest text-text-primary uppercase font-mono">
+              <h2 id="onboarding-title" className="font-extrabold text-sm tracking-widest text-text-primary uppercase font-mono">
                 PEPPER OS
               </h2>
               <p className="text-[10px] text-text-muted uppercase tracking-wider">
@@ -90,10 +104,13 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="flex items-center gap-3">
             {/* Step Indicators */}
             <div className="flex gap-1.5">
-              {[1, 2, 3, 4].map((s) => (
-                <div
+              {[1, 2, 3, 4, 5].map((s) => (
+                <button
                   key={s}
+                  type="button"
                   onClick={() => setStep(s)}
+                  aria-label={`Go to step ${s} of ${totalSteps}`}
+                  aria-current={s === step ? 'step' : undefined}
                   className={`h-1.5 rounded-full transition-all cursor-pointer ${
                     s === step
                       ? 'w-6 bg-pepper-500'
@@ -193,7 +210,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 Work Memory Recall (⌘K)
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Press ⌘K anywhere. Type what you remember — "that pricing research" or "Shopify checkout". Pepper reconstructs your exact thinking trail in milliseconds.
+                Press ⌘K anywhere. Type what you remember — "that pricing research" or "Shopify checkout". It works instantly and fully offline, with no AI setup, and forgives typos.
               </p>
             </div>
 
@@ -219,7 +236,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 Bring Your Own Keys (BYOK)
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                You own your intelligence. Select your preferred AI provider or start completely offline-first. Pepper never locks you in.
+                You own your intelligence. Everything above works without AI. Optionally connect a provider for smarter titles and summaries.
               </p>
             </div>
 
@@ -250,6 +267,22 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </div>
         )}
 
+        {/* Step 5: Live demo */}
+        {step === 5 && (
+          <div className="space-y-5 py-2 animate-slide-up">
+            <div className="text-center space-y-2 max-w-md mx-auto">
+              <div className="w-14 h-14 rounded-2xl bg-pepper-500/10 border border-pepper-500/20 flex items-center justify-center mx-auto text-pepper-400">
+                <PlayCircle className="w-7 h-7" aria-hidden="true" />
+              </div>
+              <h3 className="text-xl font-extrabold text-text-primary tracking-tight">See it work, live</h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Open three tabs, close the window, then bring it all back. It takes ten seconds.
+              </p>
+            </div>
+            <OnboardingDemo onProgress={setDemoPhase} />
+          </div>
+        )}
+
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-border/60">
           <span className="text-[11px] text-text-muted font-medium flex items-center gap-1.5">
@@ -268,16 +301,12 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             )}
 
             <button
+              data-autofocus
               onClick={handleNext}
-              disabled={isCapturingFirst}
               className="flex items-center gap-2 px-6 py-2.5 bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white rounded-xl transition-all shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
             >
               <span>
-                {isCapturingFirst
-                  ? 'Capturing First Memory…'
-                  : step === totalSteps
-                  ? "Start Reconstructing Work (I'm Back)"
-                  : 'Continue'}
+                {step === totalSteps ? (demoPhase === 'restored' ? "I'm Back — Finish" : 'Skip Demo & Finish') : 'Continue'}
               </span>
               <ArrowRight className="w-4 h-4" />
             </button>
