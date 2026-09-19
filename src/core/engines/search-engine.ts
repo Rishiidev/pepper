@@ -1,4 +1,5 @@
 import { PepperSession } from '../types/session';
+import { parseQuery, synonymsOf, wordMatch, words } from './search-text';
 
 export interface SearchOptions {
   query?: string;
@@ -13,146 +14,157 @@ export interface RankedResult {
   matchReason: string;
 }
 
+/** Where in a session a token can match, with how much weight. */
+const FIELD_WEIGHTS = {
+  name: 10,
+  intent: 8,
+  summary: 6,
+  project: 5,
+  tag: 4,
+  domain: 3,
+  tab_title: 2,
+  tab_url: 1,
+} as const;
+
+type Field = keyof typeof FIELD_WEIGHTS;
+
+interface IndexedSession {
+  fields: Record<Field, string[][]>; // each field is a list of texts, each text a list of words
+  raw: Record<Field, string[]>;
+}
+
+const indexCache = new WeakMap<PepperSession, { key: number; index: IndexedSession }>();
+
+function indexSession(session: PepperSession): IndexedSession {
+  const key = (session.updatedAt ?? 0) + session.tabCount;
+  const hit = indexCache.get(session);
+  if (hit && hit.key === key) return hit.index;
+
+  const raw: Record<Field, string[]> = {
+    name: [session.name || ''],
+    intent: session.sessionIntent ? [session.sessionIntent] : [],
+    summary: session.summary ? [session.summary] : [],
+    project: session.projectName ? [session.projectName] : [],
+    tag: session.tags ?? [],
+    domain: session.domainClusters ?? [],
+    tab_title: session.tabs.map((t) => t.title || ''),
+    tab_url: session.tabs.map((t) => t.url || ''),
+  };
+  const fields = Object.fromEntries(
+    (Object.keys(raw) as Field[]).map((f) => [f, raw[f].map((text) => words(text))])
+  ) as Record<Field, string[][]>;
+
+  const index = { fields, raw };
+  indexCache.set(session, { key, index });
+  return index;
+}
+
+/** Best match of one query token against every text in a field, plus a small bonus for repeat hits. */
+function scoreToken(token: string, index: IndexedSession, field: Field): number {
+  const texts = index.fields[field];
+  const dotted = token.includes('.');
+  let best = 0;
+  let hits = 0;
+
+  for (let i = 0; i < texts.length; i++) {
+    let m = 0;
+    if (dotted && index.raw[field][i].toLowerCase().includes(token)) {
+      m = 1;
+    } else {
+      for (const w of texts[i]) {
+        const s = wordMatch(token, w);
+        if (s > m) m = s;
+        if (m === 1) break;
+      }
+      if (m < 0.6) {
+        for (const syn of synonymsOf(token)) {
+          for (const w of texts[i]) {
+            const s = wordMatch(syn, w) * 0.65;
+            if (s > m) m = s;
+          }
+        }
+      }
+    }
+    if (m > 0) hits++;
+    if (m > best) best = m;
+  }
+  if (best === 0) return 0;
+  const repeatBonus = field === 'tab_title' || field === 'tab_url' ? Math.min(hits - 1, 5) * 0.03 : 0;
+  return Math.min(1, best + repeatBonus);
+}
+
 export class SearchEngine {
   /**
    * Basic filtered search — preserves existing behavior.
    */
   search(sessions: PepperSession[], options: SearchOptions): PepperSession[] {
-    const ranked = this.rankedSearch(sessions, options);
-    return ranked.map((r) => r.session);
+    return this.rankedSearch(sessions, options).map((r) => r.session);
   }
 
   /**
-   * Ranked search with relevance scoring.
-   * Searches across: name, summary, sessionIntent, project, tags,
-   * tab titles, tab URLs, and domain clusters.
-   * Results are ranked by: relevance score × recency boost.
+   * Local, offline ranked search. Understands typos ("pricng"), word forms
+   * ("prices"), related words ("cost" ~ "pricing"), abbreviations ("shpfy")
+   * and time phrases ("yesterday", "last week"). Ranked by relevance × recency.
    */
   rankedSearch(sessions: PepperSession[], options: SearchOptions): RankedResult[] {
     const { query = '', projectFilter, favoritesOnly, pinnedOnly } = options;
-    const cleanQuery = query.toLowerCase().trim();
-    const queryWords = cleanQuery.split(/\s+/).filter(Boolean);
-
+    const { tokens, time } = parseQuery(query);
+    const hasQuery = tokens.length > 0;
     const results: RankedResult[] = [];
 
     for (const session of sessions) {
-      // Hard filters (unchanged)
       if (favoritesOnly && !session.isFavorite) continue;
       if (pinnedOnly && !session.isPinned) continue;
       if (projectFilter && session.projectName !== projectFilter) continue;
 
-      // No query → include all with recency score only
-      if (!cleanQuery) {
-        results.push({
-          session,
-          score: this.recencyScore(session),
-          matchReason: 'all',
-        });
+      const inTime = !time || (session.createdAt >= time.from && session.createdAt < time.to);
+
+      if (!hasQuery) {
+        if (time && !inTime) continue;
+        results.push({ session, score: this.recencyScore(session), matchReason: 'all' });
         continue;
       }
 
-      // Score each session against the query
-      let score = 0;
-      let matchReason = '';
+      const index = indexSession(session);
+      const fieldTotals: Record<Field, number> = {
+        name: 0, intent: 0, summary: 0, project: 0, tag: 0, domain: 0, tab_title: 0, tab_url: 0,
+      };
+      let total = 0;
+      let matchedTokens = 0;
 
-      // 1. Session name match (highest weight)
-      const nameScore = this.fuzzyScore(session.name, queryWords);
-      if (nameScore > 0) {
-        score += nameScore * 10;
-        matchReason = 'name';
-      }
-
-      // 2. AI session intent match (high weight — this is the memory engine signal)
-      if (session.sessionIntent) {
-        const intentScore = this.fuzzyScore(session.sessionIntent, queryWords);
-        if (intentScore > 0) {
-          score += intentScore * 8;
-          matchReason = matchReason || 'intent';
-        }
-      }
-
-      // 3. Summary match
-      if (session.summary) {
-        const summaryScore = this.fuzzyScore(session.summary, queryWords);
-        if (summaryScore > 0) {
-          score += summaryScore * 6;
-          matchReason = matchReason || 'summary';
-        }
-      }
-
-      // 4. Project name match
-      if (session.projectName) {
-        const projectScore = this.fuzzyScore(session.projectName, queryWords);
-        if (projectScore > 0) {
-          score += projectScore * 5;
-          matchReason = matchReason || 'project';
-        }
-      }
-
-      // 5. Tags match
-      if (session.tags) {
-        for (const tag of session.tags) {
-          const tagScore = this.fuzzyScore(tag, queryWords);
-          if (tagScore > 0) {
-            score += tagScore * 4;
-            matchReason = matchReason || 'tag';
+      for (const token of tokens) {
+        let tokenBest = 0;
+        let tokenRest = 0;
+        for (const field of Object.keys(FIELD_WEIGHTS) as Field[]) {
+          const contribution = scoreToken(token, index, field) * FIELD_WEIGHTS[field];
+          if (contribution <= 0) continue;
+          fieldTotals[field] += contribution;
+          if (contribution > tokenBest) {
+            tokenRest += tokenBest * 0.15;
+            tokenBest = contribution;
+          } else {
+            tokenRest += contribution * 0.15;
           }
         }
+        if (tokenBest > 0) matchedTokens++;
+        total += tokenBest + tokenRest;
       }
 
-      // 6. Domain clusters match
-      if (session.domainClusters) {
-        for (const domain of session.domainClusters) {
-          const domainScore = this.fuzzyScore(domain, queryWords);
-          if (domainScore > 0) {
-            score += domainScore * 3;
-            matchReason = matchReason || 'domain';
-          }
-        }
-      }
+      const needed = Math.ceil(tokens.length * 0.6);
+      if (matchedTokens < needed) continue;
 
-      // 7. Tab titles match (broad sweep)
-      for (const tab of session.tabs) {
-        const titleScore = this.fuzzyScore(tab.title, queryWords);
-        if (titleScore > 0) {
-          score += titleScore * 2;
-          matchReason = matchReason || 'tab_title';
-        }
+      const coverage = matchedTokens / tokens.length;
+      let score = total * coverage * coverage * this.recencyScore(session);
+      if (time) score *= inTime ? 2.5 : 0.4;
+      if (session.isPinned) score *= 1.1;
+      if (session.isFavorite) score *= 1.1;
 
-        // 8. Tab URL match (lowest weight)
-        const urlScore = this.fuzzyScore(tab.url, queryWords);
-        if (urlScore > 0) {
-          score += urlScore * 1;
-          matchReason = matchReason || 'tab_url';
-        }
-      }
-
-      if (score > 0) {
-        // Apply recency boost: recent sessions get a multiplier
-        const recency = this.recencyScore(session);
-        score *= recency;
-
-        results.push({ session, score, matchReason });
-      }
+      const matchReason = (Object.keys(fieldTotals) as Field[]).reduce((a, b) => (fieldTotals[b] > fieldTotals[a] ? b : a));
+      results.push({ session, score, matchReason });
     }
 
-    // Sort by score descending
     results.sort((a, b) => b.score - a.score);
     return results;
-  }
-
-  /**
-   * Fuzzy matching score: counts how many query words appear in the target string.
-   * Returns a 0-1 score based on the fraction of matching words.
-   */
-  private fuzzyScore(target: string, queryWords: string[]): number {
-    if (!target || queryWords.length === 0) return 0;
-    const lower = target.toLowerCase();
-    let matches = 0;
-    for (const word of queryWords) {
-      if (lower.includes(word)) matches++;
-    }
-    return matches / queryWords.length;
   }
 
   /**

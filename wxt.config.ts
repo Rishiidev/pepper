@@ -17,7 +17,7 @@ export default defineConfig({
       48: 'icons/icon-48.png',
       128: 'icons/icon-128.png',
     },
-    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting', 'activeTab'],
+    permissions: ['tabs', 'storage', 'contextMenus', 'notifications', 'scripting', 'activeTab', 'unlimitedStorage', 'sessions'],
     host_permissions: [
       'https://api.openai.com/*',
       'https://api.anthropic.com/*',

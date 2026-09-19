@@ -9,6 +9,18 @@ import { providerRegistry, featureFlagsManager } from '../src/core/intelligence'
 import { isSaveableUrl } from '../src/core/utils/url';
 import { PEPPER_COMMANDS } from '../src/core/constants/commands';
 
+async function openManager(query = ''): Promise<void> {
+  const base = chrome.runtime.getURL('manager.html');
+  const existing = await chrome.tabs.query({ url: `${base}*` });
+  const url = query ? `${base}?${query}` : base;
+  if (existing[0]?.id !== undefined) {
+    await chrome.tabs.update(existing[0].id, { active: true, url });
+    if (existing[0].windowId !== undefined) await chrome.windows.update(existing[0].windowId, { focused: true });
+  } else {
+    await chrome.tabs.create({ url, active: true });
+  }
+}
+
 export default defineBackground(() => {
   // Hydrate BYOK providers and feature flags on Service Worker boot
   featureFlagsManager.hydrateFromStorage().then(() => {
@@ -88,14 +100,33 @@ export default defineBackground(() => {
     }
   });
 
-  // Notification Button Click (Undo Action)
+  // Notification actions
   if (typeof chrome !== 'undefined' && chrome.notifications) {
-    chrome.notifications.onButtonClicked.addListener(async (notificationId) => {
+    chrome.notifications.onButtonClicked.addListener(async (notificationId, buttonIndex) => {
       if (notificationId.startsWith('pepper_quicksave_')) {
         await quickSaveEngine.undoLastSave();
+      } else if (notificationId.startsWith('pepper_capture_')) {
+        const sessionId = notificationId.slice('pepper_capture_'.length);
+        if (buttonIndex === 0) {
+          await restoreEngine.restoreSession(sessionId).catch((err) => console.warn('Reopen failed:', err));
+        } else {
+          await openManager(`capture=${encodeURIComponent(sessionId)}`);
+        }
+        chrome.notifications.clear(notificationId);
+      }
+    });
+    chrome.notifications.onClicked.addListener(async (notificationId) => {
+      if (notificationId.startsWith('pepper_capture_')) {
+        await openManager(`capture=${encodeURIComponent(notificationId.slice('pepper_capture_'.length))}`);
+        chrome.notifications.clear(notificationId);
       }
     });
   }
+
+  // Best-effort: write the last-known window state before Chrome unloads the worker
+  chrome.runtime.onSuspend?.addListener(() => {
+    void captureEngine.flush();
+  });
 
   // Keyboard Shortcuts Handler
   chrome.commands.onCommand.addListener(async (command) => {

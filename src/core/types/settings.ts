@@ -19,6 +19,14 @@ export interface PepperSettings {
   quickSaveDestination: QuickSaveDestination;
   quickSaveFeedback: boolean;
   quickSaveEnableUndo: boolean;
+
+  // === Auto-capture feedback & retention ===
+  /** Show a quiet notification when a window is auto-captured */
+  notifyOnAutoCapture: boolean;
+  /** Delete unpinned, unfavorited auto-captures older than this many days (0 = keep forever) */
+  autoCaptureRetentionDays: number;
+  /** Keep at most this many auto-captures (0 = unlimited) */
+  maxAutoCaptures: number;
 }
 
 export const DEFAULT_SETTINGS: PepperSettings = {
@@ -35,4 +43,7 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   quickSaveDestination: 'inbox',
   quickSaveFeedback: true,
   quickSaveEnableUndo: true,
+  notifyOnAutoCapture: true,
+  autoCaptureRetentionDays: 30,
+  maxAutoCaptures: 200,
 };

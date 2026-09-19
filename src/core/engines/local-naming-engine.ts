@@ -1,4 +1,5 @@
 import { PepperTab } from '../types/session';
+import { generateSessionName, baseDomain } from './session-naming';
 
 interface DomainCategory {
   category: string;
@@ -44,6 +45,15 @@ export class LocalNamingEngine {
    * Deterministically generates a rich, contextual workspace name from tab metadata
    */
   generateFallbackTitle(tabs: PepperTab[]): { title: string; tags: string[]; category: string } {
+    const result = this.legacyFallbackTitle(tabs);
+    if (tabs.length > 1) {
+      const clusters = [...new Set(tabs.map((t) => this.extractHostname(t.url)).filter(Boolean).map(baseDomain))];
+      result.title = generateSessionName(tabs, clusters);
+    }
+    return result;
+  }
+
+  private legacyFallbackTitle(tabs: PepperTab[]): { title: string; tags: string[]; category: string } {
     if (!tabs || tabs.length === 0) {
       const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       return { title: `Pepper Workspace (${today})`, tags: ['Workspace'], category: 'General' };

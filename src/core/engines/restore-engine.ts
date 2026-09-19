@@ -65,6 +65,7 @@ export class RestoreEngine {
       }
     }
 
+    await sessionEngine.updateSession(sessionId, { restoredAt: Date.now() }).catch(() => undefined);
     eventBus.emit('session:restored', { sessionId, tabCount: tabsToRestore.length });
   }
 

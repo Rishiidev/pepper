@@ -1,3 +1,4 @@
+import { INBOX_SESSION_ID } from '../constants/ids';
 import { PepperSession, PepperTab, SessionStats, CaptureType } from '../types/session';
 import { sessionRepo } from '../../storage/repositories/session-repo';
 import { eventBus } from '../events/event-bus';
@@ -7,7 +8,7 @@ import { AutoTitleSkill } from '../intelligence/skills/auto-title';
 import { AutoTaggingSkill } from '../intelligence/skills/auto-tagging';
 
 /** Rough per-tab memory estimate used everywhere RAM savings are shown. */
-export const INBOX_SESSION_ID = 'pepper_inbox';
+export { INBOX_SESSION_ID };
 export const RAM_PER_TAB_MB = 100;
 
 export interface CreateSessionOptions {

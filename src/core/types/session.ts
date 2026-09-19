@@ -7,7 +7,14 @@ export interface PepperTab {
   pinned?: boolean;
 }
 
-export type CaptureType = 'manual' | 'auto_window_close' | 'auto_idle' | 'keyboard_shortcut';
+export type CaptureType = 'manual' | 'auto_window_close' | 'auto_idle' | 'keyboard_shortcut' | 'crash_recovery';
+
+/** Capture types created without the user asking; subject to retention cleanup. */
+export const AUTO_CAPTURE_TYPES: readonly CaptureType[] = ['auto_window_close', 'auto_idle', 'crash_recovery'];
+
+export function isAutoCapture(type?: CaptureType): boolean {
+  return !!type && AUTO_CAPTURE_TYPES.includes(type);
+}
 
 export interface PepperSession {
   id: string;
@@ -24,6 +31,12 @@ export interface PepperSession {
   timeWorkedMinutes?: number;
   windowId?: number;
   estimatedRamSavedMb?: number;
+
+  /** Set when the workspace was reopened via restore */
+  restoredAt?: number;
+
+  /** Set when the user dismissed a crash-recovery prompt for this session */
+  dismissedAt?: number;
 
   // === Memory Engine Fields ===
 
