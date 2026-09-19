@@ -5,6 +5,23 @@ All notable changes to **PEPPER OS** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — session timeline]
+
+### Added
+- **Browser session timeline** (opt-in, local only): a session starts when Chrome opens and ends when the last window closes. Pepper logs each tab opened, navigated to, switched to and closed, plus real active time (paused while Chrome is unfocused or you are away). Incognito is never recorded and a domain blocklist keeps sites out entirely. A session that ends without a clean close is marked **Interrupted**.
+- **Timeline view**: day picker, recap ("You focused 3h 10m, mostly on Stripe docs and Linear"), a scrubber to see what was open at any moment, "Reopen this moment", "Save as workspace", and a "+" on every entry.
+- **Add any tab to a workspace**: "+" menu in the popup, side panel and timeline; right-click "Add this tab to workspace" with recent workspaces; **Alt+Shift+A** adds the current tab to the *active* workspace (star a workspace to make it active). Duplicates are skipped.
+- **Suggestions**: the side panel offers "Add 3 open tabs to <workspace>?" or "Group 3 tabs about <topic>?".
+- **Side panel**: timer, active workspace, open tabs, suggestions and today's timeline beside your tabs.
+- **Pomodoro everywhere**: one-click "Start 25:00" in the popup and side panel; the timer finishes and updates the toolbar badge (minutes left) through alarms even when no Pepper page is open. Focus time appears on the workspace it was attached to.
+- Idle detection, Vitest tests for the recorder/replay/recap/suggestions, and repo-level Playwright e2e tests (`npm run test:e2e`).
+
+### Changed
+- Shortcut slots: Chrome allows four suggested shortcuts, so `Cmd/Alt+Shift+O` (open dashboard, also Chrome's Bookmark Manager on Mac) is now unbound by default; `Alt+Shift+A` adds a tab.
+
+### Fixed
+- The `toggle-focus-timer` shortcut no longer makes the timer jump forward after resuming.
+
 ## [Unreleased]
 
 ### Added

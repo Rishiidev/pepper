@@ -7,6 +7,8 @@ interface Props {
   selectedIndices: Set<number>;
   onToggleIndex: (index: number) => void;
   onToggleDomain: (domainTabsIndices: number[], select: boolean) => void;
+  /** Optional per-row control, e.g. an "add to workspace" button */
+  renderRowAction?: (tab: PepperTab) => React.ReactNode;
 }
 
 interface DomainGroup {
@@ -21,6 +23,7 @@ export const DomainTabAccordion: React.FC<Props> = ({
   selectedIndices,
   onToggleIndex,
   onToggleDomain,
+  renderRowAction,
 }) => {
   const [collapsedDomains, setCollapsedDomains] = useState<Set<string>>(new Set());
 
@@ -147,6 +150,7 @@ export const DomainTabAccordion: React.FC<Props> = ({
                         />
                       )}
                       <span className="truncate text-text-primary flex-1">{tab.title || tab.url}</span>
+                      {renderRowAction?.(tab)}
                     </label>
                   );
                 })}

@@ -55,3 +55,15 @@ describe('suggestFromTabs', () => {
     expect(suggestFromTabs(three, [], { dismissed: new Set([s.key]) })).toHaveLength(0);
   });
 });
+
+describe('suggestFromTabs false positives', () => {
+  it('does not match on the site alone', () => {
+    const notes = ws('w2', 'Reading list', [tab('https://github.com/a/b', 'Some repo'), tab('https://github.com/c/d', 'Another repo')]);
+    const open = [
+      tab('https://github.com/x/1', 'Kubernetes operator'),
+      tab('https://github.com/x/2', 'Terraform provider'),
+      tab('https://github.com/x/3', 'Rust async runtime'),
+    ];
+    expect(suggestFromTabs(open, [notes]).every((s) => s.kind !== 'add')).toBe(true);
+  });
+});

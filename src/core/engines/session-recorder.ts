@@ -11,6 +11,8 @@ const HEARTBEAT_ALARM = 'pepper_recorder_heartbeat';
 const SETTINGS_KEY = 'pepper_v2_settings';
 const IDLE_SECONDS = 300;
 const STARTUP_GRACE_MS = 1500;
+/** A session with no heartbeat for this long belongs to a browser run that has ended */
+const STALE_MS = 5 * 60_000;
 
 /**
  * Records the browser session timeline. Opt-in; incognito is never recorded and
@@ -91,7 +93,14 @@ export class SessionRecorder {
     }
 
     chrome.alarms?.onAlarm.addListener((alarm) => {
-      if (alarm.name === HEARTBEAT_ALARM) this.run(async (now) => this.core.heartbeat(now));
+      if (alarm.name === HEARTBEAT_ALARM) {
+        this.run(async (now) => {
+          const events = this.core.heartbeat(now);
+          // Even with no events, prove the browser is still alive
+          if (events.length === 0 && this.core.state.sessionId) await timelineStore.updateSession(this.core.state.sessionId, { lastEventAt: now });
+          return events;
+        });
+      }
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -164,6 +173,8 @@ export class SessionRecorder {
     }
 
     const active = await timelineStore.getActiveSession();
+    // The heartbeat keeps lastEventAt fresh, so a long silence means Chrome was closed without a clean end
+    if (!startup && active && Date.now() - active.lastEventAt > STALE_MS && !(await store?.get(STATE_KEY))?.[STATE_KEY]) startup = true;
     if (startup && active) await this.endInterrupted(active);
     if (startup) this.pendingStartup = true;
 

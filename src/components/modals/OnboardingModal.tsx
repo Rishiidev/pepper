@@ -25,6 +25,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [step, setStep] = useState<number>(1);
   const [selectedProvider, setSelectedProvider] = useState<string>('none');
   const [demoPhase, setDemoPhase] = useState<string>('idle');
+  const [trackTimeline, setTrackTimeline] = useState<boolean>(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   // Move focus into the dialog on open and on each step, close on Escape
@@ -63,6 +64,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
     await updateSettings({
       hasCompletedOnboarding: true,
       selectedAiProvider: selectedProvider,
+      sessionTrackingEnabled: trackTimeline,
     });
     onClose();
   };
@@ -265,6 +267,23 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
               ))}
             </div>
           </div>
+        )}
+
+        {step === 4 && (
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-surface p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={trackTimeline}
+              onChange={(e) => setTrackTimeline(e.target.checked)}
+              className="accent-pepper-500 w-4 h-4 mt-0.5"
+            />
+            <span className="text-xs">
+              <strong className="block text-text-primary">Record a private session timeline (optional)</strong>
+              <span className="text-text-muted">
+                See when you opened Chrome and which tabs you used, and scrub back to any moment. Local only, skips incognito, and you can block sites in Settings.
+              </span>
+            </span>
+          </label>
         )}
 
         {/* Step 5: Live demo */}

@@ -24,11 +24,13 @@ import { HistoryView } from '../../src/components/history/HistoryView';
 import { InsightsDashboard } from '../../src/components/insights/InsightsDashboard';
 import { CaptureToast } from '../../src/components/feedback/CaptureToast';
 import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
+import { TimelineView } from '../../src/components/timeline/TimelineView';
+import { TrackingSettings } from '../../src/components/settings/TrackingSettings';
 import { DataPanel } from '../../src/components/settings/DataPanel';
 import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
 import { backupEngine } from '../../src/core/engines/backup-engine';
 import { PepperSession } from '../../src/core/types/session';
-import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, Pause, Play, CheckCircle2, History } from 'lucide-react';
+import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, CalendarClock, Pause, Play, CheckCircle2, History } from 'lucide-react';
 
 export default function App() {
   const {
@@ -60,7 +62,7 @@ export default function App() {
     clearCompletedModal,
   } = useFocusStore();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'insights' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'timeline' | 'insights' | 'settings'>(() => (new URLSearchParams(window.location.search).get('view') === 'timeline' ? 'timeline' : 'home'));
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
@@ -92,7 +94,7 @@ export default function App() {
     }
   };
 
-  const handleNavClick = (tab: 'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'insights' | 'settings') => {
+  const handleNavClick = (tab: 'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'timeline' | 'insights' | 'settings') => {
     setActiveTab(tab);
     resetFilters();
   };
@@ -286,6 +288,19 @@ export default function App() {
             </button>
 
             <button
+              onClick={() => handleNavClick('timeline')}
+              aria-current={activeTab === 'timeline' ? 'page' : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
+                activeTab === 'timeline'
+                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
+                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
+              }`}
+            >
+              <CalendarClock className="w-4 h-4 text-blue-400" aria-hidden="true" />
+              <span>Timeline</span>
+            </button>
+
+            <button
               onClick={() => handleNavClick('insights')}
               aria-current={activeTab === 'insights' ? 'page' : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
@@ -404,11 +419,14 @@ export default function App() {
                 </div>
                 <ThemeToggle />
               </section>
+              <TrackingSettings />
               <DataPanel />
               <IntelligenceSettings />
             </div>
           ) : activeTab === 'focus' ? (
             <FocusView />
+          ) : activeTab === 'timeline' ? (
+            <TimelineView />
           ) : activeTab === 'history' ? (
             <HistoryView />
           ) : activeTab === 'insights' ? (

@@ -11,6 +11,9 @@ import { recoveryEngine, LastClosed } from '../../src/core/engines/recovery-engi
 import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
 import { InlineRename } from '../../src/components/feedback/InlineRename';
 import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
+import { workspaceMembership } from '../../src/core/engines/workspace-membership';
+import { FocusQuickStart } from '../../src/components/focus/FocusQuickStart';
+import { AddToWorkspaceMenu } from '../../src/components/workspace/AddToWorkspaceMenu';
 import { AutoTitleSkill } from '../../src/core/intelligence/skills/auto-title';
 import { projectRepo } from '../../src/storage/repositories/project-repo';
 import { PepperTab, PepperSession } from '../../src/core/types/session';
@@ -32,6 +35,8 @@ import {
   Plus,
   Zap,
   Undo2,
+  PanelRight,
+  Star,
 } from 'lucide-react';
 
 export default function App() {
@@ -57,6 +62,7 @@ export default function App() {
   const [lastSaved, setLastSaved] = useState<PepperSession | null>(null);
   const [lastClosed, setLastClosed] = useState<LastClosed | null>(null);
   const [reopenError, setReopenError] = useState<string | null>(null);
+  const [activeWorkspaceName, setActiveWorkspaceName] = useState<string | null>(null);
 
   // BUG-07 FIX: Use refs to avoid stale closures in keyboard listener
   const tabsRef = useRef(tabs);
@@ -76,6 +82,7 @@ export default function App() {
     fetchSessions();
     fetchSettings();
     loadCurrentTabsAndAI();
+    workspaceMembership.getActiveWorkspace().then((w) => setActiveWorkspaceName(w?.name ?? null)).catch(() => undefined);
     recoveryEngine.peekLastClosed().then(setLastClosed).catch(() => setLastClosed(null));
 
     // Keyboard Navigation Listener
@@ -223,6 +230,16 @@ export default function App() {
     }
   };
 
+  const openSidePanel = async () => {
+    try {
+      const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+      if (win.id !== undefined) await chrome.sidePanel.open({ windowId: win.id });
+      window.close();
+    } catch (err) {
+      console.warn('Side panel unavailable:', err);
+    }
+  };
+
   const openManager = () => {
     if (typeof chrome !== 'undefined' && chrome.tabs) {
       chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
@@ -255,6 +272,15 @@ export default function App() {
 
             <div className="flex items-center gap-1.5">
               <button
+                type="button"
+                onClick={openSidePanel}
+                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
+                aria-label="Open side panel"
+                title="Open side panel"
+              >
+                <PanelRight className="w-4 h-4" aria-hidden="true" />
+              </button>
+              <button
                 onClick={() => setView('settings')}
                 className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
                 title="Settings"
@@ -273,6 +299,16 @@ export default function App() {
           </header>
 
           <RecoveryBanner compact />
+
+          <FocusQuickStart compact />
+
+          {activeWorkspaceName && (
+            <p className="flex items-center gap-1.5 text-[11px] text-text-secondary -mt-2">
+              <Star className="w-3 h-3 text-amber-400 fill-amber-400" aria-hidden="true" />
+              Active workspace: <strong className="text-text-primary truncate">{activeWorkspaceName}</strong>
+              <span className="text-text-muted">· Alt+Shift+A adds a tab</span>
+            </p>
+          )}
 
           {lastClosed && (
             <div>
@@ -398,6 +434,9 @@ export default function App() {
                 selectedIndices={selectedIndices}
                 onToggleIndex={handleToggleIndex}
                 onToggleDomain={handleToggleDomain}
+                renderRowAction={(tab) => (
+                  <AddToWorkspaceMenu tabs={[tab]} label={`Add ${tab.title || tab.url} to a workspace`} />
+                )}
               />
             </div>
           </div>

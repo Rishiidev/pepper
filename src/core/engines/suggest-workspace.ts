@@ -31,7 +31,7 @@ function workspaceProfile(ws: PepperSession) {
   const words = new Map<string, number>();
   const domains = new Set<string>();
   for (const t of ws.tabs) {
-    for (const w of tabTokens(t)) words.set(w, (words.get(w) || 0) + 1);
+    for (const w of tabTokens(t, { brand: false })) words.set(w, (words.get(w) || 0) + 1);
     const d = domainOf(t.url);
     if (d) domains.add(d);
   }
@@ -58,12 +58,14 @@ export function suggestFromTabs(openTabs: PepperTab[], workspaces: PepperSession
   const leftover: PepperTab[] = [];
 
   for (const tab of free) {
-    const tokens = tabTokens(tab);
+    const tokens = tabTokens(tab, { brand: false });
     const domain = domainOf(tab.url);
     let best: { id: string; score: number } | null = null;
     for (const p of profiles) {
-      let score = tokens.filter((t) => p.words.has(t)).length;
-      if (domain && p.domains.has(domain)) score += 2;
+      // A shared site alone is not enough (everything is on github.com): the titles must overlap too
+      const overlap = tokens.filter((t) => p.words.has(t)).length;
+      if (overlap === 0) continue;
+      const score = overlap + (domain && p.domains.has(domain) ? 1 : 0);
       if (score >= 2 && (!best || score > best.score)) best = { id: p.ws.id, score };
     }
     if (best) assigned.set(best.id, [...(assigned.get(best.id) || []), tab]);

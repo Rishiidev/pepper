@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PepperSession } from '../core/types/session';
 import { useSessionStore } from '../stores/session-store';
 import { useSettingsStore } from '../stores/settings-store';
 import { healthEngine } from '../core/engines/health-engine';
+import { focusEngine } from '../core/engines/focus-engine';
 import { InlineRename } from './feedback/InlineRename';
 import { sessionEngine } from '../core/engines/session-engine';
 import { AutoTitleSkill } from '../core/intelligence/skills/auto-title';
@@ -35,7 +36,17 @@ interface SessionCardProps {
 
 export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
   const { restoreSession, deleteSession, toggleFavorite, togglePin, fetchSessions } = useSessionStore();
-  const { settings } = useSettingsStore();
+  const { settings, updateSettings } = useSettingsStore();
+  const [focusSeconds, setFocusSeconds] = useState(0);
+  const isActiveWorkspace = settings.activeWorkspaceId === session.id;
+
+  // Total completed focus time attached to this workspace
+  useEffect(() => {
+    focusEngine
+      .getSessionsForWorkspace(session.id)
+      .then((list) => setFocusSeconds(list.filter((f) => f.status === 'completed').reduce((a, f) => a + f.elapsedSeconds, 0)))
+      .catch(() => setFocusSeconds(0));
+  }, [session.id, session.updatedAt]);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
@@ -257,6 +268,12 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
             <span className="text-emerald-400 font-semibold">{session.estimatedRamSavedMb} MB Saved</span>
           </>
         )}
+        {focusSeconds >= 60 && (
+          <>
+            <span>&bull;</span>
+            <span className="text-pepper-400 font-semibold">Focused {Math.floor(focusSeconds / 3600) > 0 ? `${Math.floor(focusSeconds / 3600)}h ` : ''}{Math.round((focusSeconds % 3600) / 60)}m</span>
+          </>
+        )}
       </div>
 
       {/* LEVEL 5: Actions Area */}
@@ -284,6 +301,19 @@ export const SessionCard: React.FC<SessionCardProps> = ({ session }) => {
 
         {/* Secondary options group */}
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label={isActiveWorkspace ? `${session.name} is the active workspace. Press to clear` : `Make ${session.name} the active workspace`}
+            aria-pressed={isActiveWorkspace}
+            title="Active workspace: new tabs and Alt+Shift+A go here"
+            onClick={(e) => { e.stopPropagation(); void updateSettings({ activeWorkspaceId: isActiveWorkspace ? null : session.id }); }}
+            className={`px-2.5 py-2 rounded-xl border text-[10px] font-bold transition-colors ${
+              isActiveWorkspace ? 'border-amber-400/50 text-amber-500 bg-amber-500/10' : 'border-border/50 text-text-muted hover:text-text-primary hover:bg-surface'
+            }`}
+          >
+            {isActiveWorkspace ? 'Active' : 'Set active'}
+          </button>
+
           <button aria-label={`${session.isFavorite ? 'Unfavorite' : 'Favorite'} ${session.name}`} aria-pressed={!!session.isFavorite}
             onClick={(e) => { e.stopPropagation(); toggleFavorite(session.id); }}
             className={`p-2 rounded-xl border border-border/50 hover:bg-surface transition-colors ${
