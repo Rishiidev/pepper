@@ -28,6 +28,41 @@ const failures = [];
 let checks = 0;
 const check = (name, ok, extra = '') => { checks++; if (!ok) failures.push(`${name} ${extra}`); console.log(`${ok ? 'PASS' : 'FAIL'}  ${name} ${ok ? '' : extra}`); };
 
+/** Controls must not be cut off, run past the viewport or card padding, or sit on top of other content. */
+async function cropAudit(page, label) {
+  const issues = await page.evaluate(() => {
+    const out = [];
+    const vw = window.innerWidth;
+    // content inside a closed <details> is not on screen
+    const collapsed = (el) => { const d = el.closest('details:not([open])'); return !!d && !el.closest('summary'); };
+    const visible = (el) => (el.offsetParent || getComputedStyle(el).position === 'fixed') && !el.closest('.sr-only, .sr-only-focusable, [hidden]') && !collapsed(el) && el.getBoundingClientRect().width > 0;
+    const name = (el) => (el.getAttribute('aria-label') || el.textContent || el.tagName).trim().slice(0, 28);
+    const controls = [...document.querySelectorAll('button, a[href], select, input:not([type=file]), [role=radio], [role=switch]')].filter(visible);
+    for (const el of controls) {
+      const r = el.getBoundingClientRect();
+      if (r.right > vw + 0.5 || r.left < -0.5) out.push(`${name(el)}: outside the viewport`);
+      const card = el.parentElement?.closest('[class*="rounded-card"], [class*="rounded-[20px]"]');
+      if (card) {
+        const cr = card.getBoundingClientRect();
+        const pad = parseFloat(getComputedStyle(card).paddingRight) || 0;
+        if (r.right > cr.right - pad + 1 && r.width < cr.width - 2 * pad) out.push(`${name(el)}: past the card padding by ${Math.round(r.right - (cr.right - pad))}px`);
+        if (r.right > cr.right + 0.5) out.push(`${name(el)}: cut off by the card edge`);
+      }
+      if (!['INPUT', 'SELECT'].includes(el.tagName) && el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).overflow !== 'visible') out.push(`${name(el)}: text clipped`);
+    }
+    // overlap: a control over another control or over text that is not its own
+    const texts = [...document.querySelectorAll('p, h1, h2, h3, span, li, label, time, dt, dd')].filter((t) => visible(t) && [...t.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()));
+    const hit = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2;
+    for (const c of controls) {
+      const cr = c.getBoundingClientRect();
+      for (const o of controls) if (o !== c && !c.contains(o) && !o.contains(c) && hit(cr, o.getBoundingClientRect()) && name(c) < name(o)) out.push(`${name(c)} overlaps ${name(o)}`);
+      for (const t of texts) if (!c.contains(t) && !t.contains(c) && hit(cr, t.getBoundingClientRect())) out.push(`${name(c)} overlaps text "${t.textContent.trim().slice(0, 20)}"`);
+    }
+    return [...new Set(out)].slice(0, 6);
+  });
+  check(`no cropped or overlapping controls: ${label}`, issues.length === 0, issues.join(' | '));
+}
+
 async function scan(page, label, { design = false } = {}) {
   await page.evaluate(AXE);
   const axe = await page.evaluate(async () => {
@@ -105,16 +140,20 @@ for (const scheme of ['light', 'dark']) {
 
   // popup and side panel (both 400px wide)
   let p = await open('popup.html', 400, 720); await scan(p, `popup ${scheme}`); await spacing(p, `popup ${scheme}`, '[data-testid=save-card]'); await shot(p, 'popup'); await p.close();
+  await cropAudit(await (async () => { const q = await open('popup.html', 400, 720); return q; })(), `popup @400 ${scheme}`);
   p = await open('sidepanel.html', 400, 900); await scan(p, `sidepanel ${scheme}`); await spacing(p, `sidepanel ${scheme}`, 'main > section'); await shot(p, 'sidepanel'); await p.close();
+  // Chrome lets people drag the side panel narrow: nothing may crop or overlap down to 280px
+  for (const w of [280, 320, 360, 400, 480]) { p = await open('sidepanel.html', w, 900); await cropAudit(p, `sidepanel @${w} ${scheme}`); await p.close(); }
 
   // design page
   p = await open('manager.html?view=design', 1280, 900); await scan(p, `design page ${scheme}`, { design: true }); await p.close();
 
   // dashboard at three widths
-  for (const w of [1280, 768, 400]) {
+  for (const w of [1280, 768, 400, 320]) {
     for (const view of ['home', 'workspaces', 'timeline', 'focus', 'settings']) {
       p = await open(`manager.html?view=${view}`, w, 900);
       await scan(p, `${view} @${w} ${scheme}`);
+      await cropAudit(p, `${view} @${w} ${scheme}`);
       const overflow = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       check(`no horizontal scroll: ${view} @${w} ${scheme}`, overflow <= 1, `overflow ${overflow}px`);
       if (view === 'home' || view === 'workspaces') {

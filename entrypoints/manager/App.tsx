@@ -90,7 +90,7 @@ export default function App() {
         <div className="hidden lg:block px-2 py-3">
           <Logo showText size={26} />
         </div>
-        <nav aria-label="Main" className="flex lg:flex-col gap-1 flex-1 lg:flex-none overflow-x-auto">
+        <nav aria-label="Main" className="flex lg:flex-col gap-1 flex-1 lg:flex-none">
           {NAV.map((n) => {
             const active = view === n.id;
             return (
@@ -99,10 +99,11 @@ export default function App() {
                 type="button"
                 onClick={() => setView(n.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex h-11 items-center gap-3 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors ${active ? 'bg-text-primary text-surface-card' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
+                className={`flex h-11 shrink-0 items-center max-sm:justify-center gap-3 rounded-full px-3 sm:px-4 text-sm font-semibold whitespace-nowrap transition-colors max-sm:flex-1 ${active ? 'bg-text-primary text-surface-card' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
               >
                 {n.icon}
-                <span>{n.label}</span>
+                {/* Labels show from 640px up; below that the icons carry it and the name is still announced */}
+                <span className="max-sm:sr-only">{n.label}</span>
               </button>
             );
           })}
@@ -121,15 +122,15 @@ export default function App() {
             type="button"
             onClick={openPalette}
             aria-label="Find anything"
-            className="flex h-10 flex-1 max-w-lg items-center gap-2 rounded-full border bg-surface-card px-4 text-sm text-text-muted hover:bg-surface-hover"
+            className="flex h-10 min-w-0 flex-1 max-w-lg items-center gap-2 rounded-full border bg-surface-card px-4 text-sm text-text-muted hover:bg-surface-hover"
             style={{ borderColor: 'var(--pp-border-strong)' }}
           >
             <Search className="w-4 h-4" aria-hidden="true" />
             <span className="flex-1 text-left whitespace-nowrap">Find anything</span>
-            <Kbd>⌘K</Kbd>
+            <Kbd className="max-sm:hidden">⌘K</Kbd>
           </button>
-          <div className="flex-1" />
-          <Button onClick={saveWindow} data-testid="save-window-top">
+          <div className="flex-1 max-sm:hidden" />
+          <Button className="shrink-0" onClick={saveWindow} data-testid="save-window-top">
             Save window
           </Button>
         </header>

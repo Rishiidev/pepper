@@ -22,3 +22,6 @@ Thumbs.db
 *.pem
 *.key
 secrets*
+
+# WXT extra build dir
+.build/

@@ -138,7 +138,7 @@ export default function App() {
         </div>
       </header>
 
-      <FocusQuickStart primary />
+      <FocusQuickStart compact primary />
 
       {/* Active workspace */}
       <Card as="section" aria-labelledby="sp-active" pad="sm" className="space-y-4">

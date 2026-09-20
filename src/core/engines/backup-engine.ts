@@ -3,6 +3,7 @@ import { PepperSession } from '../types/session';
 import { PepperSettings } from '../types/settings';
 import { settingsRepo } from '../../storage/repositories/settings-repo';
 import { sessionEngine } from './session-engine';
+import { hashUrlSet } from '../utils/url-hash';
 import { BACKUP_FORMAT, BACKUP_VERSION, PORTABLE_SETTING_KEYS, PepperBackup } from './backup-validate';
 
 export { validateBackup } from './backup-validate';
@@ -10,10 +11,13 @@ export type { PepperBackup } from './backup-validate';
 
 export class BackupEngine {
   async exportAll(): Promise<PepperBackup> {
-    const [sessions, projects, settings] = await Promise.all([
+    const [sessions, projects, settings, focusSessions, browserSessions, timelineEvents] = await Promise.all([
       sessionEngine.getAllSessions(),
       db.projects.toArray(),
       settingsRepo.get(),
+      db.focusSessions.toArray(),
+      db.browserSessions.toArray(),
+      db.timelineEvents.toArray(),
     ]);
     const portable: Partial<PepperSettings> = {};
     for (const key of PORTABLE_SETTING_KEYS) {
@@ -26,6 +30,10 @@ export class BackupEngine {
       sessions,
       projects,
       settings: portable,
+      focusSessions,
+      browserSessions,
+      // Row ids are local to this database; the importer assigns fresh ones
+      timelineEvents: timelineEvents.map(({ id: _id, ...event }) => event),
     };
   }
 
@@ -53,15 +61,36 @@ export class BackupEngine {
       }
     });
 
-    await db.transaction('rw', db.sessions, db.projects, async () => {
-      if (toPut.length) await db.sessions.bulkPut(toPut);
-      if (backup.projects.length) await db.projects.bulkPut(backup.projects);
-    });
+    await db.transaction(
+      'rw',
+      [db.sessions, db.projects, db.focusSessions, db.browserSessions, db.timelineEvents],
+      async () => {
+        if (toPut.length) await db.sessions.bulkPut(toPut.map((s) => ({ ...s, urlHash: hashUrlSet(s.tabs.map((t) => t.url)) })));
+        if (backup.projects.length) await db.projects.bulkPut(backup.projects);
+
+        // Focus history is append-only: keep whatever this device already has for an id
+        const knownFocus = new Set(
+          (await db.focusSessions.bulkGet(backup.focusSessions.map((f) => f.id))).filter(Boolean).map((f) => f!.id)
+        );
+        const newFocus = backup.focusSessions.filter((f) => !knownFocus.has(f.id));
+        if (newFocus.length) await db.focusSessions.bulkAdd(newFocus);
+
+        // A browser session and its events travel together, so re-importing never duplicates events
+        const knownBrowser = new Set(
+          (await db.browserSessions.bulkGet(backup.browserSessions.map((b) => b.id))).filter(Boolean).map((b) => b!.id)
+        );
+        const newBrowser = backup.browserSessions.filter((b) => !knownBrowser.has(b.id));
+        if (newBrowser.length) await db.browserSessions.bulkAdd(newBrowser);
+        const newIds = new Set(newBrowser.map((b) => b.id));
+        const newEvents = backup.timelineEvents.filter((e) => newIds.has(e.sessionId));
+        if (newEvents.length) await db.timelineEvents.bulkAdd(newEvents);
+      }
+    );
 
     if (Object.keys(backup.settings).length) await settingsRepo.save(backup.settings);
     if (toPut.length) {
       await sessionEngine.refreshBadge();
-      await chrome.storage?.local?.set({ pepper_last_updated: Date.now() });
+      if (typeof chrome !== 'undefined') await chrome.storage?.local?.set({ pepper_last_updated: Date.now() });
     }
     return { added, updated, unchanged };
   }

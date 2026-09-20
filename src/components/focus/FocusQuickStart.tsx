@@ -38,11 +38,11 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
     const shown = countdown ? Math.max(0, activeSession.durationSeconds - elapsedSeconds) : elapsedSeconds;
     const progress = countdown ? elapsedSeconds / activeSession.durationSeconds : 0;
     return (
-      <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex items-center gap-4" data-testid="focus-card">
-        <ProgressRing value={progress} size={ringSize} stroke={compact ? 6 : 8} label="Focus progress">
+      <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex flex-wrap items-center gap-x-4 gap-y-3" data-testid="focus-card">
+        <ProgressRing className="shrink-0" value={progress} size={ringSize} stroke={compact ? 6 : 8} label="Focus progress">
           <Timer className="w-5 h-5" aria-hidden="true" />
         </ProgressRing>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[8.5rem] flex-1">
           <p className="eyebrow opacity-75">{isPaused ? 'Paused' : 'Focusing'}</p>
           <p
             role="timer"
@@ -51,9 +51,9 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
           >
             {formatClock(shown)}
           </p>
-          <p className="text-xs opacity-80 truncate mt-1">{activeSession.workspaceName}</p>
+          <p className="text-xs opacity-80 truncate mt-1 max-w-full">{activeSession.workspaceName}</p>
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-1 ml-auto">
           {isPaused ? (
             <IconButton aria-label="Resume focus timer" onClick={resumeFocus} className="!text-current hover:!bg-black/10">
               <Play className="w-4 h-4" aria-hidden="true" />
@@ -75,11 +75,11 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
   }
 
   return (
-    <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex items-center gap-4" data-testid="focus-card">
-      <ProgressRing value={0} size={ringSize} stroke={compact ? 6 : 8}>
+    <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex flex-wrap items-center gap-x-4 gap-y-3" data-testid="focus-card">
+      <ProgressRing className="shrink-0" value={0} size={ringSize} stroke={compact ? 6 : 8}>
         <Timer className="w-5 h-5" aria-hidden="true" />
       </ProgressRing>
-      <div className="min-w-0 flex-1 space-y-2">
+      <div className="min-w-[8.5rem] flex-1 space-y-2">
         <div>
           <p className="eyebrow opacity-75">Focus</p>
           <p className="display-number !text-[32px]">{minutes}:00</p>
@@ -100,7 +100,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
           ))}
         </div>
       </div>
-      <Button variant={primary ? 'primary' : 'secondary'} onClick={start} disabled={starting} aria-label={`Start ${minutes}:00 focus`}>
+      <Button className="ml-auto shrink-0" variant={primary ? 'primary' : 'secondary'} onClick={start} disabled={starting} aria-label={`Start ${minutes}:00 focus`}>
         Start
       </Button>
     </Card>

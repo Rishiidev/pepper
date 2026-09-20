@@ -25,7 +25,7 @@ export function Segmented<T extends string>({ options, value, onChange, label, c
     (e.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus();
   };
   return (
-    <div role="radiogroup" aria-label={label} className={cn('inline-flex rounded-full border border-border bg-surface-card p-1', className)}>
+    <div role="radiogroup" aria-label={label} className={cn('inline-flex max-w-full flex-wrap gap-1 rounded-[20px] border border-border bg-surface-card p-1', className)}>
       {options.map((o, i) => {
         const selected = o.value === value;
         return (

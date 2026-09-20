@@ -48,6 +48,20 @@ const syncFocusToStorage = async (data: {
 };
 
 export const useFocusStore = create<FocusStoreState>((set, get) => {
+  /** The one countdown/stopwatch loop. Every entry point (start, hydrate, cross-context sync) uses it. */
+  const startTicker = (): ReturnType<typeof setInterval> =>
+    setInterval(() => {
+      const { isRunning, isPaused, activeSession, _startedAtWallClock, _totalPausedMs } = get();
+      if (!isRunning || isPaused || !activeSession || _startedAtWallClock === null) return;
+      const nextElapsed = Math.floor((Date.now() - _startedAtWallClock - _totalPausedMs) / 1000);
+      set({ elapsedSeconds: nextElapsed });
+
+      // Auto-complete when a countdown reaches its target
+      if (activeSession.mode !== 'stopwatch' && activeSession.durationSeconds > 0 && nextElapsed >= activeSession.durationSeconds) {
+        void get().completeFocus();
+      }
+    }, 1000);
+
   // Listen for cross-context Chrome storage updates for Focus state
   if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
@@ -56,21 +70,7 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
         if (newState) {
           const current = get();
           if (newState.isRunning && !current.timerIntervalId) {
-            const interval = setInterval(() => {
-              const { isRunning, isPaused, activeSession, _startedAtWallClock, _totalPausedMs } = get();
-              if (isRunning && !isPaused && activeSession && _startedAtWallClock !== null) {
-                const nextElapsed = Math.floor((Date.now() - _startedAtWallClock - _totalPausedMs) / 1000);
-                set({ elapsedSeconds: nextElapsed });
-
-                if (
-                  activeSession.mode !== 'stopwatch' &&
-                  activeSession.durationSeconds > 0 &&
-                  nextElapsed >= activeSession.durationSeconds
-                ) {
-                  get().completeFocus();
-                }
-              }
-            }, 1000);
+            const interval = startTicker();
             set({ ...newState, timerIntervalId: interval });
           } else if (!newState.isRunning && current.timerIntervalId) {
             clearInterval(current.timerIntervalId);
@@ -97,21 +97,7 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
       if (saved && saved.isRunning && saved.activeSession) {
         const current = get();
         if (!current.isRunning) {
-          const interval = setInterval(() => {
-            const { isRunning, isPaused, activeSession, _startedAtWallClock, _totalPausedMs } = get();
-            if (isRunning && !isPaused && activeSession && _startedAtWallClock !== null) {
-              const nextElapsed = Math.floor((Date.now() - _startedAtWallClock - _totalPausedMs) / 1000);
-              set({ elapsedSeconds: nextElapsed });
-
-              if (
-                activeSession.mode !== 'stopwatch' &&
-                activeSession.durationSeconds > 0 &&
-                nextElapsed >= activeSession.durationSeconds
-              ) {
-                get().completeFocus();
-              }
-            }
-          }, 1000);
+          const interval = startTicker();
           set({ ...saved, timerIntervalId: interval });
         }
       }
@@ -138,22 +124,7 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
       const session = await focusEngine.startSession(memory, mode, targetMinutes);
       const wallClockStart = Date.now();
 
-      const interval = setInterval(() => {
-        const { isRunning, isPaused, activeSession, _startedAtWallClock, _totalPausedMs } = get();
-        if (isRunning && !isPaused && activeSession && _startedAtWallClock !== null) {
-          const nextElapsed = Math.floor((Date.now() - _startedAtWallClock - _totalPausedMs) / 1000);
-          set({ elapsedSeconds: nextElapsed });
-
-          // Auto-complete if countdown timer reaches target
-          if (
-            activeSession.mode !== 'stopwatch' &&
-            activeSession.durationSeconds > 0 &&
-            nextElapsed >= activeSession.durationSeconds
-          ) {
-            get().completeFocus();
-          }
-        }
-      }, 1000);
+      const interval = startTicker();
 
       const newState = {
         activeSession: session,
@@ -174,7 +145,7 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
     pauseFocus: () => {
       const { activeSession, elapsedSeconds } = get();
       if (activeSession) {
-        focusEngine.pauseSession(activeSession.id, elapsedSeconds);
+        void focusEngine.pauseSession(activeSession.id, elapsedSeconds);
         const updates = { isPaused: true, _pausedAtWallClock: Date.now() };
         set(updates);
         const state = get();
@@ -183,7 +154,8 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
     },
 
     resumeFocus: () => {
-      const { _pausedAtWallClock, _totalPausedMs } = get();
+      const { activeSession, elapsedSeconds, _pausedAtWallClock, _totalPausedMs } = get();
+      if (activeSession) void focusEngine.resumeSession(activeSession.id, elapsedSeconds);
       const pauseDuration = _pausedAtWallClock ? Date.now() - _pausedAtWallClock : 0;
       const updates = {
         isPaused: false,
@@ -217,7 +189,8 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
           _startedAtWallClock: null,
           _pausedAtWallClock: null,
           _totalPausedMs: 0,
-          completedSessionForModal: completed,
+          // A session canceled elsewhere while the timer ran out is not a completion
+          completedSessionForModal: completed.status === 'completed' ? completed : null,
         };
 
         set(clearedState);

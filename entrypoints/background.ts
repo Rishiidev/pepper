@@ -14,13 +14,16 @@ import { announceAdded, announceCapture } from '../src/core/engines/capture-feed
 import { generateSessionName, baseDomain } from '../src/core/engines/session-naming';
 import { syncFocusAlarms, handleFocusAlarm, FOCUS_STATE_KEY } from '../src/core/engines/focus-background';
 import { PEPPER_COMMANDS } from '../src/core/constants/commands';
+import { focusEngine } from '../src/core/engines/focus-engine';
+import { elapsedSeconds } from '../src/core/engines/focus-timing';
 
 async function openManager(query = ''): Promise<void> {
   const base = chrome.runtime.getURL('manager.html');
   const existing = await chrome.tabs.query({ url: `${base}*` });
   const url = query ? `${base}?${query}` : base;
   if (existing[0]?.id !== undefined) {
-    await chrome.tabs.update(existing[0].id, { active: true, url });
+    // Only navigate when asked to: a bare "open" must not reload the page and drop the user's current view
+    await chrome.tabs.update(existing[0].id, query ? { active: true, url } : { active: true });
     if (existing[0].windowId !== undefined) await chrome.windows.update(existing[0].windowId, { focused: true });
   } else {
     await chrome.tabs.create({ url, active: true });
@@ -180,7 +183,6 @@ export default defineBackground(() => {
   // Keyboard Shortcuts Handler
   chrome.commands.onCommand.addListener(async (command) => {
     try {
-      console.log('[PEPPER DEBUG] Command received:', command);
       if (command === PEPPER_COMMANDS.SAVE_AND_CLOSE) {
         await quickSaveEngine.executeSaveAndClose();
       } else if (command === PEPPER_COMMANDS.QUICK_CAPTURE) {
@@ -215,9 +217,6 @@ export default defineBackground(() => {
           projects: ['General', ...projectNames.filter((p) => p !== 'General')],
         };
 
-        console.debug('[PEPPER DEBUG] Command received:', command);
-        console.debug('[PEPPER DEBUG] Active tab resolved:', activeTab?.url, 'id:', activeTab?.id);
-
         let sent = false;
         if (activeTab && activeTab.id) {
           // Step 1: Ping content script first
@@ -226,10 +225,9 @@ export default defineBackground(() => {
             const pingRes = await chrome.tabs.sendMessage(activeTab.id, { type: 'PEPPER_PING' });
             if (pingRes && pingRes.ok) {
               pingOk = true;
-              console.debug('[PEPPER DEBUG] Content script available');
             }
-          } catch (err) {
-            console.debug('[PEPPER DEBUG] Content script ping failed, attempting dynamic injection...');
+          } catch {
+            // fall through to the next step
           }
 
           // Step 2: If ping failed and tab is a normal webpage, dynamically inject content script
@@ -240,12 +238,11 @@ export default defineBackground(() => {
                   target: { tabId: activeTab.id },
                   files: ['content-scripts/content.js'],
                 });
-                console.debug('[PEPPER DEBUG] Dynamic content script injection succeeded');
                 pingOk = true;
               }
-            } catch (injErr) {
-              console.warn('[PEPPER DEBUG] Dynamic content script injection failed:', injErr);
-            }
+            } catch {
+            // fall through to the next step
+          }
           }
 
           // Step 3: Send Quick Capture Toggle Message
@@ -257,17 +254,15 @@ export default defineBackground(() => {
               });
               if (res && res.received) {
                 sent = true;
-                console.debug('[PEPPER DEBUG] Quick Capture message delivered & overlay opened');
               }
-            } catch (msgErr) {
-              console.warn('[PEPPER DEBUG] Message delivery failed:', msgErr);
-            }
+            } catch {
+            // fall through to the next step
+          }
           }
         }
 
         // Restricted page fallback: launch popup fallback window
         if (!sent) {
-          console.log('[PEPPER DEBUG] Restricted page fallback. Opening popup window.');
           await chrome.windows.create({
             url: chrome.runtime.getURL('popup.html?quickCapture=true'),
             type: 'popup',
@@ -281,13 +276,7 @@ export default defineBackground(() => {
       } else if (command === PEPPER_COMMANDS.OPEN_SIDE_PANEL) {
         await openSidePanel();
       } else if (command === PEPPER_COMMANDS.OPEN_MANAGER) {
-        const managerUrl = chrome.runtime.getURL('manager.html');
-        const existing = await chrome.tabs.query({ url: managerUrl });
-        if (existing.length > 0 && existing[0].id) {
-          await chrome.tabs.update(existing[0].id, { active: true });
-        } else {
-          await chrome.tabs.create({ url: managerUrl, active: true });
-        }
+        await openManager();
       } else if (command === PEPPER_COMMANDS.RESTORE_LAST) {
         await restoreEngine.restoreLastSession();
       } else if (command === PEPPER_COMMANDS.TOGGLE_FOCUS) {
@@ -306,6 +295,10 @@ export default defineBackground(() => {
               : (currentState._totalPausedMs || 0) + (currentState._pausedAtWallClock ? Date.now() - currentState._pausedAtWallClock : 0),
           };
           await chrome.storage.local.set({ pepper_active_focus_state: updated });
+          // Keep the database status in step with the stored timer
+          const nowElapsed = elapsedSeconds(updated, Date.now());
+          if (pausing) await focusEngine.pauseSession(currentState.activeSession.id, nowElapsed);
+          else await focusEngine.resumeSession(currentState.activeSession.id, nowElapsed);
 
           if (chrome.notifications) {
             chrome.notifications.create(`pepper_focus_toggle_${Date.now()}`, {

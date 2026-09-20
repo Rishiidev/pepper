@@ -2,9 +2,23 @@ import { sessionEngine, INBOX_SESSION_ID } from './session-engine';
 import { PepperTab } from '../types/session';
 import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
+import { settingsRepo } from '../../storage/repositories/settings-repo';
+
+/** Workspaces with more tabs than this are restored lazily (when the setting is on). */
+export const LAZY_RESTORE_THRESHOLD = 10;
+
+/** Pure: should this restore leave background tabs unloaded? */
+export function shouldRestoreLazily(tabCount: number, lazySetting: boolean, override?: boolean): boolean {
+  return override ?? (lazySetting && tabCount > LAZY_RESTORE_THRESHOLD);
+}
+
+export interface RestoreOptions {
+  /** Force lazy (true) or eager (false) restore, ignoring the setting and the size threshold */
+  lazy?: boolean;
+}
 
 export class RestoreEngine {
-  async restoreSession(sessionId: string, selectedTabIndices?: number[]): Promise<void> {
+  async restoreSession(sessionId: string, selectedTabIndices?: number[], options: RestoreOptions = {}): Promise<void> {
     const session = await sessionEngine.getSessionById(sessionId);
     if (!session) throw new Error(`Session with id ${sessionId} not found`);
 
@@ -41,6 +55,9 @@ export class RestoreEngine {
       await chrome.tabs.update(firstTabs[0].id, { pinned: true });
     }
 
+    const { lazyRestore } = await settingsRepo.get();
+    const lazy = shouldRestoreLazily(tabsToRestore.length, lazyRestore, options.lazy);
+
     // Create the others in saved order; tabs before the active one go before it.
     let insertIndex = 0;
     for (let i = 0; i < tabsToRestore.length; i++) {
@@ -49,13 +66,15 @@ export class RestoreEngine {
         continue;
       }
       try {
-        await chrome.tabs.create({
+        const created = await chrome.tabs.create({
           windowId,
           url: tabsToRestore[i].url,
           index: insertIndex,
           active: false,
           pinned: tabsToRestore[i].pinned || false,
         });
+        // Unload it right away: the tab stays in the strip and loads when the user opens it
+        if (lazy && created.id !== undefined) await chrome.tabs.discard(created.id).catch(() => undefined);
         insertIndex++;
       } catch (err) {
         console.warn('PEPPER: Failed to restore tab', tabsToRestore[i].url, err);

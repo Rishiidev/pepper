@@ -16,5 +16,6 @@ export type PepperEvents = {
   'focus:started': { session: FocusSession };
   'focus:completed': { session: FocusSession };
   'focus:paused': { sessionId: string };
+  'focus:resumed': { sessionId: string };
   'focus:canceled': { sessionId: string };
 };

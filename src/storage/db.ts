@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { PepperSession } from '../core/types/session';
 import { FocusSession, DailyJournal } from '../core/types/focus-session';
+import { hashUrlSet } from '../core/utils/url-hash';
 import { BrowserSession, TimelineEvent } from '../core/types/timeline';
 
 export interface PepperSnapshot {
@@ -85,6 +86,29 @@ class PepperDatabase extends Dexie {
       browserSessions: 'id, startedAt',
       timelineEvents: '++id, sessionId, ts, type',
     });
+
+    // urlHash: indexed fingerprint of a workspace's tab URLs, so duplicate checks avoid a full scan
+    this.version(5)
+      .stores({
+        sessions: 'id, name, createdAt, isFavorite, isPinned, projectName, urlHash, *tags',
+        snapshots: 'id, timestamp, windowId, reason',
+        cache: 'key, expiresAt',
+        embeddings: 'id, sessionId, createdAt',
+        projects: 'id, name, createdAt',
+        focusSessions: 'id, sessionId, startedAt, mode, status, projectName',
+        journals: 'id, dateStr, momentumScore',
+        browserSessions: 'id, startedAt',
+        timelineEvents: '++id, sessionId, ts, type',
+      })
+      .upgrade((tx) =>
+        tx
+          .table('sessions')
+          .toCollection()
+          .modify((s: PepperSession) => {
+            s.urlHash = hashUrlSet((s.tabs || []).map((t) => t.url));
+            delete (s as { tabDurations?: unknown }).tabDurations;
+          })
+      );
   }
 }
 

@@ -21,10 +21,8 @@ export interface CreateSessionOptions {
   isFavorite?: boolean;
   isPinned?: boolean;
   projectName?: string;
-  // === Memory Engine options ===
   captureType?: CaptureType;
   activeTabIndex?: number;
-  tabDurations?: Record<number, number>;
   domainClusters?: string[];
 }
 
@@ -67,7 +65,6 @@ export class SessionEngine {
       // === Memory Engine fields ===
       captureType: options.captureType || 'manual',
       activeTabIndex: options.activeTabIndex,
-      tabDurations: options.tabDurations,
       domainClusters: options.domainClusters,
     };
 
@@ -92,6 +89,21 @@ export class SessionEngine {
 
     eventBus.emit('session:updated', { session: updated });
     await this.notifyCrossContextSync();
+    return updated;
+  }
+
+  /** Atomic read-modify-write; see SessionRepository.updateAtomic. */
+  async updateSessionAtomic(
+    id: string,
+    mutate: (current: PepperSession) => Partial<PepperSession> | null
+  ): Promise<PepperSession> {
+    const before = await sessionRepo.getById(id);
+    const updated = await sessionRepo.updateAtomic(id, mutate);
+    if (!updated) throw new Error('Session not found');
+    if (updated !== before && updated.updatedAt !== before?.updatedAt) {
+      eventBus.emit('session:updated', { session: updated });
+      await this.notifyCrossContextSync();
+    }
     return updated;
   }
 
@@ -128,8 +140,8 @@ export class SessionEngine {
     return nextState;
   }
 
-  async getStats(): Promise<SessionStats> {
-    const sessions = await this.getAllSessions();
+  async getStats(preloaded?: PepperSession[]): Promise<SessionStats> {
+    const sessions = preloaded ?? (await this.getAllSessions());
     const totalTabsSaved = sessions.reduce((acc, s) => acc + s.tabCount, 0);
     const estimatedRamSavedMb = sessions.reduce((acc, s) => acc + (s.estimatedRamSavedMb || s.tabCount * RAM_PER_TAB_MB), 0);
     const autoCaptures = sessions.filter((s) => s.captureType && s.captureType !== 'manual').length;

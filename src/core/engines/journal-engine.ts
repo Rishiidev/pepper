@@ -1,4 +1,5 @@
 import { db } from '../../storage/db';
+import { localDateStr } from '../utils/date';
 import { DailyJournal, FocusSession, MomentumScore, WeeklyReport, AIPattern } from '../types/focus-session';
 
 export class JournalEngine {
@@ -64,7 +65,7 @@ export class JournalEngine {
   /**
    * Aggregates focus sessions for today into a Daily AI Journal
    */
-  async getDailyJournal(dateStr: string = new Date().toISOString().split('T')[0]): Promise<DailyJournal> {
+  async getDailyJournal(dateStr: string = localDateStr(Date.now())): Promise<DailyJournal> {
     const todaySessions = await db.focusSessions
       .where('status')
       .equals('completed')
@@ -72,7 +73,7 @@ export class JournalEngine {
 
     // Filter sessions matching today's date
     const dateFiltered = todaySessions.filter((s) => {
-      const d = new Date(s.startedAt).toISOString().split('T')[0];
+      const d = localDateStr(s.startedAt);
       return d === dateStr;
     });
 

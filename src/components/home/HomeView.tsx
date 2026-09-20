@@ -100,24 +100,26 @@ export const HomeView: React.FC<Props> = ({ onRestore, onNavigate, onStartDemo, 
       <div className="space-y-4">
         <h1 className="text-[28px] font-bold leading-tight">Close it. It’s saved.</h1>
         <div className="grid grid-cols-12 gap-4">
-          <Card tone="lilac" className="col-span-12 lg:col-span-6 space-y-4">
+          <Card tone="lilac" className="col-span-12 lg:col-span-4 space-y-4">
             <CardHeader eyebrow="Start here" title="See it work in 10 seconds" icon={<PlayCircle className="w-4 h-4" />} />
             <p className="text-sm">We open three tabs, you close the window, and Pepper brings it all back.</p>
             <Button variant="primary" onClick={onStartDemo}>
               Try the demo
             </Button>
           </Card>
-          <Card tone="mint" className="col-span-12 sm:col-span-6 lg:col-span-3 space-y-2">
+          <Card tone="mint" className="col-span-12 sm:col-span-6 lg:col-span-4 space-y-2">
             <CardHeader eyebrow="Automatic" title="Nothing to remember" icon={<Zap className="w-4 h-4" />} />
             <p className="text-sm">Close any window with two or more tabs and it shows up here.</p>
           </Card>
-          <Card className="col-span-12 sm:col-span-6 lg:col-span-3 space-y-3">
+          <Card className="col-span-12 sm:col-span-6 lg:col-span-4 space-y-3">
             <CardHeader eyebrow="Already have tabs?" title="Save this window" icon={<LayoutTemplate className="w-4 h-4" />} />
-            <Button onClick={onSave}>Save window</Button>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate('settings')}>
-              <Upload className="w-4 h-4" aria-hidden="true" />
-              Import a backup
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button onClick={onSave}>Save window</Button>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate('settings')}>
+                <Upload className="w-4 h-4" aria-hidden="true" />
+                Import a backup
+              </Button>
+            </div>
           </Card>
         </div>
         {!activation.checklistDismissed && <Checklist steps={steps} done={doneCount} onDismiss={() => patchActivation({ checklistDismissed: true })} />}

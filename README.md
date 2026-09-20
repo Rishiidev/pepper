@@ -6,6 +6,8 @@ Pepper saves a browser window the moment you close it, and brings every tab back
 
 Works in Chrome, Edge, Brave and Arc (Manifest V3).
 
+**Website:** https://pepper-black.vercel.app
+
 ## What it does
 
 - **Auto-save.** Close a window with two or more tabs and it appears in your workspaces. If Chrome crashes or quits mid-save, Pepper rebuilds the windows it had not finished and offers them back.

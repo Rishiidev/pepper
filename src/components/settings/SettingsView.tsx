@@ -1,5 +1,6 @@
 import React from 'react';
-import { Card, CardHeader, Button } from '../ui';
+import { Card, CardHeader, Button, Switch } from '../ui';
+import { useSettingsStore } from '../../stores/settings-store';
 import { ThemeToggle } from './ThemeToggle';
 import { TrackingSettings } from './TrackingSettings';
 import { DataPanel } from './DataPanel';
@@ -13,11 +14,13 @@ const STORED = [
   ['Workspaces', 'The tabs you save, and windows Pepper auto-saves, in this browser.'],
   ['Session timeline', 'Only if you turn it on. Tab titles, sites and times, never page contents.'],
   ['Settings and counters', 'Your preferences and a few local counters that power the checklist.'],
-  ['AI keys', 'Only if you add one. Stored in this browser, sent only to the provider you pick.'],
+  ['AI keys', 'Only if you add one. Stored in this browser (or only until it closes, if you choose), sent only to the provider you pick.'],
 ];
 
 /** Everything configurable, grouped into cards. */
-export const SettingsView: React.FC<Props> = ({ onStartTour }) => (
+export const SettingsView: React.FC<Props> = ({ onStartTour }) => {
+  const { settings, updateSettings } = useSettingsStore();
+  return (
   <section aria-labelledby="settings-title" className="space-y-5">
     <h1 id="settings-title" className="text-[28px] font-bold leading-tight">
       Settings
@@ -31,6 +34,18 @@ export const SettingsView: React.FC<Props> = ({ onStartTour }) => (
         <p className="text-sm text-text-muted">Follow your system, or pick a theme.</p>
       </div>
       <ThemeToggle />
+    </Card>
+
+    <Card as="section" className="flex items-center justify-between gap-4">
+      <label className="flex flex-1 items-center justify-between gap-4">
+        <span>
+          <span className="block text-base font-bold">Restore big workspaces lazily</span>
+          <span className="block text-sm text-text-muted">
+            Workspaces with more than 10 tabs open the first tab fully and keep the rest unloaded until you click them. Saves memory.
+          </span>
+        </span>
+        <Switch checked={settings.lazyRestore} onChange={(v) => void updateSettings({ lazyRestore: v })} label="Restore big workspaces lazily" />
+      </label>
     </Card>
 
     <TrackingSettings />
@@ -59,4 +74,5 @@ export const SettingsView: React.FC<Props> = ({ onStartTour }) => (
       <Button onClick={onStartTour}>Take the tour</Button>
     </Card>
   </section>
-);
+  );
+};

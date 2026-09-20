@@ -5,5 +5,6 @@ import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/pepper/',
+  // GitHub Pages serves the site under /pepper/; Vercel serves it from the domain root
+  base: process.env.VERCEL ? '/' : '/pepper/',
 });
