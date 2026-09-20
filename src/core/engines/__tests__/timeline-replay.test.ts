@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hourlyActivity, tabsOpenAt, buildRecap, domainLabel, formatDuration, sessionsOnDay, describeEvent } from '../timeline-replay';
+import { formatDurationCompact, axisTicks, groupByHour, tickInterval, hourlyActivity, tabsOpenAt, buildRecap, domainLabel, formatDuration, sessionsOnDay, describeEvent } from '../timeline-replay';
 import { TimelineEvent } from '../../types/timeline';
 import { FocusSession } from '../../types/focus-session';
 
@@ -98,5 +98,39 @@ describe('hourlyActivity', () => {
     expect(b).toHaveLength(24);
     expect(b[0]).toBe(5 * MIN);
     expect(b[1]).toBe(3 * MIN);
+  });
+});
+
+describe('groupByHour and ticks', () => {
+  it('groups by clock hour, oldest first', () => {
+    const h = 3_600_000;
+    const base = new Date(2026, 6, 1, 9, 0, 0).getTime();
+    const g = groupByHour([ev(base + 5 * MIN, 'tab_open'), ev(base + h + 2 * MIN, 'tab_open'), ev(base + 10 * MIN, 'tab_close')]);
+    expect(g).toHaveLength(2);
+    expect(g[0].events).toHaveLength(2);
+    expect(g[0].hourStart).toBe(base);
+  });
+  it('picks readable tick spacing', () => {
+    expect(tickInterval(30 * MIN)).toBe(5 * MIN);
+    expect(tickInterval(24 * 60 * MIN)).toBe(120 * MIN);
+  });
+  it('ticks are aligned and inside the range', () => {
+    const from = new Date(2026, 6, 1, 9, 7).getTime();
+    const to = new Date(2026, 6, 1, 12, 20).getTime();
+    const t = axisTicks(from, to);
+    expect(t.length).toBeGreaterThan(2);
+    expect(t.every((x) => x >= from && x <= to)).toBe(true);
+  });
+});
+
+describe('compact durations and short axes', () => {
+  it('formats stat-sized durations', () => {
+    expect(formatDurationCompact(0)).toBe('0m');
+    expect(formatDurationCompact(20_000)).toBe('<1m');
+    expect(formatDurationCompact(45 * MIN)).toBe('45m');
+    expect(formatDurationCompact(190 * MIN)).toBe('3h 10m');
+  });
+  it('labels both ends of a very short range', () => {
+    expect(axisTicks(1000, 40_000)).toEqual([1000, 40_000]);
   });
 });

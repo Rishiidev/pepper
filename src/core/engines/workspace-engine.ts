@@ -11,13 +11,13 @@ export class WorkspaceEngine {
     try {
       // 1. Try querying the last focused 'normal' browser window first
       let tabs = await chrome.tabs.query({ lastFocusedWindow: true, windowType: 'normal' });
-      let saveable = tabs.filter(tab => isSaveableUrl(tab.url));
+      let saveable = tabs.filter(tab => isSaveableUrl(tab.url || tab.pendingUrl));
 
       // 2. If the focused window has no saveable web tabs (e.g. user is on manager.html in its own window),
       // search across all normal windows to find the active web workspace window
       if (saveable.length === 0) {
         const allTabs = await chrome.tabs.query({ windowType: 'normal' });
-        const allSaveable = allTabs.filter(tab => isSaveableUrl(tab.url));
+        const allSaveable = allTabs.filter(tab => isSaveableUrl(tab.url || tab.pendingUrl));
 
         if (allSaveable.length > 0) {
           // Group by windowId and find the window with the most web tabs
@@ -42,7 +42,7 @@ export class WorkspaceEngine {
 
       return saveable.map((tab, idx) => ({
         id: tab.id,
-        url: tab.url || '',
+        url: tab.url || tab.pendingUrl || '',
         title: tab.title || 'Untitled',
         favIconUrl: tab.favIconUrl || '',
         index: tab.index ?? idx,

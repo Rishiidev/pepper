@@ -1,600 +1,168 @@
 import React, { useEffect, useState } from 'react';
+import { Home, Layers, CalendarClock, Timer, Settings as SettingsIcon, Search, Pause, Play, CheckCircle2, Sparkles } from 'lucide-react';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
 import { useCommandStore } from '../../src/stores/command-store';
 import { useFocusStore } from '../../src/stores/focus-store';
 import { Logo } from '../../src/components/brand/Logo';
-import { RamBadge } from '../../src/components/brand/RamBadge';
-import { SessionCard } from '../../src/components/SessionCard';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
-import { IntelligenceSettings } from '../../src/components/IntelligenceSettings';
-import { ContinueWorkingHero } from '../../src/components/dashboard/ContinueWorkingHero';
-import { ProductivityWidget } from '../../src/components/dashboard/ProductivityWidget';
-import { ProjectsOverview } from '../../src/components/dashboard/ProjectsOverview';
-import { AISuggestionsWidget } from '../../src/components/dashboard/AISuggestionsWidget';
-import { DomainFilterStrip } from '../../src/components/dashboard/DomainFilterStrip';
-import { VisualTimelineView } from '../../src/components/dashboard/VisualTimelineView';
-import { MergeDuplicatesModal } from '../../src/components/modals/MergeDuplicatesModal';
-import { CreateProjectModal } from '../../src/components/modals/CreateProjectModal';
+import { CaptureToast } from '../../src/components/feedback/CaptureToast';
 import { OnboardingModal } from '../../src/components/modals/OnboardingModal';
 import { MemoryReconstructionOverlay } from '../../src/components/MemoryReconstructionOverlay';
-import { FocusView } from '../../src/components/focus/FocusView';
 import { SessionCompleteModal } from '../../src/components/focus/SessionCompleteModal';
-import { HistoryView } from '../../src/components/history/HistoryView';
-import { InsightsDashboard } from '../../src/components/insights/InsightsDashboard';
-import { CaptureToast } from '../../src/components/feedback/CaptureToast';
-import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
+import { FocusView } from '../../src/components/focus/FocusView';
+import { HomeView } from '../../src/components/home/HomeView';
+import { WorkspacesView } from '../../src/components/workspaces/WorkspacesView';
 import { TimelineView } from '../../src/components/timeline/TimelineView';
-import { TrackingSettings } from '../../src/components/settings/TrackingSettings';
-import { DataPanel } from '../../src/components/settings/DataPanel';
-import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
-import { backupEngine } from '../../src/core/engines/backup-engine';
+import { SettingsView } from '../../src/components/settings/SettingsView';
+import { Button, IconButton, Kbd, ToastHost, toast } from '../../src/components/ui';
+import { sessionEngine } from '../../src/core/engines/session-engine';
+import { formatClock } from '../../src/core/engines/focus-timing';
 import { PepperSession } from '../../src/core/types/session';
-import { Search, Home, Layers, Clock, Cpu, X, Plus, Brain, Download, FolderKanban, Sparkles, Timer, TrendingUp, CalendarClock, Pause, Play, CheckCircle2, History } from 'lucide-react';
+
+type View = 'home' | 'workspaces' | 'timeline' | 'focus' | 'settings';
+
+const NAV: Array<{ id: View; label: string; icon: React.ReactNode }> = [
+  { id: 'home', label: 'Home', icon: <Home className="w-5 h-5" aria-hidden="true" /> },
+  { id: 'workspaces', label: 'Workspaces', icon: <Layers className="w-5 h-5" aria-hidden="true" /> },
+  { id: 'timeline', label: 'Timeline', icon: <CalendarClock className="w-5 h-5" aria-hidden="true" /> },
+  { id: 'focus', label: 'Focus', icon: <Timer className="w-5 h-5" aria-hidden="true" /> },
+  { id: 'settings', label: 'Settings', icon: <SettingsIcon className="w-5 h-5" aria-hidden="true" /> },
+];
+
+const initialView = (): View => {
+  const v = new URLSearchParams(window.location.search).get('view');
+  return NAV.some((n) => n.id === v) ? (v as View) : 'home';
+};
 
 export default function App() {
-  const {
-    sessions,
-    filteredSessions,
-    timeline,
-    stats,
-    searchQuery,
-    selectedProject,
-    fetchSessions,
-    setSearchQuery,
-    clearSearch,
-    setSelectedProject,
-    resetFilters,
-    saveWorkspace,
-  } = useSessionStore();
+  const { fetchSessions, saveWorkspace } = useSessionStore();
   const { settings, isHydrated, fetchSettings } = useSettingsStore();
   const { openPalette } = useCommandStore();
-  const {
-    activeSession,
-    activeMemory,
-    isRunning,
-    isPaused,
-    elapsedSeconds,
-    completedSessionForModal,
-    pauseFocus,
-    resumeFocus,
-    completeFocus,
-    clearCompletedModal,
-  } = useFocusStore();
+  const { activeSession, activeMemory, isRunning, isPaused, elapsedSeconds, completedSessionForModal, pauseFocus, resumeFocus, completeFocus, clearCompletedModal } = useFocusStore();
 
-  const [activeTab, setActiveTab] = useState<'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'timeline' | 'insights' | 'settings'>(() => (new URLSearchParams(window.location.search).get('view') === 'timeline' ? 'timeline' : 'home'));
-  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
-  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
-  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-
-  // Active Memory Reconstruction Animation Overlay
-  const [reconstructingMemory, setReconstructingMemory] = useState<PepperSession | null>(null);
+  const [view, setView] = useState<View>(initialView);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [restoring, setRestoring] = useState<PepperSession | null>(null);
 
   useEffect(() => {
-    fetchSessions();
-    fetchSettings();
-  }, []);
+    void fetchSessions();
+    void fetchSettings();
+  }, [fetchSessions, fetchSettings]);
 
-  // Automatically trigger Onboarding Tour on first launch ONLY AFTER settings are hydrated from IndexedDB
+  // First launch: show the tour once settings are read from storage
   useEffect(() => {
-    if (isHydrated && settings && settings.hasCompletedOnboarding === false) {
-      setIsOnboardingOpen(true);
-    }
-  }, [isHydrated, settings]);
+    if (isHydrated && settings.hasCompletedOnboarding === false) setOnboardingOpen(true);
+  }, [isHydrated, settings.hasCompletedOnboarding]);
 
-  const handleSaveMemory = async () => {
+  const saveWindow = async () => {
     const session = await saveWorkspace();
     if (!session) {
-      setFeedbackMsg('No active browser tabs found in any window to capture.');
-      setTimeout(() => setFeedbackMsg(null), 4000);
-    } else {
-      setFeedbackMsg('Memory captured silently.');
-      setTimeout(() => setFeedbackMsg(null), 3000);
+      toast('No web tabs to save in your browser windows');
+      return;
     }
+    toast(`Saved ${session.tabCount} tab${session.tabCount !== 1 ? 's' : ''} as “${session.name}”`, {
+      actionLabel: 'Undo',
+      onAction: async () => {
+        await sessionEngine.deleteSession(session.id);
+        await fetchSessions();
+      },
+    });
   };
 
-  const handleNavClick = (tab: 'home' | 'workspaces' | 'projects' | 'focus' | 'history' | 'timeline' | 'insights' | 'settings') => {
-    setActiveTab(tab);
-    resetFilters();
-  };
-
-  const latestMemory = sessions.length > 0 ? sessions[0] : undefined;
-  const projects = Array.from(new Set(sessions.map((s) => s.projectName || 'General'))).filter(Boolean);
-
-  const exportJSON = async () => {
-    const backup = await backupEngine.exportAll();
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.href = url;
-    downloadAnchor.download = `pepper-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  const countdown = activeSession && activeSession.mode !== 'stopwatch' && activeSession.durationSeconds > 0;
+  const shown = activeSession ? (countdown ? Math.max(0, activeSession.durationSeconds - elapsedSeconds) : elapsedSeconds) : 0;
 
   return (
-    <div className="min-h-screen bg-surface text-text-primary flex flex-col font-sans selection:bg-pepper-500 selection:text-white pb-16">
-      <CommandPalette />
-      <CaptureToast />
-
-      {/* Interactive Onboarding Tour Modal */}
-      <OnboardingModal isOpen={isOnboardingOpen} onClose={() => setIsOnboardingOpen(false)} />
-
-      {/* AI Session Completion Modal */}
-      {completedSessionForModal && (
-        <SessionCompleteModal
-          session={completedSessionForModal}
-          onClose={() => clearCompletedModal()}
-        />
-      )}
-
-      {/* Memory Reconstruction Overlay */}
-      {reconstructingMemory && (
-        <MemoryReconstructionOverlay
-          memory={reconstructingMemory}
-          onComplete={() => {
-            setReconstructingMemory(null);
-            fetchSessions();
-          }}
-          onCancel={() => setReconstructingMemory(null)}
-        />
-      )}
-
-      {/* Interactive Modals */}
-      <MergeDuplicatesModal isOpen={isMergeModalOpen} onClose={() => setIsMergeModalOpen(false)} />
-      <CreateProjectModal
-        isOpen={isCreateProjectModalOpen}
-        onClose={() => setIsCreateProjectModalOpen(false)}
-        onCreated={() => fetchSessions()}
-      />
-
-      {/* Toast Feedback Notification */}
-      {feedbackMsg && (
-        <div className="fixed top-6 right-6 z-50 bg-surface-card text-text-primary text-xs font-semibold px-4 py-3 rounded-xl shadow-2xl border border-pepper-500/30 animate-slide-up flex items-center gap-2">
-          <Brain className="w-4 h-4 text-pepper-400" />
-          <span>{feedbackMsg}</span>
-        </div>
-      )}
-
-      <a href="#main" className="sr-only-focusable fixed top-2 left-2 z-[60] bg-surface-card border border-border rounded-lg px-3 py-1.5 text-xs font-semibold text-text-primary">
+    <div className="min-h-screen bg-surface text-text-primary lg:flex">
+      <a href="#main" className="sr-only-focusable fixed top-2 left-2 z-[80] rounded-full bg-surface-card border border-border px-4 py-2 text-sm font-semibold">
         Skip to content
       </a>
+      <CommandPalette />
+      <CaptureToast />
+      <ToastHost />
+      <OnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
+      {completedSessionForModal && <SessionCompleteModal session={completedSessionForModal} onClose={() => clearCompletedModal()} />}
+      {restoring && <MemoryReconstructionOverlay memory={restoring} onComplete={() => { setRestoring(null); void fetchSessions(); }} onCancel={() => setRestoring(null)} />}
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-surface/85 border-b border-border px-6 py-4 flex items-center justify-between">
-        <Logo showText size={28} />
-
-        {/* Global Search Focus Input */}
-        <div className="flex-1 max-w-xl mx-8 relative">
-          <Search className="w-4 h-4 text-text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') clearSearch();
-            }}
-            aria-label="Search work memory"
-            placeholder="Search work memory, intent, tabs... (⌘K)"
-            className="w-full bg-surface-card border border-border/80 rounded-xl pl-10 pr-16 py-2 text-xs font-semibold text-text-primary placeholder:text-text-muted focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
-          />
-          {searchQuery ? (
-            <button
-              onClick={clearSearch}
-              className="absolute right-10 top-1/2 -translate-y-1/2 p-0.5 rounded-md hover:bg-surface-hover text-text-muted hover:text-text-primary"
-              title="Clear search"
-              aria-label="Clear search">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          ) : null}
-          <kbd
-            role="button"
-            tabIndex={0}
-            aria-label="Open command palette"
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openPalette()}
-            onClick={openPalette}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-xs font-extrabold bg-border/40 text-text-secondary rounded cursor-pointer hover:bg-border font-mono border border-border/20"
-          >
-            ⌘K
-          </kbd>
+      {/* Sidebar: icon rail on narrow screens */}
+      <aside aria-label="Sidebar" className="lg:sticky lg:top-0 lg:h-screen shrink-0 lg:w-60 border-b lg:border-b-0 lg:border-r border-border bg-surface flex lg:flex-col gap-2 p-3 lg:p-4">
+        <div className="hidden lg:block px-2 py-3">
+          <Logo showText size={26} />
         </div>
-
-        {/* Header Actions */}
-        <div className="flex items-center gap-3">
-          {stats && <RamBadge mbSaved={stats.estimatedRamSavedMb} label="SAVED" className="py-1 px-3 text-xs" />}
-          <button
-            onClick={handleSaveMemory}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Save Memory</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Layout Grid */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto px-6 py-6 gap-8">
-        
-        {/* Sidebar Navigation */}
-        <aside aria-label="Sidebar" className="w-56 shrink-0 space-y-6">
-          <div className="space-y-1">
-            <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
-              Memory OS
-            </div>
-
-            <button
-              onClick={() => handleNavClick('home')}
-              aria-current={activeTab === 'home' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'home' && !selectedProject
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <Home className="w-4 h-4" />
-              <span>Home</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('workspaces')}
-              aria-current={activeTab === 'workspaces' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'workspaces'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <Brain className="w-4 h-4" />
-              <span>Workspaces</span>
-              <span className="ml-auto text-xs font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
-                {sessions.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('focus')}
-              aria-current={activeTab === 'focus' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'focus'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <Timer className="w-4 h-4 text-pepper-400" />
-              <span>Focus</span>
-              {isRunning && <span className="w-2 h-2 rounded-full bg-pepper-500 ml-auto" />}
-            </button>
-
-            <button
-              onClick={() => handleNavClick('history')}
-              aria-current={activeTab === 'history' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'history'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <History className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-              <span>History</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('timeline')}
-              aria-current={activeTab === 'timeline' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'timeline'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <CalendarClock className="w-4 h-4 text-blue-700 dark:text-blue-400" aria-hidden="true" />
-              <span>Timeline</span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('insights')}
-              aria-current={activeTab === 'insights' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'insights'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-              <span>Insights</span>
-            </button>
-
-            <button
-              onClick={openPalette}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-all text-left"
-            >
-              <Search className="w-4 h-4" />
-              <span>Search</span>
-              <span className="ml-auto text-xs font-mono text-text-muted px-1.5 py-0.2 rounded bg-border/40">
-                ⌘K
-              </span>
-            </button>
-
-            <button
-              onClick={() => handleNavClick('settings')}
-              aria-current={activeTab === 'settings' ? 'page' : undefined}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all text-left ${
-                activeTab === 'settings'
-                  ? 'bg-pepper-500/10 text-pepper-400 border border-pepper-500/10'
-                  : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
-              }`}
-            >
-              <Cpu className="w-4 h-4 text-pepper-400" />
-              <span>Settings</span>
-            </button>
-          </div>
-
-          {/* Active Projects Filter */}
-          {projects.length > 0 && (
-            <div className="space-y-1 pt-4 border-t border-border/80">
-              <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
-                Active Projects
-              </div>
-              {projects.map((proj) => (
-                <button
-                  key={proj}
-                  onClick={() => {
-                    setActiveTab('workspaces');
-                    clearSearch();
-                    setSelectedProject(selectedProject === proj ? null : proj);
-                  }}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left ${
-                    selectedProject === proj
-                      ? 'bg-surface-hover text-text-primary font-bold border-l-2 border-pepper-500 pl-2.5'
-                      : 'text-text-secondary hover:text-text-primary'
-                  }`}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full bg-pepper-500/30 border border-pepper-500/60" />
-                  <span className="truncate">{proj}</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Product Tour & Export */}
-          <div className="space-y-2 pt-4 border-t border-border/80">
-            <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
-              Memory Systems
-            </div>
-            <button
-              onClick={() => setIsOnboardingOpen(true)}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-pepper-500/30 bg-pepper-500/5 text-xs font-semibold text-pepper-400 hover:bg-pepper-500/10 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Welcome Product Tour</span>
-            </button>
-            <button
-              onClick={exportJSON}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border text-xs font-semibold text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export Backup (JSON)</span>
-            </button>
-          </div>
-        </aside>
-
-        {/* Main Content Area */}
-        <main id="main" className="flex-1 space-y-6 min-w-0">
-          {/* Search Results Filter Banner */}
-          {searchQuery && (
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-pepper-500/10 border border-pepper-500/20 text-xs text-text-primary">
-              <div className="flex items-center gap-3">
-                <Search className="w-4 h-4 text-pepper-400" />
-                <span className="font-medium">
-                  Memories matching <strong className="text-pepper-400 font-bold">"{searchQuery}"</strong> &bull; {filteredSessions.length} result(s)
-                </span>
-              </div>
+        <nav aria-label="Main" className="flex lg:flex-col gap-1 flex-1 lg:flex-none overflow-x-auto">
+          {NAV.map((n) => {
+            const active = view === n.id;
+            return (
               <button
-                onClick={clearSearch}
-                className="flex items-center gap-1 text-xs font-bold text-pepper-400 hover:underline"
+                key={n.id}
+                type="button"
+                onClick={() => setView(n.id)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex h-11 items-center gap-3 rounded-full px-4 text-sm font-semibold whitespace-nowrap transition-colors ${active ? 'bg-text-primary text-surface-card' : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'}`}
               >
-                <X className="w-3.5 h-3.5" />
-                <span>Clear</span>
+                {n.icon}
+                <span>{n.label}</span>
               </button>
-            </div>
-          )}
+            );
+          })}
+        </nav>
+        <div className="hidden lg:flex flex-1 items-end">
+          <Button variant="ghost" size="sm" onClick={() => setOnboardingOpen(true)} className="w-full justify-start">
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+            Take the tour
+          </Button>
+        </div>
+      </aside>
 
-          <RecoveryBanner />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-30 bg-surface border-b border-border px-4 lg:px-8 h-16 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={openPalette}
+            aria-label="Find anything"
+            className="flex h-10 flex-1 max-w-lg items-center gap-2 rounded-full border bg-surface-card px-4 text-sm text-text-muted hover:bg-surface-hover"
+            style={{ borderColor: 'var(--pp-border-strong)' }}
+          >
+            <Search className="w-4 h-4" aria-hidden="true" />
+            <span className="flex-1 text-left">Find anything</span>
+            <Kbd>⌘K</Kbd>
+          </button>
+          <div className="flex-1" />
+          <Button onClick={saveWindow} data-testid="save-window-top">
+            Save window
+          </Button>
+        </header>
 
-          {activeTab === 'settings' ? (
-            <div className="space-y-6">
-              <section aria-labelledby="appearance-title" className="rounded-2xl border border-border bg-surface-card p-5 flex items-center justify-between gap-4">
-                <div>
-                  <h2 id="appearance-title" className="text-sm font-bold text-text-primary">Appearance</h2>
-                  <p className="text-xs text-text-muted">Match your system or pick a theme.</p>
-                </div>
-                <ThemeToggle />
-              </section>
-              <TrackingSettings />
-              <DataPanel />
-              <IntelligenceSettings />
-            </div>
-          ) : activeTab === 'focus' ? (
-            <FocusView />
-          ) : activeTab === 'timeline' ? (
-            <TimelineView />
-          ) : activeTab === 'history' ? (
-            <HistoryView />
-          ) : activeTab === 'insights' ? (
-            <InsightsDashboard />
-          ) : activeTab === 'projects' ? (
-            <div className="space-y-6">
-              <ProjectsOverview
-                sessions={sessions}
-                selectedProject={selectedProject}
-                onSelectProject={(p) => setSelectedProject(p)}
-                onOpenCreateModal={() => setIsCreateProjectModalOpen(true)}
-              />
-
-              {filteredSessions.length > 0 && (
-                <div className="space-y-3 pt-4 border-t border-border">
-                  <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
-                    {selectedProject ? `Memories in ${selectedProject}` : 'All Project Memories'} ({filteredSessions.length})
-                  </div>
-                  <div className="grid grid-cols-1 gap-3.5">
-                    {filteredSessions.map((s) => (
-                      <SessionCard key={s.id} session={s} />
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : sessions.length === 0 ? (
-            /* Zero State Onboarding */
-            <div className="flex flex-col items-center justify-center py-20 text-center border border-dashed border-border rounded-2xl bg-surface-card/40 p-8 space-y-4">
-              <Logo size={48} state="normal" />
-              <div>
-                <h3 className="text-base font-bold text-text-primary">No work memories captured yet</h3>
-                <p className="text-xs text-text-muted max-w-sm mt-1">
-                  Close any window or click Save Memory to capture your current browser momentum.
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsOnboardingOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 border border-border hover:bg-surface-hover text-text-primary font-semibold text-xs rounded-xl transition-colors"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
-                  <span>Launch Product Tour</span>
-                </button>
-                <button
-                  onClick={handleSaveMemory}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Save Memory</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Home View */}
-              {activeTab === 'home' && !searchQuery && (
-                <div className="space-y-6">
-                  {/* Hero Card: Continue Working */}
-                  <ContinueWorkingHero session={latestMemory} />
-
-                  {/* Context Suggestions */}
-                  <AISuggestionsWidget
-                    latestSession={latestMemory}
-                    onClearSearch={clearSearch}
-                    onOpenMergeModal={() => setIsMergeModalOpen(true)}
-                  />
-
-                  {/* Productivity & Memory Saved Widget */}
-                  <ProductivityWidget stats={stats} />
-
-                  {/* Projects Overview */}
-                  <ProjectsOverview
-                    sessions={sessions}
-                    selectedProject={selectedProject}
-                    onSelectProject={(p) => setSelectedProject(p)}
-                    onOpenCreateModal={() => setIsCreateProjectModalOpen(true)}
-                  />
-
-                  {/* Domain Filter Strip */}
-                  <DomainFilterStrip
-                    sessions={sessions}
-                    activeSearchQuery={searchQuery}
-                    onSelectDomain={(d) => setSearchQuery(d)}
-                  />
-                </div>
-              )}
-
-              {/* Workspaces List View */}
-              {(activeTab === 'workspaces' || searchQuery) && (
-                <div className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between text-xs text-text-muted pb-2 border-b border-border/60">
-                    <span className="font-semibold uppercase tracking-wider flex items-center gap-2">
-                      <Brain className="w-3.5 h-3.5 text-pepper-400" />
-                      <span>{selectedProject ? `Memories — ${selectedProject}` : 'All Captured Memories'}</span>
-                    </span>
-                    <span>{filteredSessions.length} Memory{filteredSessions.length !== 1 ? 'ies' : ''}</span>
-                  </div>
-
-                  {filteredSessions.length === 0 ? (
-                    <div className="text-center py-16 border border-dashed border-border rounded-2xl bg-surface-card/30 text-text-muted text-xs">
-                      No memories match your active filter.
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-3.5">
-                      {filteredSessions.map((session) => (
-                        <SessionCard key={session.id} session={session} />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+        <main id="main" className="flex-1 w-full max-w-[1120px] mx-auto px-4 lg:px-8 py-6 pb-28">
+          {view === 'home' && <HomeView onRestore={setRestoring} onNavigate={setView} onStartDemo={() => setOnboardingOpen(true)} onSave={saveWindow} />}
+          {view === 'workspaces' && <WorkspacesView onRestore={setRestoring} onSave={saveWindow} />}
+          {view === 'timeline' && <TimelineView />}
+          {view === 'focus' && <FocusView />}
+          {view === 'settings' && <SettingsView onStartTour={() => setOnboardingOpen(true)} />}
         </main>
       </div>
 
-      {/* Global Floating Focus Bar (Visible when Focus timer is running across any tab) */}
+      {/* Running timer, visible on every page */}
       {isRunning && activeSession && activeMemory && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-card/95 border border-pepper-500/40 rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-5 text-xs text-text-primary animate-slide-up">
-          <div className="flex items-center gap-2.5">
-            <Logo size={20} state={isPaused ? 'normal' : 'saving'} />
-            <div className="leading-tight">
-              <span className="font-bold text-text-primary block truncate max-w-[180px]">
-                {activeMemory.name}
-              </span>
-              <span className="text-xs font-mono text-text-muted font-bold uppercase">
-                {activeSession.mode} &bull; {isPaused ? 'PAUSED' : 'ACTIVE'}
-              </span>
-            </div>
+        <div role="region" aria-label="Running focus timer" className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 rounded-full bg-zone-ink text-zone-ink-fg border border-zone-ink-edge pl-5 pr-2 py-2 shadow-lg">
+          <div className="leading-tight max-w-44">
+            <p className="text-sm font-bold truncate">{activeMemory.name}</p>
+            <p className="text-xs opacity-75">{isPaused ? 'Paused' : 'Focusing'}</p>
           </div>
-
-          <div className="font-mono font-extrabold text-base text-pepper-400 px-3 py-1 rounded-lg bg-pepper-500/10 border border-pepper-500/20">
-            {formatTime(
-              activeSession.mode === 'stopwatch'
-                ? elapsedSeconds
-                : Math.max(0, activeSession.durationSeconds - elapsedSeconds)
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {isPaused ? (
-              <button
-                onClick={resumeFocus}
-                className="p-1.5 rounded-lg bg-pepper-500 hover:bg-pepper-600 text-white font-bold transition-colors"
-                title="Resume"
-              aria-label="Resume">
-                <Play className="w-3.5 h-3.5 fill-white" />
-              </button>
-            ) : (
-              <button
-                onClick={pauseFocus}
-                className="p-1.5 rounded-lg bg-surface border border-border hover:bg-surface-hover text-text-primary transition-colors"
-                title="Pause"
-              aria-label="Pause">
-                <Pause className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            <button
-              onClick={() => completeFocus()}
-              className="p-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-colors"
-              title="Complete Session"
-            
-              aria-label="Complete Session">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <span className="font-mono text-lg font-bold tabular-nums">{formatClock(shown)}</span>
+          {isPaused ? (
+            <IconButton aria-label="Resume" onClick={resumeFocus} className="!text-current hover:!bg-white/10">
+              <Play className="w-4 h-4" aria-hidden="true" />
+            </IconButton>
+          ) : (
+            <IconButton aria-label="Pause" onClick={pauseFocus} className="!text-current hover:!bg-white/10">
+              <Pause className="w-4 h-4" aria-hidden="true" />
+            </IconButton>
+          )}
+          <IconButton aria-label="Finish focus session" onClick={() => completeFocus()} className="!text-current hover:!bg-white/10">
+            <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+          </IconButton>
         </div>
       )}
     </div>

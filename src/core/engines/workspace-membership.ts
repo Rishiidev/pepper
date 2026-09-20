@@ -50,6 +50,18 @@ export class WorkspaceMembership {
     return { workspace: updated, added: fresh.length, skipped: tabs.length - fresh.length };
   }
 
+  /** Removes one tab (by page identity) from a workspace. Returns the removed tab so it can be undone. */
+  async removeTab(workspaceId: string, url: string): Promise<PepperTab | null> {
+    const ws = await sessionEngine.getSessionById(workspaceId);
+    if (!ws) return null;
+    const key = cleanUrlKey(url);
+    const removed = ws.tabs.find((t) => cleanUrlKey(t.url) === key) ?? null;
+    if (!removed) return null;
+    const rest = ws.tabs.filter((t) => t !== removed).map((t, index) => ({ ...t, index }));
+    await sessionEngine.updateSession(ws.id, { tabs: rest, tabCount: rest.length });
+    return removed;
+  }
+
   async createFromTabs(name: string, tabs: PepperTab[], projectName?: string): Promise<PepperSession> {
     const usable = newTabsOnly([], tabs);
     if (usable.length === 0) throw new Error('No saveable tabs to add');

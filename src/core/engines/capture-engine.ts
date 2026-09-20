@@ -359,7 +359,8 @@ export class CaptureEngine {
   private async refreshWindowSnapshot(windowId: number): Promise<void> {
     try {
       const tabs = await chrome.tabs.query({ windowId, windowType: 'normal' });
-      const saveableTabs = tabs.filter((t) => isSaveableUrl(t.url));
+      // A tab that is still loading has no url yet, only pendingUrl: do not lose it
+      const saveableTabs = tabs.filter((t) => isSaveableUrl(t.url || t.pendingUrl));
 
       if (saveableTabs.length === 0) {
         this.windowSnapshots.delete(windowId);
@@ -373,7 +374,7 @@ export class CaptureEngine {
       this.windowSnapshots.set(windowId, {
         tabs: saveableTabs.map((tab, idx) => ({
           id: tab.id,
-          url: tab.url || '',
+          url: tab.url || tab.pendingUrl || '',
           title: tab.title || 'Untitled',
           favIconUrl: tab.favIconUrl || '',
           index: tab.index ?? idx,

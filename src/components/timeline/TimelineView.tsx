@@ -1,22 +1,26 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ChevronLeft, ChevronRight, Clock, FolderPlus, RotateCcw, Zap } from 'lucide-react';
+import { AlertTriangle, ChevronLeft, ChevronRight, Check, FolderPlus, RotateCcw } from 'lucide-react';
 import { BrowserSession, TimelineEvent } from '../../core/types/timeline';
 import { FocusSession } from '../../core/types/focus-session';
 import { timelineStore } from '../../core/engines/timeline-store';
 import { focusEngine } from '../../core/engines/focus-engine';
-import {
-  buildRecap, dayBounds, describeEvent, formatDuration, tabsOpenAt, toPepperTabs, visibleEvents,
-} from '../../core/engines/timeline-replay';
+import { buildRecap, dayBounds, describeEvent, formatDuration, formatDurationCompact, groupByHour, tabsOpenAt, toPepperTabs, visibleEvents } from '../../core/engines/timeline-replay';
 import { workspaceMembership } from '../../core/engines/workspace-membership';
 import { generateSessionName, baseDomain } from '../../core/engines/session-naming';
 import { useSettingsStore } from '../../stores/settings-store';
 import { useSessionStore } from '../../stores/session-store';
+import { recordActivation } from '../../core/engines/activation';
 import { AddToWorkspaceMenu } from '../workspace/AddToWorkspaceMenu';
+import { Button, Card, CardHeader, Chip, IconButton, Segmented, Stat, toast } from '../ui';
+import { TimeAxis } from './TimeAxis';
+import { HistoryView } from '../history/HistoryView';
+import { InsightsDashboard } from '../insights/InsightsDashboard';
 
 const MIN = 60_000;
 const EVENT_LIMIT = 200;
 
 const clock = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const hourHeading = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: 'numeric' });
 const dateInput = (ts: number) => {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -29,8 +33,36 @@ const hostOf = (url: string) => {
   }
 };
 
-/** Day view of the browser: sessions, a scrubber to see what was open at any moment, and every event. */
+type Sub = 'day' | 'history' | 'insights';
+
+/** Timeline: one place for the day view, history and insights. */
 export const TimelineView: React.FC = () => {
+  const [sub, setSub] = useState<Sub>('day');
+  return (
+    <section aria-labelledby="tl-title" className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 id="tl-title" className="text-[28px] font-bold leading-tight">
+          Timeline
+        </h1>
+        <Segmented<Sub>
+          label="Timeline view"
+          value={sub}
+          onChange={setSub}
+          options={[
+            { value: 'day', label: 'Day' },
+            { value: 'history', label: 'History' },
+            { value: 'insights', label: 'Insights' },
+          ]}
+        />
+      </div>
+      {sub === 'day' && <DayView />}
+      {sub === 'history' && <HistoryView />}
+      {sub === 'insights' && <InsightsDashboard />}
+    </section>
+  );
+};
+
+const DayView: React.FC = () => {
   const { settings, updateSettings } = useSettingsStore();
   const { fetchSessions } = useSessionStore();
   const [day, setDay] = useState(() => dayBounds(Date.now()).from);
@@ -40,7 +72,6 @@ export const TimelineView: React.FC = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   const range = useMemo(() => dayBounds(day), [day]);
   const isToday = range.from === dayBounds(Date.now()).from;
@@ -67,12 +98,6 @@ export const TimelineView: React.FC = () => {
     };
   }, [load]);
 
-  useEffect(() => {
-    if (!notice) return;
-    const t = setTimeout(() => setNotice(null), 4000);
-    return () => clearTimeout(t);
-  }, [notice]);
-
   const selected = sessions.find((s) => s.id === selectedId) ?? sessions[sessions.length - 1] ?? null;
   const sessionEvents = selected ? events[selected.id] ?? [] : [];
   const start = selected?.startedAt ?? 0;
@@ -81,14 +106,15 @@ export const TimelineView: React.FC = () => {
   const running = !!selected && selected.endedAt === undefined;
 
   const replay = useMemo(() => (selected ? tabsOpenAt(sessionEvents, at) : null), [selected, sessionEvents, at]);
-  const allDayEvents = useMemo(() => Object.values(events).flat(), [events]);
-  const recap = useMemo(() => buildRecap(allDayEvents, focus, range), [allDayEvents, focus, range]);
+  const recap = useMemo(() => buildRecap(Object.values(events).flat(), focus, range), [events, focus, range]);
   const rows = useMemo(() => visibleEvents(sessionEvents), [sessionEvents]);
+  const groups = useMemo(() => groupByHour(showAll ? rows : rows.slice(0, EVENT_LIMIT)), [rows, showAll]);
 
-  // 10-minute activity buckets behind the scrubber
+  const currentTs = useMemo(() => rows.reduce((best, e) => (e.ts <= at && e.ts >= best ? e.ts : best), -1), [rows, at]);
+
   const buckets = useMemo(() => {
     if (!selected || end <= start) return [] as number[];
-    const n = Math.min(120, Math.max(1, Math.ceil((end - start) / (10 * MIN))));
+    const n = Math.min(96, Math.max(24, Math.ceil((end - start) / (5 * MIN))));
     const size = (end - start) / n;
     const b = new Array<number>(n).fill(0);
     for (const e of sessionEvents) {
@@ -96,12 +122,11 @@ export const TimelineView: React.FC = () => {
     }
     return b;
   }, [selected, sessionEvents, start, end]);
-  const maxBucket = Math.max(1, ...buckets);
 
   const reopen = async () => {
     if (!replay || replay.tabs.length === 0) return;
     await chrome.windows.create({ url: replay.tabs.map((t) => t.url), focused: true });
-    setNotice(`Reopened ${replay.tabs.length} tabs from ${clock(at)}`);
+    toast(`Reopened ${replay.tabs.length} tabs from ${clock(at)}`);
   };
 
   const saveAsWorkspace = async () => {
@@ -111,147 +136,137 @@ export const TimelineView: React.FC = () => {
     try {
       const ws = await workspaceMembership.createFromTabs(generateSessionName(tabs, clusters), tabs);
       await fetchSessions();
-      setNotice(`Saved ${ws.tabCount} tabs as “${ws.name}”`);
+      toast(`Saved ${ws.tabCount} tabs as “${ws.name}”`);
     } catch {
-      setNotice('Nothing to save at that moment');
+      toast('Nothing to save at that moment');
     }
+  };
+
+  const enable = async () => {
+    await updateSettings({ sessionTrackingEnabled: true });
+    void recordActivation('timeline');
   };
 
   if (!settings.sessionTrackingEnabled && sessions.length === 0) {
     return (
-      <section aria-labelledby="tl-title" className="rounded-2xl border border-dashed border-border bg-surface-card/40 p-8 text-center space-y-4">
-        <Clock className="w-8 h-8 text-pepper-400 mx-auto" aria-hidden="true" />
-        <h2 id="tl-title" className="text-base font-bold text-text-primary">See your browser day as a timeline</h2>
-        <p className="text-xs text-text-secondary max-w-md mx-auto">
-          Pepper can record when you opened Chrome, every tab you opened, closed or visited, and how long you actually spent on each.
-          Then scrub back to any moment and pull tabs into a workspace. It is off by default, stays on this device, skips incognito,
-          and you choose which sites are never recorded.
-        </p>
-        <button
-          type="button"
-          onClick={() => updateSettings({ sessionTrackingEnabled: true })}
-          className="px-5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 text-white text-xs font-bold"
-        >
+      <Card tone="lilac" className="max-w-2xl space-y-4">
+        <CardHeader eyebrow="Session timeline" title="See your browser day" />
+        <p className="text-sm">Scrub back to any moment and pull tabs into a workspace. You decide what is recorded.</p>
+        <ul className="space-y-2 text-sm">
+          {['Stays on this device. Nothing is uploaded.', 'Skips incognito, and you can block any site.', 'Off by default. Turn it off any time.'].map((t) => (
+            <li key={t} className="flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
+              {t}
+            </li>
+          ))}
+        </ul>
+        <Button variant="primary" onClick={enable}>
           Turn on session timeline
-        </button>
-      </section>
+        </Button>
+      </Card>
     );
   }
 
   return (
-    <section aria-labelledby="tl-title" className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="tl-title" className="text-base font-bold text-text-primary">Timeline</h2>
-        <div className="flex items-center gap-1.5">
-          <button type="button" aria-label="Previous day" onClick={() => setDay(dayBounds(range.from - 1).from)} className="p-1.5 rounded-lg border border-border hover:bg-surface-hover">
-            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-          </button>
-          <input
-            type="date"
-            aria-label="Day"
-            value={dateInput(day)}
-            max={dateInput(Date.now())}
-            onChange={(e) => e.target.value && setDay(dayBounds(new Date(`${e.target.value}T12:00:00`).getTime()).from)}
-            className="bg-surface-card border border-border rounded-lg px-2 py-1 text-xs text-text-primary"
-          />
-          <button type="button" aria-label="Next day" disabled={isToday} onClick={() => setDay(dayBounds(range.to).from)} className="p-1.5 rounded-lg border border-border hover:bg-surface-hover disabled:opacity-40">
-            <ChevronRight className="w-4 h-4" aria-hidden="true" />
-          </button>
-          {!isToday && (
-            <button type="button" onClick={() => setDay(dayBounds(Date.now()).from)} className="px-2.5 py-1 rounded-lg text-xs font-semibold text-pepper-400 hover:bg-pepper-500/10">
-              Today
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div role="status" aria-live="polite">
-        {notice && <p className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-500">{notice}</p>}
+    <div className="space-y-5">
+      <div className="flex items-center justify-end gap-1.5">
+        <IconButton aria-label="Previous day" onClick={() => setDay(dayBounds(range.from - 1).from)}>
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+        <input
+          type="date"
+          aria-label="Day"
+          value={dateInput(day)}
+          max={dateInput(Date.now())}
+          onChange={(e) => e.target.value && setDay(dayBounds(new Date(`${e.target.value}T12:00:00`).getTime()).from)}
+          className="h-9 rounded-input border bg-surface-card px-2 text-sm"
+          style={{ borderColor: 'var(--pp-border-strong)' }}
+        />
+        <IconButton aria-label="Next day" disabled={isToday} onClick={() => setDay(dayBounds(range.to).from)}>
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+        {!isToday && (
+          <Button size="sm" variant="ghost" onClick={() => setDay(dayBounds(Date.now()).from)}>
+            Today
+          </Button>
+        )}
       </div>
 
       {/* Recap */}
-      <div className="rounded-2xl border border-border bg-surface-card p-5 space-y-3">
-        <p className="text-sm font-semibold text-text-primary">{recap.sentence}</p>
-        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-          {[
-            ['Active', formatDuration(recap.activeMs)],
-            ['Focus', formatDuration(recap.focusSeconds * 1000)],
-            ['Tabs opened', String(recap.tabsOpened)],
-            ['Away', formatDuration(recap.awayMs)],
-          ].map(([k, v]) => (
-            <div key={k}>
-              <dt className="text-text-muted">{k}</dt>
-              <dd className="font-bold text-text-primary">{v}</dd>
-            </div>
-          ))}
+      <Card tone="lilac" className="space-y-4">
+        <p className="text-xl font-bold leading-snug">{recap.sentence}</p>
+        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Stat size="md" label="Active" value={formatDurationCompact(recap.activeMs)} />
+          <Stat size="md" label="Focus" value={formatDurationCompact(recap.focusSeconds * 1000)} />
+          <Stat size="md" label="Tabs opened" value={String(recap.tabsOpened)} />
+          <Stat size="md" label="Away" value={formatDurationCompact(recap.awayMs)} />
         </dl>
         {recap.topDomains.length > 0 && (
-          <ul className="space-y-1" aria-label="Time by site">
+          <ul className="space-y-1.5" aria-label="Time by site">
             {recap.topDomains.map((d) => (
-              <li key={d.domain} className="flex items-center gap-2 text-xs">
-                <span className="w-28 truncate text-text-secondary">{d.label}</span>
-                <span className="flex-1 h-1.5 rounded-full bg-border/60 overflow-hidden" aria-hidden="true">
-                  <span className="block h-full bg-pepper-500" style={{ width: `${Math.max(4, (d.ms / recap.topDomains[0].ms) * 100)}%` }} />
+              <li key={d.domain} className="flex items-center gap-3 text-sm">
+                <span className="w-32 truncate">{d.label}</span>
+                <span className="flex-1 h-2 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden" aria-hidden="true">
+                  <span className="block h-full rounded-full bg-zone-lilac-accent" style={{ width: `${Math.max(4, (d.ms / recap.topDomains[0].ms) * 100)}%` }} />
                 </span>
-                <span className="w-14 text-right font-mono text-text-muted">{formatDuration(d.ms)}</span>
+                <span className="w-14 text-right font-mono text-xs">{formatDurationCompact(d.ms)}</span>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
       {sessions.length === 0 ? (
-        <p className="text-xs text-text-muted">No browser session recorded on this day.</p>
+        <p className="text-sm text-text-muted">No browser session recorded on this day.</p>
       ) : (
         <>
-          {/* Session chips */}
-          <div role="tablist" aria-label="Browser sessions" className="flex flex-wrap gap-2">
-            {sessions.map((s) => {
-              const isSel = s.id === selected?.id;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSel}
-                  onClick={() => {
-                    setSelectedId(s.id);
-                    setCursor(null);
-                  }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold ${
-                    isSel ? 'border-pepper-500 bg-pepper-500/10 text-pepper-400' : 'border-border text-text-secondary hover:bg-surface-hover'
-                  }`}
-                >
-                  {clock(s.startedAt)} – {s.endedAt ? clock(s.endedAt) : 'now'}
-                  {s.endReason === 'interrupted' && (
-                    <span className="flex items-center gap-1 text-xs text-amber-500">
-                      <AlertTriangle className="w-3 h-3" aria-hidden="true" />
-                      Interrupted
-                    </span>
-                  )}
-                  {!s.endedAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-label="Recording" />}
-                </button>
-              );
-            })}
-          </div>
+          {/* Day axis with session bands */}
+          <Card className="space-y-3">
+            <CardHeader eyebrow="Sessions" title={`${sessions.length} time${sessions.length !== 1 ? 's' : ''} you had Chrome open`} />
+            <TimeAxis
+              from={range.from}
+              to={range.to}
+              cursor={cursor ?? undefined}
+              bands={sessions.map((s) => ({ id: s.id, from: s.startedAt, to: s.endedAt ?? Math.max(s.lastEventAt, Date.now()), label: clock(s.startedAt), selected: s.id === selected?.id, interrupted: s.endReason === 'interrupted' }))}
+              onSelectBand={(id) => {
+                setSelectedId(id);
+                setCursor(null);
+              }}
+            />
+            <div role="tablist" aria-label="Browser sessions" className="flex flex-wrap gap-2">
+              {sessions.map((s) => {
+                const isSel = s.id === selected?.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSel}
+                    onClick={() => {
+                      setSelectedId(s.id);
+                      setCursor(null);
+                    }}
+                    className={`inline-flex h-8 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold ${isSel ? 'bg-text-primary text-surface-card border-transparent' : 'border-border-strong hover:bg-surface-hover'}`}
+                    style={isSel ? undefined : { borderColor: 'var(--pp-border-strong)' }}
+                  >
+                    {clock(s.startedAt)} – {s.endedAt ? clock(s.endedAt) : 'now'}
+                    {s.endReason === 'interrupted' && (
+                      <span className="inline-flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" aria-hidden="true" />
+                        Interrupted
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
 
           {selected && replay && (
             <>
-              {/* Scrubber */}
-              <div className="rounded-2xl border border-border bg-surface-card p-5 space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-mono text-text-muted">{clock(start)}</span>
-                  <span className="font-bold text-pepper-400" aria-live="polite">
-                    {clock(at)}{running && at >= end - MIN ? ' (now)' : ''}
-                  </span>
-                  <span className="font-mono text-text-muted">{selected.endedAt ? clock(end) : 'now'}</span>
-                </div>
-                <svg viewBox={`0 0 ${Math.max(1, buckets.length)} 24`} preserveAspectRatio="none" className="w-full h-10" aria-hidden="true">
-                  {buckets.map((b, i) => (
-                    <rect key={i} x={i + 0.1} width={0.8} y={24 - (b / maxBucket) * 22 - 1} height={(b / maxBucket) * 22 + 1} className="fill-pepper-500/50" />
-                  ))}
-                  <rect x={((at - start) / Math.max(1, end - start)) * buckets.length} width={0.25} y={0} height={24} className="fill-pepper-500" />
-                </svg>
+              <Card className="space-y-4">
+                <CardHeader eyebrow="Scrub" title={`${replay.tabs.length} tab${replay.tabs.length !== 1 ? 's' : ''} open at ${clock(at)}${running && at >= end - MIN ? ' (now)' : ''}`} />
+                <TimeAxis from={start} to={Math.max(end, start + MIN)} bars={buckets} cursor={at} />
                 <input
                   type="range"
                   aria-label="Scrub through this browser session"
@@ -260,72 +275,74 @@ export const TimelineView: React.FC = () => {
                   max={Math.max(1, Math.round((end - start) / MIN))}
                   value={Math.round((at - start) / MIN)}
                   onChange={(e) => setCursor(start + Number(e.target.value) * MIN)}
-                  className="w-full accent-pepper-500"
+                  className="w-full accent-current"
                 />
-
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-xs text-text-secondary">
-                    <strong className="text-text-primary">{replay.tabs.length}</strong> tab{replay.tabs.length !== 1 ? 's' : ''} open at {clock(at)}
-                    {replay.idle && <span className="text-amber-500"> · you were away</span>}
-                  </p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={reopen} disabled={replay.tabs.length === 0} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pepper-500 hover:bg-pepper-600 text-white text-xs font-bold disabled:opacity-50">
-                      <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
-                      Reopen this moment
-                    </button>
-                    <button type="button" onClick={saveAsWorkspace} disabled={replay.tabs.length === 0} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-text-primary hover:bg-surface-hover disabled:opacity-50">
-                      <FolderPlus className="w-3.5 h-3.5" aria-hidden="true" />
-                      Save as workspace
-                    </button>
-                  </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {replay.idle && <Chip tone="butter">You were away</Chip>}
+                  <span className="flex-1" />
+                  <Button variant="primary" onClick={reopen} disabled={replay.tabs.length === 0}>
+                    <RotateCcw className="w-4 h-4" aria-hidden="true" />
+                    Reopen this moment
+                  </Button>
+                  <Button onClick={saveAsWorkspace} disabled={replay.tabs.length === 0}>
+                    <FolderPlus className="w-4 h-4" aria-hidden="true" />
+                    Save as workspace
+                  </Button>
                 </div>
-
-                <ul className="divide-y divide-border/60" aria-label={`Tabs open at ${clock(at)}`}>
+                <ul className="divide-y divide-border" aria-label={`Tabs open at ${clock(at)}`}>
                   {replay.tabs.map((t) => (
-                    <li key={t.tabId} className="flex items-center gap-3 py-1.5">
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.tabId === replay.activeTabId ? 'bg-pepper-500' : 'bg-border'}`} aria-label={t.tabId === replay.activeTabId ? 'Active tab' : undefined} />
+                    <li key={t.tabId} className="flex items-center gap-3 py-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${t.tabId === replay.activeTabId ? 'bg-text-primary' : 'bg-border-strong'}`} style={t.tabId === replay.activeTabId ? undefined : { background: 'var(--pp-border-strong)' }} aria-label={t.tabId === replay.activeTabId ? 'Active tab' : undefined} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-semibold text-text-primary">{t.title}</p>
-                        <p className="truncate text-xs text-text-muted">{hostOf(t.url)} · open {formatDuration(at - t.openedAt)}</p>
+                        <p className="truncate text-sm font-semibold">{t.title}</p>
+                        <p className="truncate text-xs text-text-muted">
+                          {hostOf(t.url)} · open {formatDuration(at - t.openedAt)}
+                        </p>
                       </div>
                       <AddToWorkspaceMenu tabs={[{ url: t.url, title: t.title, favIconUrl: '', index: 0 }]} label={`Add ${t.title} to a workspace`} />
                     </li>
                   ))}
                 </ul>
-              </div>
+              </Card>
 
-              {/* Event list */}
-              <div className="rounded-2xl border border-border bg-surface-card p-5">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3">Everything that happened</h3>
-                <ol className="space-y-0.5">
-                  {(showAll ? rows : rows.slice(0, EVENT_LIMIT)).map((e, i) => (
-                    <li key={`${e.ts}-${e.id ?? i}`} className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setCursor(e.ts)}
-                        aria-label={`${clock(e.ts)}, ${describeEvent(e)}. Jump to this moment`}
-                        className={`flex-1 min-w-0 flex items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-surface-hover ${Math.abs(e.ts - at) < MIN / 2 ? 'bg-pepper-500/10' : ''}`}
-                      >
-                        <time className="w-16 shrink-0 font-mono text-xs text-text-muted">{clock(e.ts)}</time>
-                        {(e.type === 'session_start' || e.type === 'session_end') && <Zap className="w-3 h-3 text-pepper-400 shrink-0" aria-hidden="true" />}
-                        <span className="truncate text-xs text-text-primary">{describeEvent(e)}</span>
-                      </button>
-                      {e.url && ['tab_open', 'tab_switch', 'tab_navigate'].includes(e.type) && (
-                        <AddToWorkspaceMenu tabs={[{ url: e.url, title: e.title || e.url, favIconUrl: '', index: 0 }]} label={`Add ${e.title || e.url} to a workspace`} />
-                      )}
-                    </li>
+              <Card className="space-y-3">
+                <CardHeader eyebrow="Log" title="Everything that happened" />
+                <div>
+                  {groups.map((g) => (
+                    <section key={g.hourStart} aria-label={`Events at ${hourHeading(g.hourStart)}`}>
+                      <h3 className="sticky top-0 z-10 bg-surface-card py-1.5 text-xs font-bold uppercase tracking-wider text-text-muted">{hourHeading(g.hourStart)}</h3>
+                      <ol className="space-y-0.5">
+                        {g.events.map((e, i) => (
+                          <li key={`${e.ts}-${e.id ?? i}`} className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCursor(e.ts)}
+                              aria-label={`${clock(e.ts)}, ${describeEvent(e)}. Jump to this moment`}
+                              className={`flex-1 min-w-0 flex items-center gap-3 rounded-input px-2 py-1.5 text-left hover:bg-surface-hover ${e.ts === currentTs ? 'bg-surface-active' : ''}`}
+                            >
+                              <time className="w-16 shrink-0 font-mono text-xs text-text-muted">{clock(e.ts)}</time>
+                              <span className="truncate text-sm">{describeEvent(e)}</span>
+                              {e.type === 'session_end' && e.reason === 'interrupted' && <Chip tone="butter">Interrupted</Chip>}
+                            </button>
+                            {e.url && ['tab_open', 'tab_switch', 'tab_navigate'].includes(e.type) && (
+                              <AddToWorkspaceMenu tabs={[{ url: e.url, title: e.title || e.url, favIconUrl: '', index: 0 }]} label={`Add ${e.title || e.url} to a workspace`} />
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
                   ))}
-                </ol>
+                </div>
                 {!showAll && rows.length > EVENT_LIMIT && (
-                  <button type="button" onClick={() => setShowAll(true)} className="mt-3 text-xs font-semibold text-pepper-400 hover:underline">
+                  <Button size="sm" variant="ghost" onClick={() => setShowAll(true)}>
                     Show all {rows.length} events
-                  </button>
+                  </Button>
                 )}
-              </div>
+              </Card>
             </>
           )}
         </>
       )}
-    </section>
+    </div>
   );
 };

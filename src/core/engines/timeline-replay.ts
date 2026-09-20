@@ -164,6 +164,16 @@ export function formatDuration(ms: number): string {
   return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
 }
 
+/** Short form for stat tiles: "<1m", "45m", "3h 10m". */
+export function formatDurationCompact(ms: number): string {
+  if (ms <= 0) return '0m';
+  const totalMin = Math.round(ms / 60_000);
+  if (totalMin < 1) return '<1m';
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : `${m}m`;
+}
+
 function joinNames(names: string[]): string {
   return names.length <= 1 ? names[0] || '' : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }
@@ -229,4 +239,38 @@ export function hourlyActivity(events: TimelineEvent[], dayFrom: number): number
     if (h >= 0 && h < 24) buckets[h] += e.spentMs;
   }
   return buckets;
+}
+
+export interface HourGroup {
+  hourStart: number;
+  events: TimelineEvent[];
+}
+
+/** Groups events under the clock hour they happened in, oldest first. */
+export function groupByHour(events: TimelineEvent[]): HourGroup[] {
+  const groups = new Map<number, TimelineEvent[]>();
+  for (const e of events) {
+    const d = new Date(e.ts);
+    d.setMinutes(0, 0, 0);
+    const key = d.getTime();
+    groups.set(key, [...(groups.get(key) || []), e]);
+  }
+  return [...groups.entries()].sort((a, b) => a[0] - b[0]).map(([hourStart, evs]) => ({ hourStart, events: evs }));
+}
+
+/** Tick spacing that keeps an axis readable: about 4 to 12 ticks. */
+export function tickInterval(rangeMs: number): number {
+  const MIN = 60_000;
+  const steps = [5 * MIN, 15 * MIN, 30 * MIN, 60 * MIN, 120 * MIN, 180 * MIN, 360 * MIN];
+  return steps.find((s) => rangeMs / s <= 12) ?? steps[steps.length - 1];
+}
+
+/** Timestamps of ticks within [from, to], aligned to the interval. */
+export function axisTicks(from: number, to: number): number[] {
+  const step = tickInterval(to - from);
+  const first = Math.ceil(from / step) * step;
+  const out: number[] = [];
+  for (let t = first; t <= to; t += step) out.push(t);
+  // A very short range has no aligned tick: label its two ends instead
+  return out.length >= 2 ? out : [from, to];
 }

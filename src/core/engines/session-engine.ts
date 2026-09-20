@@ -102,6 +102,14 @@ export class SessionEngine {
     await this.notifyCrossContextSync();
   }
 
+  /** Puts back a session that was just deleted (Undo). */
+  async undelete(session: PepperSession): Promise<void> {
+    await sessionRepo.save(session);
+    eventBus.emit('session:created', { session });
+    await this.refreshBadge();
+    await this.notifyCrossContextSync();
+  }
+
   async toggleFavorite(id: string): Promise<boolean> {
     const session = await this.getSessionById(id);
     if (!session) throw new Error('Session not found');
