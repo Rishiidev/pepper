@@ -12,7 +12,7 @@ function NumberField({ id, label, hint, value, onChange }: { id: string; label: 
     <div className="flex items-center justify-between gap-4 py-2">
       <label htmlFor={id} className="min-w-0">
         <span className="block text-xs font-semibold text-text-primary">{label}</span>
-        <span className="block text-[11px] text-text-muted">{hint}</span>
+        <span className="block text-xs text-text-muted">{hint}</span>
       </label>
       <input
         id={id}
@@ -126,7 +126,7 @@ export const DataPanel: React.FC = () => {
         <div className="flex items-center justify-between gap-4 pb-2">
           <label htmlFor="notify-capture" className="min-w-0">
             <span className="block text-xs font-semibold text-text-primary">Notify when a window is auto-saved</span>
-            <span className="block text-[11px] text-text-muted">A silent notification with Reopen and Rename</span>
+            <span className="block text-xs text-text-muted">A silent notification with Reopen and Rename</span>
           </label>
           <input
             id="notify-capture"

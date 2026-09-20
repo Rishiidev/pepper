@@ -102,10 +102,10 @@ export const DomainTabAccordion: React.FC<Props> = ({
                   <Globe className="w-4 h-4 text-text-muted shrink-0" />
                 )}
                 <span className="truncate text-text-primary font-bold">{group.domain}</span>
-                <span className="text-[10px] font-mono text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                <span className="text-xs font-mono text-emerald-700 dark:text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20 shrink-0">
                   {groupRamMb} MB
                 </span>
-                <span className="text-[10px] font-medium text-text-muted px-1.5 py-0.2 rounded bg-surface border border-border/50 shrink-0">
+                <span className="text-xs font-medium text-text-muted px-1.5 py-0.2 rounded bg-surface border border-border/50 shrink-0">
                   {selectedCount}/{group.tabs.length} tabs
                 </span>
               </div>
@@ -131,7 +131,7 @@ export const DomainTabAccordion: React.FC<Props> = ({
                   return (
                     <label
                       key={globalIdx}
-                      className="flex items-center gap-2.5 px-2 py-1 rounded-lg hover:bg-surface cursor-pointer text-[11px] text-text-secondary transition-colors"
+                      className="flex items-center gap-2.5 px-2 py-1 rounded-lg hover:bg-surface cursor-pointer text-xs text-text-secondary transition-colors"
                     >
                       <input
                         type="checkbox"

@@ -37,7 +37,7 @@ export const CreateProjectModal: React.FC<Props> = ({ isOpen, onClose, onCreated
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-surface-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 text-text-primary">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -47,7 +47,7 @@ export const CreateProjectModal: React.FC<Props> = ({ isOpen, onClose, onCreated
             </div>
             <div>
               <h3 className="font-bold text-sm">Create New Project</h3>
-              <p className="text-[11px] text-text-muted">Organize workspaces into first-class project hubs</p>
+              <p className="text-xs text-text-muted">Organize workspaces into first-class project hubs</p>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
@@ -104,7 +104,7 @@ export const CreateProjectModal: React.FC<Props> = ({ isOpen, onClose, onCreated
           <button
             onClick={handleCreate}
             disabled={!name.trim()}
-            className="flex items-center gap-1.5 px-4 py-2 bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white rounded-xl transition-colors disabled:opacity-50 shadow-lg shadow-pepper-500/20"
+            className="flex items-center gap-1.5 px-4 py-2 bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white rounded-xl transition-colors disabled:opacity-50 shadow-lg"
           >
             <Plus className="w-4 h-4" />
             <span>Create Project</span>

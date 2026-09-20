@@ -92,7 +92,7 @@ export const IntelligenceSettings: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold tracking-tight">Intelligence Platform (BYOK)</h2>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
+              <span className="text-xs uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
                 Phase 2 Full
               </span>
             </div>
@@ -134,42 +134,42 @@ export const IntelligenceSettings: React.FC = () => {
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Providers</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Providers</span>
             <Zap className="w-4 h-4 text-pepper-400" />
           </div>
           <div className="text-xl font-bold text-text-primary">{providerCount}</div>
-          <div className="text-[11px] text-text-muted truncate">
+          <div className="text-xs text-text-muted truncate">
             Active: {activeProviderName || 'Mock Provider'}
           </div>
         </div>
 
         <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Skills</span>
-            <Activity className="w-4 h-4 text-blue-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Skills</span>
+            <Activity className="w-4 h-4 text-blue-700 dark:text-blue-400" />
           </div>
           <div className="text-xl font-bold text-text-primary">{installedSkillsCount}</div>
-          <div className="text-[11px] text-text-muted">Summary, Title, Tags, Vectors</div>
+          <div className="text-xs text-text-muted">Summary, Title, Tags, Vectors</div>
         </div>
 
         <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Cache Size</span>
-            <Database className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Cache Size</span>
+            <Database className="w-4 h-4 text-amber-700 dark:text-amber-400" />
           </div>
           <div className="text-xl font-bold text-text-primary">{cacheSize} entries</div>
-          <button onClick={clearCache} className="text-[10px] text-pepper-400 hover:underline font-medium">
+          <button onClick={clearCache} className="text-xs text-pepper-400 hover:underline font-medium">
             Clear Cache
           </button>
         </div>
 
         <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
           <div className="flex items-center justify-between text-text-muted">
-            <span className="text-[11px] font-semibold uppercase tracking-wider">Privacy Engine</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-semibold uppercase tracking-wider">Privacy Engine</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-400">Local First</div>
-          <div className="text-[11px] text-text-muted">Keys stored locally</div>
+          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Local First</div>
+          <div className="text-xs text-text-muted">Keys stored locally</div>
         </div>
       </div>
 
@@ -180,7 +180,7 @@ export const IntelligenceSettings: React.FC = () => {
             <Key className="w-4 h-4 text-pepper-500" />
             <span>Connect Providers (Bring Your Own Keys)</span>
           </h3>
-          <span className="text-[11px] text-text-muted">Direct API requests from your machine</span>
+          <span className="text-xs text-text-muted">Direct API requests from your machine</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -197,18 +197,18 @@ export const IntelligenceSettings: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-xs text-text-primary">{p.name}</span>
                     <span
-                      className={`text-[9px] uppercase font-bold px-1.5 py-0.2 rounded border ${
+                      className={`text-xs uppercase font-bold px-1.5 py-0.2 rounded border ${
                         p.isLocal
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
                       }`}
                     >
                       {p.isLocal ? 'LOCAL' : 'CLOUD'}
                     </span>
                   </div>
-                  <div className="text-[11px] text-text-muted flex items-center gap-1.5">
+                  <div className="text-xs text-text-muted flex items-center gap-1.5">
                     {isConfigured ? (
-                      <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" /> Configured ({config.model || 'default'})
                       </span>
                     ) : (
@@ -241,7 +241,7 @@ export const IntelligenceSettings: React.FC = () => {
           <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
             <div>
               <div className="text-xs font-semibold text-text-primary">Semantic Search</div>
-              <div className="text-[11px] text-text-muted">Vector embedding search over workspaces</div>
+              <div className="text-xs text-text-muted">Vector embedding search over workspaces</div>
             </div>
             <input
               type="checkbox"
@@ -254,7 +254,7 @@ export const IntelligenceSettings: React.FC = () => {
           <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
             <div>
               <div className="text-xs font-semibold text-text-primary">Embeddings Engine</div>
-              <div className="text-[11px] text-text-muted">Local vector index computation</div>
+              <div className="text-xs text-text-muted">Local vector index computation</div>
             </div>
             <input
               type="checkbox"
@@ -267,7 +267,7 @@ export const IntelligenceSettings: React.FC = () => {
           <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
             <div>
               <div className="text-xs font-semibold text-text-primary">Local Models (Ollama)</div>
-              <div className="text-[11px] text-text-muted">Route offline workloads to local LLMs</div>
+              <div className="text-xs text-text-muted">Route offline workloads to local LLMs</div>
             </div>
             <input
               type="checkbox"
@@ -280,7 +280,7 @@ export const IntelligenceSettings: React.FC = () => {
           <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
             <div>
               <div className="text-xs font-semibold text-text-primary">Experimental Providers</div>
-              <div className="text-[11px] text-text-muted">Enable beta/custom LLM provider adapters</div>
+              <div className="text-xs text-text-muted">Enable beta/custom LLM provider adapters</div>
             </div>
             <input
               type="checkbox"
@@ -302,7 +302,7 @@ export const IntelligenceSettings: React.FC = () => {
                 Keyboard Shortcuts ({registeredCommands.length} Commands Registered)
               </h3>
             </div>
-            <p className="text-[11px] text-text-muted mt-0.5">
+            <p className="text-xs text-text-muted mt-0.5">
               Managed directly by Chrome Extension Shortcuts Manager
             </p>
           </div>
@@ -350,17 +350,17 @@ export const IntelligenceSettings: React.FC = () => {
                   </span>
 
                   {cmd.shortcut ? (
-                    <kbd className="px-2 py-0.5 rounded bg-pepper-500/10 font-mono text-[10px] text-pepper-400 font-extrabold border border-pepper-500/20">
+                    <kbd className="px-2 py-0.5 rounded bg-pepper-500/10 font-mono text-xs text-pepper-400 font-extrabold border border-pepper-500/20">
                       {cmd.shortcut}
                     </kbd>
                   ) : (
-                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
+                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
                       Not assigned
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center justify-between text-[10px] text-text-muted pt-1">
+                <div className="flex items-center justify-between text-xs text-text-muted pt-1">
                   <span className="font-mono text-pepper-400/80">Command: {cmd.name}</span>
                   <button
                     onClick={async () => {
@@ -400,7 +400,7 @@ export const IntelligenceSettings: React.FC = () => {
             No intelligence execution logs recorded yet. Platform is fully active.
           </div>
         ) : (
-          <div className="space-y-2 max-h-40 overflow-y-auto font-mono text-[11px]">
+          <div className="space-y-2 max-h-40 overflow-y-auto font-mono text-xs">
             {logs.map((log) => (
               <div key={log.id} className="p-2 rounded bg-surface border border-border/40 flex items-center justify-between">
                 <span>[{log.status}] Task: {log.taskId}</span>

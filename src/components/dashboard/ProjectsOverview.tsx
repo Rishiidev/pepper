@@ -48,7 +48,7 @@ export const ProjectsOverview: React.FC<Props> = ({
           {selectedProject && (
             <button
               onClick={() => onSelectProject(null)}
-              className="text-[11px] font-semibold text-pepper-400 hover:underline ml-2"
+              className="text-xs font-semibold text-pepper-400 hover:underline ml-2"
             >
               Clear Filter
             </button>
@@ -78,7 +78,7 @@ export const ProjectsOverview: React.FC<Props> = ({
               onClick={() => onSelectProject(isSelected ? null : proj.name)}
               className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 relative group ${
                 isSelected
-                  ? 'bg-pepper-500/10 border-pepper-500/40 shadow-lg shadow-pepper-500/10'
+                  ? 'bg-pepper-500/10 border-pepper-500/40 shadow-lg '
                   : 'bg-surface-card border-border/80 hover:border-border hover:bg-surface-hover'
               }`}
             >
@@ -87,11 +87,11 @@ export const ProjectsOverview: React.FC<Props> = ({
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: proj.color }} />
                   <span className="font-bold text-sm text-text-primary truncate">{proj.name}</span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface border border-border/60 text-text-muted shrink-0">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-surface border border-border/60 text-text-muted shrink-0">
                   {matchedCount} sessions
                 </span>
               </div>
-              {proj.description && <p className="text-[11px] text-text-muted truncate">{proj.description}</p>}
+              {proj.description && <p className="text-xs text-text-muted truncate">{proj.description}</p>}
 
               <button aria-label="Delete Project"
                 onClick={(e) => handleDeleteProject(e, proj.id)}
@@ -117,17 +117,17 @@ export const ProjectsOverview: React.FC<Props> = ({
                 onClick={() => onSelectProject(isSelected ? null : pName!)}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
                   isSelected
-                    ? 'bg-pepper-500/10 border-pepper-500/40 shadow-lg shadow-pepper-500/10'
+                    ? 'bg-pepper-500/10 border-pepper-500/40 shadow-lg '
                     : 'bg-surface-card border-border/80 hover:border-border hover:bg-surface-hover'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-text-primary truncate">{pName}</span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-surface border border-border/60 text-text-muted shrink-0">
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-surface border border-border/60 text-text-muted shrink-0">
                     {matchedCount} sessions
                   </span>
                 </div>
-                <p className="text-[11px] text-text-muted truncate">Workspace Project Category</p>
+                <p className="text-xs text-text-muted truncate">Workspace Project Category</p>
               </div>
             );
           })}

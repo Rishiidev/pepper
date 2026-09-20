@@ -170,7 +170,7 @@ export default function App() {
       </a>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-surface/85 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-40 bg-surface/85 border-b border-border px-6 py-4 flex items-center justify-between">
         <Logo showText size={28} />
 
         {/* Global Search Focus Input */}
@@ -202,7 +202,7 @@ export default function App() {
             aria-label="Open command palette"
             onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openPalette()}
             onClick={openPalette}
-            className="absolute right-3.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-extrabold bg-border/40 text-text-secondary rounded cursor-pointer hover:bg-border font-mono border border-border/20"
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-xs font-extrabold bg-border/40 text-text-secondary rounded cursor-pointer hover:bg-border font-mono border border-border/20"
           >
             ⌘K
           </kbd>
@@ -213,7 +213,7 @@ export default function App() {
           {stats && <RamBadge mbSaved={stats.estimatedRamSavedMb} label="SAVED" className="py-1 px-3 text-xs" />}
           <button
             onClick={handleSaveMemory}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             <span>Save Memory</span>
@@ -227,7 +227,7 @@ export default function App() {
         {/* Sidebar Navigation */}
         <aside aria-label="Sidebar" className="w-56 shrink-0 space-y-6">
           <div className="space-y-1">
-            <div className="px-3 text-[10px] font-extrabold text-text-muted uppercase tracking-widest mb-3">
+            <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
               Memory OS
             </div>
 
@@ -255,7 +255,7 @@ export default function App() {
             >
               <Brain className="w-4 h-4" />
               <span>Workspaces</span>
-              <span className="ml-auto text-[10px] font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
+              <span className="ml-auto text-xs font-mono text-text-muted font-bold bg-border/40 px-1.5 py-0.2 rounded-md">
                 {sessions.length}
               </span>
             </button>
@@ -271,7 +271,7 @@ export default function App() {
             >
               <Timer className="w-4 h-4 text-pepper-400" />
               <span>Focus</span>
-              {isRunning && <span className="w-2 h-2 rounded-full bg-pepper-500 animate-pulse ml-auto" />}
+              {isRunning && <span className="w-2 h-2 rounded-full bg-pepper-500 ml-auto" />}
             </button>
 
             <button
@@ -283,7 +283,7 @@ export default function App() {
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <History className="w-4 h-4 text-emerald-400" />
+              <History className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
               <span>History</span>
             </button>
 
@@ -296,7 +296,7 @@ export default function App() {
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <CalendarClock className="w-4 h-4 text-blue-400" aria-hidden="true" />
+              <CalendarClock className="w-4 h-4 text-blue-700 dark:text-blue-400" aria-hidden="true" />
               <span>Timeline</span>
             </button>
 
@@ -309,7 +309,7 @@ export default function App() {
                   : 'text-text-secondary hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <TrendingUp className="w-4 h-4 text-amber-400" />
+              <TrendingUp className="w-4 h-4 text-amber-700 dark:text-amber-400" />
               <span>Insights</span>
             </button>
 
@@ -319,7 +319,7 @@ export default function App() {
             >
               <Search className="w-4 h-4" />
               <span>Search</span>
-              <span className="ml-auto text-[9px] font-mono text-text-muted px-1.5 py-0.2 rounded bg-border/40">
+              <span className="ml-auto text-xs font-mono text-text-muted px-1.5 py-0.2 rounded bg-border/40">
                 ⌘K
               </span>
             </button>
@@ -341,7 +341,7 @@ export default function App() {
           {/* Active Projects Filter */}
           {projects.length > 0 && (
             <div className="space-y-1 pt-4 border-t border-border/80">
-              <div className="px-3 text-[10px] font-extrabold text-text-muted uppercase tracking-widest mb-3">
+              <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
                 Active Projects
               </div>
               {projects.map((proj) => (
@@ -367,7 +367,7 @@ export default function App() {
 
           {/* Product Tour & Export */}
           <div className="space-y-2 pt-4 border-t border-border/80">
-            <div className="px-3 text-[10px] font-extrabold text-text-muted uppercase tracking-widest mb-3">
+            <div className="px-3 text-xs font-extrabold text-text-muted uppercase tracking-widest mb-3">
               Memory Systems
             </div>
             <button
@@ -400,7 +400,7 @@ export default function App() {
               </div>
               <button
                 onClick={clearSearch}
-                className="flex items-center gap-1 text-[11px] font-bold text-pepper-400 hover:underline"
+                className="flex items-center gap-1 text-xs font-bold text-pepper-400 hover:underline"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Clear</span>
@@ -442,7 +442,7 @@ export default function App() {
 
               {filteredSessions.length > 0 && (
                 <div className="space-y-3 pt-4 border-t border-border">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted mb-2">
+                  <div className="text-xs font-bold uppercase tracking-widest text-text-muted mb-2">
                     {selectedProject ? `Memories in ${selectedProject}` : 'All Project Memories'} ({filteredSessions.length})
                   </div>
                   <div className="grid grid-cols-1 gap-3.5">
@@ -473,7 +473,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handleSaveMemory}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg shadow-pepper-500/20"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl transition-colors shadow-lg"
                 >
                   <Plus className="w-4 h-4" />
                   <span>Save Memory</span>
@@ -546,14 +546,14 @@ export default function App() {
 
       {/* Global Floating Focus Bar (Visible when Focus timer is running across any tab) */}
       {isRunning && activeSession && activeMemory && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-card/95 backdrop-blur-xl border border-pepper-500/40 rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-5 text-xs text-text-primary animate-slide-up">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-surface-card/95 border border-pepper-500/40 rounded-2xl px-5 py-3 shadow-2xl flex items-center gap-5 text-xs text-text-primary animate-slide-up">
           <div className="flex items-center gap-2.5">
             <Logo size={20} state={isPaused ? 'normal' : 'saving'} />
             <div className="leading-tight">
               <span className="font-bold text-text-primary block truncate max-w-[180px]">
                 {activeMemory.name}
               </span>
-              <span className="text-[10px] font-mono text-text-muted font-bold uppercase">
+              <span className="text-xs font-mono text-text-muted font-bold uppercase">
                 {activeSession.mode} &bull; {isPaused ? 'PAUSED' : 'ACTIVE'}
               </span>
             </div>

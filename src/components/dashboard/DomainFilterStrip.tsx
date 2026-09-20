@@ -33,7 +33,7 @@ export const DomainFilterStrip: React.FC<Props> = ({ sessions, activeSearchQuery
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-      <span className="text-[11px] font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1 shrink-0">
+      <span className="text-xs font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1 shrink-0">
         <Globe className="w-3 h-3 text-pepper-500" />
         <span>Top Domains:</span>
       </span>
@@ -51,7 +51,7 @@ export const DomainFilterStrip: React.FC<Props> = ({ sessions, activeSearchQuery
             }`}
           >
             <span>{domain}</span>
-            <span className="text-[10px] opacity-70">({count})</span>
+            <span className="text-xs opacity-70">({count})</span>
           </button>
         );
       })}

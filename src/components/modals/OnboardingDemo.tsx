@@ -149,7 +149,7 @@ export const OnboardingDemo: React.FC<Props> = ({ onProgress }) => {
               Open demo window
             </button>
           )}
-          {opened && <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-label="Done" />}
+          {opened && <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" aria-label="Done" />}
         </li>
 
         <li className={stepClass(phase === 'open', closed)}>
@@ -169,7 +169,7 @@ export const OnboardingDemo: React.FC<Props> = ({ onProgress }) => {
             </button>
           )}
           {phase === 'saving' && <Loader2 className="w-4 h-4 animate-spin text-pepper-400" aria-label="Saving" />}
-          {saved && <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-label="Done" />}
+          {saved && <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" aria-label="Done" />}
         </li>
 
         <li className={stepClass(phase === 'captured', phase === 'restored')}>
@@ -200,7 +200,7 @@ export const OnboardingDemo: React.FC<Props> = ({ onProgress }) => {
               Restore it
             </button>
           )}
-          {phase === 'restored' && <CheckCircle2 className="w-4 h-4 text-emerald-400" aria-label="Done" />}
+          {phase === 'restored' && <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400" aria-label="Done" />}
         </li>
       </ol>
 

@@ -188,7 +188,7 @@ export const TimelineView: React.FC = () => {
         {recap.topDomains.length > 0 && (
           <ul className="space-y-1" aria-label="Time by site">
             {recap.topDomains.map((d) => (
-              <li key={d.domain} className="flex items-center gap-2 text-[11px]">
+              <li key={d.domain} className="flex items-center gap-2 text-xs">
                 <span className="w-28 truncate text-text-secondary">{d.label}</span>
                 <span className="flex-1 h-1.5 rounded-full bg-border/60 overflow-hidden" aria-hidden="true">
                   <span className="block h-full bg-pepper-500" style={{ width: `${Math.max(4, (d.ms / recap.topDomains[0].ms) * 100)}%` }} />
@@ -224,12 +224,12 @@ export const TimelineView: React.FC = () => {
                 >
                   {clock(s.startedAt)} – {s.endedAt ? clock(s.endedAt) : 'now'}
                   {s.endReason === 'interrupted' && (
-                    <span className="flex items-center gap-1 text-[10px] text-amber-500">
+                    <span className="flex items-center gap-1 text-xs text-amber-500">
                       <AlertTriangle className="w-3 h-3" aria-hidden="true" />
                       Interrupted
                     </span>
                   )}
-                  {!s.endedAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" aria-label="Recording" />}
+                  {!s.endedAt && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" aria-label="Recording" />}
                 </button>
               );
             })}
@@ -286,7 +286,7 @@ export const TimelineView: React.FC = () => {
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.tabId === replay.activeTabId ? 'bg-pepper-500' : 'bg-border'}`} aria-label={t.tabId === replay.activeTabId ? 'Active tab' : undefined} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-xs font-semibold text-text-primary">{t.title}</p>
-                        <p className="truncate text-[10px] text-text-muted">{hostOf(t.url)} · open {formatDuration(at - t.openedAt)}</p>
+                        <p className="truncate text-xs text-text-muted">{hostOf(t.url)} · open {formatDuration(at - t.openedAt)}</p>
                       </div>
                       <AddToWorkspaceMenu tabs={[{ url: t.url, title: t.title, favIconUrl: '', index: 0 }]} label={`Add ${t.title} to a workspace`} />
                     </li>
@@ -296,7 +296,7 @@ export const TimelineView: React.FC = () => {
 
               {/* Event list */}
               <div className="rounded-2xl border border-border bg-surface-card p-5">
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-text-muted mb-3">Everything that happened</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-3">Everything that happened</h3>
                 <ol className="space-y-0.5">
                   {(showAll ? rows : rows.slice(0, EVENT_LIMIT)).map((e, i) => (
                     <li key={`${e.ts}-${e.id ?? i}`} className="flex items-center gap-3">
@@ -306,7 +306,7 @@ export const TimelineView: React.FC = () => {
                         aria-label={`${clock(e.ts)}, ${describeEvent(e)}. Jump to this moment`}
                         className={`flex-1 min-w-0 flex items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-surface-hover ${Math.abs(e.ts - at) < MIN / 2 ? 'bg-pepper-500/10' : ''}`}
                       >
-                        <time className="w-16 shrink-0 font-mono text-[11px] text-text-muted">{clock(e.ts)}</time>
+                        <time className="w-16 shrink-0 font-mono text-xs text-text-muted">{clock(e.ts)}</time>
                         {(e.type === 'session_start' || e.type === 'session_end') && <Zap className="w-3 h-3 text-pepper-400 shrink-0" aria-hidden="true" />}
                         <span className="truncate text-xs text-text-primary">{describeEvent(e)}</span>
                       </button>

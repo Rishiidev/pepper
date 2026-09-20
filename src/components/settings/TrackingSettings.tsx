@@ -37,7 +37,7 @@ export const TrackingSettings: React.FC = () => {
       <div className="flex items-center justify-between gap-4">
         <label htmlFor="tracking-enabled" className="min-w-0">
           <span className="block text-xs font-semibold text-text-primary">Record my browser session</span>
-          <span className="block text-[11px] text-text-muted">Local only. Incognito windows are never recorded.</span>
+          <span className="block text-xs text-text-muted">Local only. Incognito windows are never recorded.</span>
         </label>
         <input
           id="tracking-enabled"
@@ -61,13 +61,13 @@ export const TrackingSettings: React.FC = () => {
           placeholder={'mybank.com\nhealthportal.example.org'}
           className="w-full bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-text-primary"
         />
-        <p className="text-[11px] text-text-muted">One domain per line. Subdomains are included.</p>
+        <p className="text-xs text-text-muted">One domain per line. Subdomains are included.</p>
       </div>
 
       <div className="flex items-center justify-between gap-4">
         <label htmlFor="timeline-retention" className="min-w-0">
           <span className="block text-xs font-semibold text-text-primary">Keep timeline for (days)</span>
-          <span className="block text-[11px] text-text-muted">0 keeps it forever.</span>
+          <span className="block text-xs text-text-muted">0 keeps it forever.</span>
         </label>
         <input
           id="timeline-retention"
@@ -84,8 +84,8 @@ export const TrackingSettings: React.FC = () => {
         <button type="button" onClick={deleteAll} className="px-3 py-2 rounded-xl border border-border text-xs font-semibold text-red-500 hover:bg-red-500/10">
           Delete timeline data
         </button>
-        <span className="flex items-center gap-1.5 text-[11px] text-text-muted">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" aria-hidden="true" />
+        <span className="flex items-center gap-1.5 text-xs text-text-muted">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
           Never leaves this device
         </span>
       </div>

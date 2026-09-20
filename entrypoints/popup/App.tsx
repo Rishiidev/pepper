@@ -303,8 +303,8 @@ export default function App() {
           <FocusQuickStart compact />
 
           {activeWorkspaceName && (
-            <p className="flex items-center gap-1.5 text-[11px] text-text-secondary -mt-2">
-              <Star className="w-3 h-3 text-amber-400 fill-amber-400" aria-hidden="true" />
+            <p className="flex items-center gap-1.5 text-xs text-text-secondary -mt-2">
+              <Star className="w-3 h-3 text-amber-700 dark:text-amber-400 fill-amber-400" aria-hidden="true" />
               Active workspace: <strong className="text-text-primary truncate">{activeWorkspaceName}</strong>
               <span className="text-text-muted">· Alt+Shift+A adds a tab</span>
             </p>
@@ -320,32 +320,32 @@ export default function App() {
                 <Undo2 className="w-4 h-4 text-pepper-400 shrink-0" aria-hidden="true" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-bold text-text-primary">Reopen last closed window</span>
-                  <span className="block text-[10px] text-text-muted truncate">
+                  <span className="block text-xs text-text-muted truncate">
                     {lastClosed.tabCount} tab{lastClosed.tabCount !== 1 ? 's' : ''} · {lastClosed.label}
                   </span>
                 </span>
               </button>
-              {reopenError && <p role="alert" className="text-[11px] text-red-500 mt-1">{reopenError}</p>}
+              {reopenError && <p role="alert" className="text-xs text-red-500 mt-1">{reopenError}</p>}
             </div>
           )}
 
           {/* Top Metrics Strip */}
           <div className="bg-surface-card border border-pepper-500/30 rounded-xl p-2.5 grid grid-cols-4 gap-2 text-center text-xs shadow-inner">
             <div>
-              <span className="text-[10px] text-text-muted font-medium block">Tabs</span>
+              <span className="text-xs text-text-muted font-medium block">Tabs</span>
               <span className="font-bold text-text-primary">{selectedIndices.size} Tabs</span>
             </div>
             <div>
-              <span className="text-[10px] text-text-muted font-medium block">RAM Freed</span>
-              <span className="font-bold text-emerald-400">{estimatedRamMb} MB</span>
+              <span className="text-xs text-text-muted font-medium block">RAM Freed</span>
+              <span className="font-bold text-emerald-700 dark:text-emerald-400">{estimatedRamMb} MB</span>
             </div>
             <div>
-              <span className="text-[10px] text-text-muted font-medium block">Domains</span>
+              <span className="text-xs text-text-muted font-medium block">Domains</span>
               <span className="font-bold text-pepper-400">{domainCount} Domain{domainCount !== 1 ? 's' : ''}</span>
             </div>
             <div>
-              <span className="text-[10px] text-text-muted font-medium block">Restore</span>
-              <span className="font-bold text-blue-400">&lt; 1 sec</span>
+              <span className="text-xs text-text-muted font-medium block">Restore</span>
+              <span className="font-bold text-blue-700 dark:text-blue-400">&lt; 1 sec</span>
             </div>
           </div>
 
@@ -357,7 +357,7 @@ export default function App() {
                 <span>Suggested Workspace Name</span>
               </label>
 
-              <div className="flex items-center gap-2 text-[11px] font-semibold">
+              <div className="flex items-center gap-2 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => generateAiTitle(tabs)}
@@ -372,7 +372,7 @@ export default function App() {
                   onClick={() => setIsEditingTitle(!isEditingTitle)}
                   className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
                 >
-                  {isEditingTitle ? <Check className="w-3 h-3 text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
+                  {isEditingTitle ? <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
                   <span>{isEditingTitle ? 'Accept' : 'Edit'}</span>
                 </button>
               </div>
@@ -413,7 +413,7 @@ export default function App() {
                   </option>
                 ))}
               </select>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
+              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
                 Auto-detected
               </span>
             </div>
@@ -423,7 +423,7 @@ export default function App() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-semibold text-text-muted">
               <span>Browser Tabs Grouped by Domain</span>
-              <button onClick={handleToggleAll} className="text-[11px] text-pepper-400 hover:underline">
+              <button onClick={handleToggleAll} className="text-xs text-pepper-400 hover:underline">
                 {selectedIndices.size === tabs.length ? 'Deselect All' : 'Select All (⌘A)'}
               </button>
             </div>
@@ -446,7 +446,7 @@ export default function App() {
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-text-muted hover:text-text-primary"
+              className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text-primary"
             >
               <span>Advanced Options</span>
               {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
@@ -455,7 +455,7 @@ export default function App() {
             {showAdvanced && (
               <div className="pt-2 space-y-2 text-xs animate-slide-up">
                 <div>
-                  <label className="block text-[11px] text-text-muted font-medium mb-1">Custom Tags</label>
+                  <label className="block text-xs text-text-muted font-medium mb-1">Custom Tags</label>
                   <input
                     type="text"
                     value={customTags}
@@ -473,13 +473,13 @@ export default function App() {
             <button
               onClick={handleSave}
               disabled={isSaving || selectedIndices.size === 0}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-pepper-500 hover:bg-pepper-600 active:bg-pepper-700 font-bold text-xs text-white rounded-xl transition-all shadow-xl shadow-pepper-500/25 disabled:opacity-50 hover:scale-[1.01]"
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-pepper-500 hover:bg-pepper-600 active:bg-pepper-700 font-bold text-xs text-white rounded-xl transition-all shadow-xl disabled:opacity-50 hover:scale-[1.01]"
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Capturing Memory…' : `Save Memory (Enter / ⌘S)`}</span>
             </button>
 
-            <div className="grid grid-cols-2 gap-1 text-[10px] font-medium text-text-muted text-center pt-0.5">
+            <div className="grid grid-cols-2 gap-1 text-xs font-medium text-text-muted text-center pt-0.5">
               <span>✓ Closes {selectedIndices.size} tabs</span>
               <span>✓ {estimatedRamMb} MB freed</span>
               <span>✓ AI summary generated</span>
@@ -520,7 +520,7 @@ export default function App() {
               <div className="flex items-center justify-between py-2 border-t border-border/50">
                 <div>
                   <div className="font-semibold text-text-primary">Close Tabs After Saving</div>
-                  <div className="text-[10px] text-text-muted font-medium">Free RAM immediately</div>
+                  <div className="text-xs text-text-muted font-medium">Free RAM immediately</div>
                 </div>
                 <input
                   type="checkbox"
@@ -544,7 +544,7 @@ export default function App() {
       {/* Success View */}
       {view === 'success' && (
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 py-8">
-          <CheckCircle2 className="w-12 h-12 text-pepper-500 animate-bounce" />
+          <CheckCircle2 className="w-12 h-12 text-pepper-500" />
           <div className="space-y-1">
             <h2 className="text-base font-bold text-text-primary">✓ Workspace Saved!</h2>
             {lastSaved && (

@@ -41,7 +41,7 @@ export function initTheme(): void {
     // storage blocked
   }
 
-  let current: AppTheme = 'dark';
+  let current: AppTheme = 'system';
   const sync = (t?: AppTheme) => {
     if (t) current = t;
     applyTheme(current);
@@ -49,14 +49,14 @@ export function initTheme(): void {
 
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
     chrome.storage.local.get(SETTINGS_KEY).then((res) => {
-      sync((res[SETTINGS_KEY]?.theme as AppTheme | undefined) ?? 'dark');
+      sync((res[SETTINGS_KEY]?.theme as AppTheme | undefined) ?? 'system');
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       const next = changes[SETTINGS_KEY]?.newValue?.theme as AppTheme | undefined;
       if (area === 'local' && next) sync(next);
     });
   } else {
-    sync('dark');
+    sync('system');
   }
 
   window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener('change', () => sync());

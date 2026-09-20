@@ -95,7 +95,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/60">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
               Work Activity Matrix
             </span>
             <button aria-label="How is activity calculated?"
@@ -112,7 +112,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
         </div>
 
         <div className="flex items-center gap-4 text-xs">
-          <div className="text-text-muted text-[11px] font-medium">
+          <div className="text-text-muted text-xs font-medium">
             Click any day to view daily timeline &amp; AI journal
           </div>
         </div>
@@ -125,10 +125,10 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
             <Sparkles className="w-3.5 h-3.5" />
             <span>Transparent Work Activity Score Algorithm</span>
           </div>
-          <p className="text-text-secondary leading-relaxed text-[11px]">
+          <p className="text-text-secondary leading-relaxed text-xs">
             Pepper measures <strong>meaningful work momentum</strong> rather than surveillance metrics like mouse movement or raw browser time. Score (0–100) is calculated from 5 transparent factors:
           </p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[10px] pt-1">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs pt-1">
             <div className="p-2 rounded-xl bg-surface-card border border-border/40 font-mono">
               <span className="text-pepper-400 block font-bold">Focused Time</span>
               Up to 40 pts
@@ -161,7 +161,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
       >
         <div className="min-w-[720px] space-y-2">
           {/* Month Labels Bar */}
-          <div className="flex text-[10px] font-mono text-text-muted pl-8">
+          <div className="flex text-xs font-mono text-text-muted pl-8">
             {monthLabels.map((m, idx) => (
               <div
                 key={idx}
@@ -175,7 +175,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
           {/* Grid Layout: Days (Rows 0-6) x Weeks (Columns 0-51) */}
           <div className="flex items-start gap-1">
             {/* Day Labels Column */}
-            <div className="flex flex-col justify-between h-[98px] text-[9px] font-mono text-text-muted pr-2 shrink-0 py-0.5">
+            <div className="flex flex-col justify-between h-[98px] text-xs font-mono text-text-muted pr-2 shrink-0 py-0.5">
               <span>Mon</span>
               <span>Wed</span>
               <span>Fri</span>
@@ -202,7 +202,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
                         className={`w-3 h-3 rounded-[3px] border transition-all duration-150 relative cursor-pointer ${levelStyle.bg} ${levelStyle.border} ${
                           isSelected ? 'ring-2 ring-pepper-400 ring-offset-1 ring-offset-surface scale-125 z-20' : ''
                         } ${isFocused ? 'scale-110 z-10' : 'hover:scale-125 hover:z-20'} ${
-                          day.isToday ? 'border-pepper-400 shadow-sm shadow-pepper-500/50' : ''
+                          day.isToday ? 'border-pepper-400 shadow-sm ' : ''
                         }`}
                         title={`${day.dateStr}: ${levelStyle.label}`}
                       />
@@ -235,19 +235,19 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
               <span className="text-text-muted font-medium">
                 &bull; {hoveredDay.workspacesCount} workspaces &bull; {hoveredDay.sessionsCount} sessions
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-surface border border-border/60 text-text-secondary">
+              <span className="px-2 py-0.5 rounded text-xs font-bold bg-surface border border-border/60 text-text-secondary">
                 {LEVEL_COLORS[hoveredDay.level].label.split('(')[0].trim()}
               </span>
             </div>
           ) : (
-            <span className="text-text-muted text-[11px] font-medium italic">
+            <span className="text-text-muted text-xs font-medium italic">
               Hover or use arrow keys over grid cells to view quick daily summary
             </span>
           )}
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-1.5 text-[10px] text-text-muted shrink-0 font-medium">
+        <div className="flex items-center gap-1.5 text-xs text-text-muted shrink-0 font-medium">
           <span>No work</span>
           <div className="flex items-center gap-1">
             {([0, 1, 2, 3, 4] as ActivityLevel[]).map((lvl) => (

@@ -46,7 +46,7 @@ export const VisualTimelineView: React.FC<Props> = ({ sessions }) => {
           {todaySessions.length > 0 && (
             <div className="space-y-4 relative">
               {/* Pulsing Dot */}
-              <div className="absolute -left-[27px] top-1.5 w-3.5 h-3.5 rounded-full bg-pepper-500 ring-4 ring-surface flex items-center justify-center animate-pulse" />
+              <div className="absolute -left-[27px] top-1.5 w-3.5 h-3.5 rounded-full bg-pepper-500 ring-4 ring-surface flex items-center justify-center" />
               
               <div className="flex items-center gap-2 text-xs font-bold text-pepper-400 uppercase tracking-widest">
                 <Clock className="w-4 h-4" />
@@ -56,13 +56,13 @@ export const VisualTimelineView: React.FC<Props> = ({ sessions }) => {
               <div className="space-y-4">
                 {todaySessions.map((session) => (
                   <div key={session.id} className="relative space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold text-text-muted">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
                       <Save className="w-3.5 h-3.5 text-pepper-500" />
                       <span>Workspace Memory Saved</span>
                       {session.summary && (
                         <>
                           <span>&bull;</span>
-                          <span className="text-emerald-400 flex items-center gap-1 font-mono">
+                          <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-mono">
                             <Sparkles className="w-3 h-3" /> AI Summary Active
                           </span>
                         </>
@@ -88,8 +88,8 @@ export const VisualTimelineView: React.FC<Props> = ({ sessions }) => {
               <div className="space-y-4">
                 {yesterdaySessions.map((session) => (
                   <div key={session.id} className="relative space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] font-semibold text-text-muted">
-                      <RotateCcw className="w-3.5 h-3.5 text-blue-400" />
+                    <div className="flex items-center gap-2 text-xs font-semibold text-text-muted">
+                      <RotateCcw className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
                       <span>Historical Checkpoint</span>
                     </div>
                     <SessionCard session={session} />

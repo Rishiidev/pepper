@@ -104,7 +104,7 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
       <div className="flex items-center justify-between pb-3 border-b border-border/60">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
               Searchable Work Memory
             </span>
           </div>
@@ -139,12 +139,12 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
       {/* Preset Quick Chips & Filters Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs pt-1">
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">Suggestions:</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-text-muted">Suggestions:</span>
           {presetQueries.map((q) => (
             <button
               key={q}
               onClick={() => setQuery(q)}
-              className="px-2.5 py-1 rounded-lg bg-surface border border-border/60 text-[11px] font-medium text-text-secondary hover:text-pepper-400 hover:border-pepper-500/40 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-surface border border-border/60 text-xs font-medium text-text-secondary hover:text-pepper-400 hover:border-pepper-500/40 transition-colors"
             >
               "{q}"
             </button>
@@ -203,7 +203,7 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
+                      <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
                         {res.type === 'workspace' ? 'Workspace' : 'Focus Session'}
                       </span>
                       <h4 className="text-xs font-bold text-text-primary tracking-tight group-hover:text-pepper-400 transition-colors">
@@ -212,7 +212,7 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-mono text-text-muted">{res.dateStr}</span>
+                      <span className="text-xs font-mono text-text-muted">{res.dateStr}</span>
                       {res.targetSessionId && (
                         <button
                           onClick={async (e) => {
@@ -222,7 +222,7 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
                             setIsRestoringId(null);
                           }}
                           disabled={isRestoringId === res.targetSessionId}
-                          className="flex items-center gap-1 text-[11px] font-bold text-white bg-pepper-500 hover:bg-pepper-600 px-2.5 py-1 rounded-lg transition-colors shadow-sm"
+                          className="flex items-center gap-1 text-xs font-bold text-white bg-pepper-500 hover:bg-pepper-600 px-2.5 py-1 rounded-lg transition-colors shadow-sm"
                         >
                           <RotateCcw className={`w-3 h-3 ${isRestoringId === res.targetSessionId ? 'animate-spin' : ''}`} />
                           <span>Resume</span>
@@ -231,12 +231,12 @@ export const SearchableWorkMemory: React.FC<Props> = ({ sessions, focusSessions,
                     </div>
                   </div>
 
-                  <p className="text-[11px] text-text-secondary font-medium leading-relaxed">
+                  <p className="text-xs text-text-secondary font-medium leading-relaxed">
                     {res.subtitle}
                   </p>
 
                   {res.summary && (
-                    <div className="text-[11px] text-text-muted italic pl-2 border-l-2 border-pepper-500/30">
+                    <div className="text-xs text-text-muted italic pl-2 border-l-2 border-pepper-500/30">
                       "{res.summary}"
                     </div>
                   )}

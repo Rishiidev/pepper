@@ -31,7 +31,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-surface-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 text-text-primary">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -41,7 +41,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="font-bold text-sm">Merge Duplicate Workspaces</h3>
-              <p className="text-[11px] text-text-muted">
+              <p className="text-xs text-text-muted">
                 {duplicates.length > 0
                   ? `Found ${duplicates.length} overlapping workspace pair(s)`
                   : 'No duplicate workspaces detected'}
@@ -55,7 +55,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* Success Feedback */}
         {successMsg && (
-          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+          <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{successMsg}</span>
           </div>
@@ -66,7 +66,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <div className="py-12 text-center border border-dashed border-border/60 rounded-xl space-y-2">
             <Layers className="w-8 h-8 text-text-muted mx-auto" />
             <p className="text-xs font-semibold text-text-primary">All workspaces are unique!</p>
-            <p className="text-[11px] text-text-muted">No overlapping browser sessions found.</p>
+            <p className="text-xs text-text-muted">No overlapping browser sessions found.</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
@@ -76,7 +76,7 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 className="p-4 rounded-xl border border-border bg-surface/40 space-y-3 hover:border-pepper-500/30 transition-colors"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400">
+                  <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400">
                     {pair.similarityScore}% Tab Overlap ({pair.overlapCount} shared tabs)
                   </span>
                   <button
@@ -92,11 +92,11 @@ export const MergeDuplicatesModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="p-2.5 rounded-lg bg-surface border border-border/60 space-y-1">
                     <span className="font-semibold text-text-primary block truncate">{pair.sessionA.name}</span>
-                    <span className="text-[11px] text-text-muted">{pair.sessionA.tabCount} tabs</span>
+                    <span className="text-xs text-text-muted">{pair.sessionA.tabCount} tabs</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-surface border border-border/60 space-y-1">
                     <span className="font-semibold text-text-primary block truncate">{pair.sessionB.name}</span>
-                    <span className="text-[11px] text-text-muted">{pair.sessionB.tabCount} tabs</span>
+                    <span className="text-xs text-text-muted">{pair.sessionB.tabCount} tabs</span>
                   </div>
                 </div>
               </div>

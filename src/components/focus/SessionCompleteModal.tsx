@@ -27,14 +27,14 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
   };
 
   const reflectionsList: Array<{ id: UserReflection; label: string; icon: React.ReactNode }> = [
-    { id: 'great', label: 'Great Flow', icon: <Sparkles className="w-4 h-4 text-emerald-400" /> },
-    { id: 'good', label: 'Good Focus', icon: <Smile className="w-4 h-4 text-blue-400" /> },
-    { id: 'okay', label: 'Okay', icon: <Meh className="w-4 h-4 text-amber-400" /> },
+    { id: 'great', label: 'Great Flow', icon: <Sparkles className="w-4 h-4 text-emerald-700 dark:text-emerald-400" /> },
+    { id: 'good', label: 'Good Focus', icon: <Smile className="w-4 h-4 text-blue-700 dark:text-blue-400" /> },
+    { id: 'okay', label: 'Okay', icon: <Meh className="w-4 h-4 text-amber-700 dark:text-amber-400" /> },
     { id: 'difficult', label: 'Distracted', icon: <Frown className="w-4 h-4 text-pepper-400" /> },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-xl animate-fade-in select-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 animate-fade-in select-none">
       <div className="relative w-full max-w-lg bg-surface-card border border-border/80 rounded-3xl p-7 shadow-2xl space-y-6 glass-panel animate-portal-expand">
         
         {/* Header */}
@@ -42,7 +42,7 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
           <div className="flex items-center gap-3">
             <Logo size={28} state="restoring" />
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400 flex items-center gap-1">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Focus Complete &bull; {minutes}m Logged
               </span>
               <h2 className="text-lg font-bold text-text-primary tracking-tight">
@@ -51,7 +51,7 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
             </div>
           </div>
 
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-surface border border-border text-pepper-400">
+          <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded bg-surface border border-border text-pepper-400">
             {session.projectName || 'General'}
           </span>
         </div>
@@ -71,11 +71,11 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
 
           {session.accomplishments && session.accomplishments.length > 0 && (
             <div className="space-y-1 pt-1 border-t border-border/40 text-xs">
-              <span className="text-[10px] font-bold text-text-muted uppercase">Accomplishments:</span>
-              <ul className="space-y-1 text-text-secondary text-[11px]">
+              <span className="text-xs font-bold text-text-muted uppercase">Accomplishments:</span>
+              <ul className="space-y-1 text-text-secondary text-xs">
                 {session.accomplishments.map((acc, i) => (
                   <li key={i} className="flex items-center gap-1.5">
-                    <span className="text-emerald-400 font-bold">&bull;</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">&bull;</span>
                     <span>{acc}</span>
                   </li>
                 ))}
@@ -106,7 +106,7 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
                 }`}
               >
                 {r.icon}
-                <span className="text-[11px]">{r.label}</span>
+                <span className="text-xs">{r.label}</span>
               </button>
             ))}
           </div>
@@ -138,7 +138,7 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
 
           <button
             onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-lg active:scale-[0.98]"
           >
             <span>Save Reflection &amp; Resume Work</span>
             <ArrowRight className="w-4 h-4" />

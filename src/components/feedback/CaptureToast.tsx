@@ -63,13 +63,13 @@ export const CaptureToast: React.FC = () => {
       className="fixed bottom-6 right-6 z-50 w-80 bg-surface-card border border-border rounded-2xl shadow-2xl p-4 space-y-2 animate-slide-up"
     >
       <div className="flex items-start gap-2.5">
-        <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" aria-hidden="true" />
+        <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 mt-0.5 shrink-0" aria-hidden="true" />
         <div className="min-w-0 flex-1 space-y-1">
           <p className="text-xs font-bold text-text-primary">{captureMessage(capture.tabCount, capture.kind)}</p>
           <InlineRename
             value={name}
             label="Rename captured workspace"
-            className="w-full text-[11px] text-text-secondary"
+            className="w-full text-xs text-text-secondary"
             onSave={async (next) => {
               await sessionEngine.updateSession(capture.sessionId, { name: next });
               setName(next);
@@ -88,7 +88,7 @@ export const CaptureToast: React.FC = () => {
       <button
         type="button"
         onClick={() => restoreEngine.restoreSession(capture.sessionId)}
-        className="flex items-center gap-1.5 text-[11px] font-semibold text-pepper-400 hover:underline"
+        className="flex items-center gap-1.5 text-xs font-semibold text-pepper-400 hover:underline"
       >
         <RotateCcw className="w-3 h-3" aria-hidden="true" />
         Reopen this window

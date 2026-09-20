@@ -66,12 +66,12 @@ export const AISuggestionsWidget: React.FC<Props> = ({ latestSession, onClearSea
           <span>AI Suggestions</span>
         </h3>
         {taggingStatus ? (
-          <span className="text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
+          <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>{taggingStatus}</span>
           </span>
         ) : (
-          <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="text-xs uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
             Smart Context
           </span>
         )}
@@ -87,7 +87,7 @@ export const AISuggestionsWidget: React.FC<Props> = ({ latestSession, onClearSea
             <span>Resume Recent Session</span>
             <ArrowRight className="w-3.5 h-3.5 text-pepper-400 group-hover:translate-x-0.5 transition-transform" />
           </div>
-          <p className="text-[11px] text-text-muted truncate">
+          <p className="text-xs text-text-muted truncate">
             {latestSession ? `"${latestSession.name}"` : 'No recent session available'}
           </p>
         </div>
@@ -99,9 +99,9 @@ export const AISuggestionsWidget: React.FC<Props> = ({ latestSession, onClearSea
         >
           <div className="flex items-center justify-between text-xs font-semibold text-text-primary">
             <span>Merge Duplicate Workspaces</span>
-            <Merge className="w-3.5 h-3.5 text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+            <Merge className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
           </div>
-          <p className="text-[11px] text-text-muted truncate">Detect &amp; combine overlapping windows</p>
+          <p className="text-xs text-text-muted truncate">Detect &amp; combine overlapping windows</p>
         </div>
 
         {/* Suggestion 3: Generate Missing Tags */}
@@ -111,9 +111,9 @@ export const AISuggestionsWidget: React.FC<Props> = ({ latestSession, onClearSea
         >
           <div className="flex items-center justify-between text-xs font-semibold text-text-primary">
             <span>Generate Missing Tags</span>
-            <Tag className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
+            <Tag className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400 group-hover:translate-x-0.5 transition-transform" />
           </div>
-          <p className="text-[11px] text-text-muted truncate">Auto-classify untagged sessions</p>
+          <p className="text-xs text-text-muted truncate">Auto-classify untagged sessions</p>
         </div>
       </div>
     </div>

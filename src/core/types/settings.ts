@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   saveScope: 'window',
   closeTabsOnSave: true,
   confirmDelete: true,
-  theme: 'dark',
+  theme: 'system',
   aiAutoNaming: false,
   selectedAiProvider: 'none',
   hasCompletedOnboarding: false,

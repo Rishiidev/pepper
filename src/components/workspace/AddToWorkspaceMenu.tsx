@@ -113,7 +113,7 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
         }}
         className={
           text
-            ? 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-[11px] font-semibold text-text-primary hover:bg-surface-hover'
+            ? 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-semibold text-text-primary hover:bg-surface-hover'
             : 'p-1 rounded-md text-text-muted hover:text-pepper-400 hover:bg-surface-hover'
         }
       >
@@ -122,7 +122,7 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
       </button>
 
       {message && (
-        <span role="status" className="absolute right-0 top-full mt-1 z-50 whitespace-nowrap rounded-md bg-surface-card border border-border px-2 py-1 text-[10px] font-semibold text-emerald-500 shadow">
+        <span role="status" className="absolute right-0 top-full mt-1 z-50 whitespace-nowrap rounded-md bg-surface-card border border-border px-2 py-1 text-xs font-semibold text-emerald-500 shadow">
           {message}
         </span>
       )}
@@ -136,7 +136,7 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
           className="fixed z-50 w-60 max-h-64 overflow-y-auto rounded-xl border border-border bg-surface-card shadow-2xl p-1 space-y-0.5"
         >
           {listed.length === 0 && !creating && (
-            <p className="px-3 py-2 text-[11px] text-text-muted">No workspaces yet. Create your first one below.</p>
+            <p className="px-3 py-2 text-xs text-text-muted">No workspaces yet. Create your first one below.</p>
           )}
           {listed.map((w) => (
             <div key={w.id} className="flex items-center gap-1">
@@ -146,9 +146,9 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
                 onClick={() => addTo(w)}
                 className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-text-primary hover:bg-surface-hover"
               >
-                {w.id === active?.id && <Star className="w-3 h-3 text-amber-400 fill-amber-400 shrink-0" aria-hidden="true" />}
+                {w.id === active?.id && <Star className="w-3 h-3 text-amber-700 dark:text-amber-400 fill-amber-400 shrink-0" aria-hidden="true" />}
                 <span className="truncate">{w.name}</span>
-                <span className="ml-auto text-[10px] text-text-muted shrink-0">{w.tabCount}</span>
+                <span className="ml-auto text-xs text-text-muted shrink-0">{w.tabCount}</span>
               </button>
               <button
                 type="button"
@@ -156,9 +156,9 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
                 aria-label={w.id === active?.id ? `${w.name} is the active workspace` : `Make ${w.name} the active workspace`}
                 title="Make active"
                 onClick={() => updateSettings({ activeWorkspaceId: w.id === active?.id ? null : w.id })}
-                className="p-1.5 rounded-md text-text-muted hover:text-amber-400"
+                className="p-1.5 rounded-md text-text-muted hover:text-amber-700 dark:text-amber-400"
               >
-                <Star className={`w-3 h-3 ${w.id === active?.id ? 'text-amber-400 fill-amber-400' : ''}`} aria-hidden="true" />
+                <Star className={`w-3 h-3 ${w.id === active?.id ? 'text-amber-700 dark:text-amber-400 fill-amber-400' : ''}`} aria-hidden="true" />
               </button>
             </div>
           ))}

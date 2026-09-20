@@ -141,15 +141,15 @@ export default function App() {
       {/* Active workspace */}
       <section aria-labelledby="sp-active" className="rounded-xl border border-border bg-surface-card p-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <h2 id="sp-active" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-text-muted">
-            <Star className="w-3 h-3 text-amber-400 fill-amber-400" aria-hidden="true" />
+          <h2 id="sp-active" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-text-muted">
+            <Star className="w-3 h-3 text-amber-700 dark:text-amber-400 fill-amber-400" aria-hidden="true" />
             Active workspace
           </h2>
           {active && (
             <button
               type="button"
               onClick={() => restoreEngine.restoreSession(active.id)}
-              className="flex items-center gap-1 text-[11px] font-semibold text-pepper-400 hover:underline"
+              className="flex items-center gap-1 text-xs font-semibold text-pepper-400 hover:underline"
             >
               <RotateCcw className="w-3 h-3" aria-hidden="true" />
               Reopen
@@ -161,7 +161,7 @@ export default function App() {
             <p className="text-sm font-bold text-text-primary truncate">{active.name}</p>
             <ul className="space-y-0.5 max-h-28 overflow-y-auto">
               {active.tabs.slice(0, 30).map((t) => (
-                <li key={t.url} className="truncate text-[11px]">
+                <li key={t.url} className="truncate text-xs">
                   <a href={t.url} target="_blank" rel="noreferrer" className="text-text-secondary hover:text-pepper-400">
                     {t.title || t.url}
                   </a>
@@ -220,7 +220,7 @@ export default function App() {
 
       {/* Open tabs */}
       <section aria-labelledby="sp-tabs" className="space-y-1.5">
-        <h2 id="sp-tabs" className="text-[11px] font-bold uppercase tracking-widest text-text-muted">
+        <h2 id="sp-tabs" className="text-xs font-bold uppercase tracking-widest text-text-muted">
           Open tabs ({tabs.length})
         </h2>
         <ul className="space-y-0.5">
@@ -244,11 +244,11 @@ export default function App() {
       {/* Timeline */}
       <section aria-labelledby="sp-timeline" className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 id="sp-timeline" className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-text-muted">
+          <h2 id="sp-timeline" className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-text-muted">
             <History className="w-3 h-3" aria-hidden="true" />
             Today
           </h2>
-          <button type="button" onClick={() => openDashboard('?view=timeline')} className="text-[11px] font-semibold text-pepper-400 hover:underline">
+          <button type="button" onClick={() => openDashboard('?view=timeline')} className="text-xs font-semibold text-pepper-400 hover:underline">
             Full timeline
           </button>
         </div>
@@ -272,7 +272,7 @@ export default function App() {
             <ol className="space-y-1">
               {recent.length === 0 && <li className="text-xs text-text-muted">Nothing recorded yet today.</li>}
               {recent.map((e, i) => (
-                <li key={`${e.ts}-${i}`} className="flex items-center gap-2 text-[11px]">
+                <li key={`${e.ts}-${i}`} className="flex items-center gap-2 text-xs">
                   <time className="w-12 shrink-0 font-mono text-text-muted">{clock(e.ts)}</time>
                   <span className="flex-1 min-w-0 truncate text-text-primary">{describeEvent(e)}</span>
                   {e.url && (e.type === 'tab_open' || e.type === 'tab_switch' || e.type === 'tab_navigate') && (

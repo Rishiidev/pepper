@@ -40,7 +40,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false }) => {
           >
             {formatClock(shown)}
           </div>
-          <p className="text-[10px] text-text-muted truncate mt-1">
+          <p className="text-xs text-text-muted truncate mt-1">
             {isPaused ? 'Paused' : 'Focusing'} · {activeSession.workspaceName}
           </p>
         </div>
@@ -66,7 +66,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false }) => {
           type="button"
           onClick={cancelFocus}
           aria-label="Cancel focus session"
-          className="text-[10px] font-semibold text-text-muted hover:text-red-500"
+          className="text-xs font-semibold text-text-muted hover:text-red-500"
         >
           Cancel
         </button>
@@ -93,7 +93,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false }) => {
             role="radio"
             aria-checked={minutes === m}
             onClick={() => setMinutes(m)}
-            className={`px-2 py-2 text-[11px] font-bold font-mono ${minutes === m ? 'bg-pepper-500/15 text-pepper-400' : 'text-text-muted hover:text-text-primary'}`}
+            className={`px-2 py-2 text-xs font-bold font-mono ${minutes === m ? 'bg-pepper-500/15 text-pepper-400' : 'text-text-muted hover:text-text-primary'}`}
           >
             {m}
           </button>

@@ -46,7 +46,7 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
     >
       {/* Header */}
       <div>
-        <div className="text-[10px] uppercase font-bold tracking-widest text-pepper-400 mb-1 flex items-center gap-1">
+        <div className="text-xs uppercase font-bold tracking-widest text-pepper-400 mb-1 flex items-center gap-1">
           <Sparkles className="w-3 h-3" />
           <span>Workspace Memory Portal</span>
         </div>
@@ -55,30 +55,30 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
 
       {/* AI Memory / Summary */}
       <div className="bg-surface/50 border border-border/40 rounded-xl p-2.5 space-y-1">
-        <div className="text-[9px] uppercase font-bold tracking-wider text-text-muted">AI Memory Context</div>
-        <p className="text-[11px] text-text-secondary leading-relaxed italic">"{summaryText}"</p>
+        <div className="text-xs uppercase font-bold tracking-wider text-text-muted">AI Memory Context</div>
+        <p className="text-xs text-text-secondary leading-relaxed italic">"{summaryText}"</p>
       </div>
 
       {/* Clipboard & Downloads Split */}
       <div className="grid grid-cols-2 gap-2">
         <div className="bg-surface/30 border border-border/30 rounded-xl p-2 space-y-1.5">
-          <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-text-muted">
+          <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-text-muted">
             <Clipboard className="w-3 h-3 text-pepper-400" />
             <span>Clipboard</span>
           </div>
-          <div className="text-[10px] text-text-secondary truncate font-mono bg-surface-card/60 p-1 rounded border border-border/20">
+          <div className="text-xs text-text-secondary truncate font-mono bg-surface-card/60 p-1 rounded border border-border/20">
             {clipboard}
           </div>
         </div>
 
         <div className="bg-surface/30 border border-border/30 rounded-xl p-2 space-y-1.5">
-          <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-text-muted">
-            <FileText className="w-3 h-3 text-emerald-400" />
+          <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-text-muted">
+            <FileText className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />
             <span>Downloads</span>
           </div>
           <div className="space-y-0.5">
             {downloads.slice(0, 2).map((dl: string, idx: number) => (
-              <div key={idx} className="text-[10px] text-text-secondary truncate font-mono">
+              <div key={idx} className="text-xs text-text-secondary truncate font-mono">
                 ↓ {dl}
               </div>
             ))}
@@ -88,13 +88,13 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
 
       {/* Recent Activity */}
       <div className="space-y-1.5">
-        <div className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-text-muted">
-          <Activity className="w-3.5 h-3.5 text-blue-400" />
+        <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-text-muted">
+          <Activity className="w-3.5 h-3.5 text-blue-700 dark:text-blue-400" />
           <span>Recent Activity</span>
         </div>
         <div className="space-y-1 pl-1 border-l border-border/60">
           {activities.slice(0, 3).map((act: string, idx: number) => (
-            <div key={idx} className="text-[10px] text-text-secondary leading-snug truncate">
+            <div key={idx} className="text-xs text-text-secondary leading-snug truncate">
               • {act}
             </div>
           ))}
@@ -104,7 +104,7 @@ export const WorkspaceHoverPortal: React.FC<Props> = ({ session, onResume }) => 
       {/* Quick Resume CTA */}
       <button
         onClick={onResume}
-        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 text-white font-bold text-xs transition-colors shadow-lg shadow-pepper-500/20"
+        className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-pepper-500 hover:bg-pepper-600 text-white font-bold text-xs transition-colors shadow-lg"
       >
         <LogIn className="w-3.5 h-3.5" />
         <span>Resume Workspace Context</span>

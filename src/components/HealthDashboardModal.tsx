@@ -32,7 +32,7 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-surface-card border border-border rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 text-text-primary">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -42,7 +42,7 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="font-bold text-sm">System Health &amp; Diagnostic Panel</h3>
-              <p className="text-[11px] text-text-muted">Live architectural status &amp; provider verification</p>
+              <p className="text-xs text-text-muted">Live architectural status &amp; provider verification</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -70,8 +70,8 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <span
               className={`px-3 py-1 rounded-full text-xs font-bold ${
                 report.overallHealthScore >= 80
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
               }`}
             >
               {report.overallHealthScore >= 80 ? 'ALL SYSTEMS NORMAL' : 'PARTIAL DEGRADATION'}
@@ -87,13 +87,13 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
               {report.services.map((srv, idx) => (
                 <div key={idx} className="p-3 rounded-xl border border-border/60 bg-surface/40 flex items-start gap-2.5">
                   {srv.isHealthy ? (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-700 dark:text-emerald-400 shrink-0 mt-0.5" />
                   ) : (
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5" />
                   )}
                   <div className="min-w-0 flex-1">
                     <span className="font-bold text-xs text-text-primary block">{srv.service}</span>
-                    <span className="text-[11px] text-text-muted truncate block">{srv.message}</span>
+                    <span className="text-xs text-text-muted truncate block">{srv.message}</span>
                   </div>
                 </div>
               ))}
@@ -110,20 +110,20 @@ export const HealthDashboardModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </h4>
             <div className="grid grid-cols-4 gap-2 text-center text-xs">
               <div className="p-2 rounded-lg bg-surface border border-border/60">
-                <span className="text-[10px] text-text-muted block">Requests</span>
+                <span className="text-xs text-text-muted block">Requests</span>
                 <span className="font-bold text-text-primary">{telemetry.totalRequests}</span>
               </div>
               <div className="p-2 rounded-lg bg-surface border border-border/60">
-                <span className="text-[10px] text-text-muted block">Success Rate</span>
-                <span className="font-bold text-emerald-400">{telemetry.successRatePercent}%</span>
+                <span className="text-xs text-text-muted block">Success Rate</span>
+                <span className="font-bold text-emerald-700 dark:text-emerald-400">{telemetry.successRatePercent}%</span>
               </div>
               <div className="p-2 rounded-lg bg-surface border border-border/60">
-                <span className="text-[10px] text-text-muted block">Avg Latency</span>
+                <span className="text-xs text-text-muted block">Avg Latency</span>
                 <span className="font-bold text-pepper-400">{telemetry.avgLatencyMs} ms</span>
               </div>
               <div className="p-2 rounded-lg bg-surface border border-border/60">
-                <span className="text-[10px] text-text-muted block">Cache Hit</span>
-                <span className="font-bold text-blue-400">{telemetry.cacheHitRatePercent}%</span>
+                <span className="text-xs text-text-muted block">Cache Hit</span>
+                <span className="font-bold text-blue-700 dark:text-blue-400">{telemetry.cacheHitRatePercent}%</span>
               </div>
             </div>
           </div>

@@ -82,7 +82,7 @@ export const InsightsView: React.FC = () => {
         <div className="relative overflow-hidden rounded-3xl border border-pepper-500/30 bg-gradient-to-br from-surface-card via-surface to-pepper-500/5 p-6 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-pepper-400 px-3 py-1 rounded-full bg-pepper-500/10 border border-pepper-500/20 inline-flex items-center gap-1.5">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-3 py-1 rounded-full bg-pepper-500/10 border border-pepper-500/20 inline-flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Momentum Score</span>
               </span>
@@ -104,19 +104,19 @@ export const InsightsView: React.FC = () => {
           {/* Factor Breakdown */}
           <div className="grid grid-cols-4 gap-3 pt-3 border-t border-border/60 text-xs">
             <div className="space-y-0.5">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Consistency</span>
+              <span className="text-xs text-text-muted font-bold uppercase">Consistency</span>
               <div className="font-mono font-bold text-text-primary">{momentum.factors.focusConsistency}%</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Resumption</span>
+              <span className="text-xs text-text-muted font-bold uppercase">Resumption</span>
               <div className="font-mono font-bold text-text-primary">{momentum.factors.resumptionRate}%</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Uninterrupted</span>
+              <span className="text-xs text-text-muted font-bold uppercase">Uninterrupted</span>
               <div className="font-mono font-bold text-text-primary">{momentum.factors.uninterruptedRatio}%</div>
             </div>
             <div className="space-y-0.5">
-              <span className="text-[10px] text-text-muted font-bold uppercase">Completion</span>
+              <span className="text-xs text-text-muted font-bold uppercase">Completion</span>
               <div className="font-mono font-bold text-text-primary">{momentum.factors.taskCompletion}%</div>
             </div>
           </div>
@@ -138,7 +138,7 @@ export const InsightsView: React.FC = () => {
 
           {/* Reflection */}
           <div className="p-4 rounded-2xl bg-surface border border-border/60 space-y-2">
-            <span className="text-[10px] font-bold text-pepper-400 uppercase tracking-widest flex items-center gap-1">
+            <span className="text-xs font-bold text-pepper-400 uppercase tracking-widest flex items-center gap-1">
               <Sparkles className="w-3 h-3" /> AI Journal Reflection
             </span>
             <p className="text-xs text-text-secondary leading-relaxed font-medium">
@@ -149,13 +149,13 @@ export const InsightsView: React.FC = () => {
           {/* Accomplishments & In Progress split */}
           <div className="grid grid-cols-2 gap-4 text-xs">
             <div className="space-y-2 p-3.5 rounded-2xl bg-surface border border-border/60">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Accomplished Work
               </span>
-              <ul className="space-y-1.5 text-text-secondary text-[11px]">
+              <ul className="space-y-1.5 text-text-secondary text-xs">
                 {dailyJournal.completedTasks.map((t, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
-                    <span className="text-emerald-400 font-bold">&bull;</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-bold">&bull;</span>
                     <span>{t}</span>
                   </li>
                 ))}
@@ -163,10 +163,10 @@ export const InsightsView: React.FC = () => {
             </div>
 
             <div className="space-y-2 p-3.5 rounded-2xl bg-surface border border-border/60">
-              <span className="text-[10px] font-bold text-pepper-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="text-xs font-bold text-pepper-400 uppercase tracking-wider flex items-center gap-1.5">
                 <ArrowUpRight className="w-3.5 h-3.5" /> Next Action Items
               </span>
-              <ul className="space-y-1.5 text-text-secondary text-[11px]">
+              <ul className="space-y-1.5 text-text-secondary text-xs">
                 {dailyJournal.inProgressTasks.map((t, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
                     <span className="text-pepper-400 font-bold">&bull;</span>
@@ -182,7 +182,7 @@ export const InsightsView: React.FC = () => {
       {/* AI Patterns & Recommendations */}
       <div className="space-y-3">
         <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2 px-1">
-          <Lightbulb className="w-4 h-4 text-amber-400" />
+          <Lightbulb className="w-4 h-4 text-amber-700 dark:text-amber-400" />
           <span>AI Productivity Patterns &amp; Recommendations</span>
         </h3>
 
@@ -192,12 +192,12 @@ export const InsightsView: React.FC = () => {
               key={pat.id}
               className="bg-surface-card border border-border/80 rounded-2xl p-4 space-y-2 hover:border-pepper-500/30 transition-all"
             >
-              <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded bg-surface border border-border text-amber-400">
+              <span className="text-xs font-bold uppercase px-2 py-0.5 rounded bg-surface border border-border text-amber-700 dark:text-amber-400">
                 {pat.category}
               </span>
               <h4 className="font-bold text-xs text-text-primary tracking-tight pt-1">{pat.title}</h4>
-              <p className="text-[11px] text-text-muted leading-relaxed">{pat.description}</p>
-              <div className="text-[11px] font-semibold text-pepper-400 pt-1 border-t border-border/40">
+              <p className="text-xs text-text-muted leading-relaxed">{pat.description}</p>
+              <div className="text-xs font-semibold text-pepper-400 pt-1 border-t border-border/40">
                 💡 {pat.actionableSuggestion}
               </div>
             </div>

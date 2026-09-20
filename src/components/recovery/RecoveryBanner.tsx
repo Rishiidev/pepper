@@ -67,14 +67,14 @@ export const RecoveryBanner: React.FC<Props> = ({ compact = false }) => {
           <li key={s.id} className="flex items-center justify-between gap-2 rounded-xl bg-surface-card border border-border px-3 py-2">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-text-primary truncate">{s.name}</p>
-              <p className="text-[10px] text-text-muted">{s.tabCount} tabs</p>
+              <p className="text-xs text-text-muted">{s.tabCount} tabs</p>
             </div>
             <button
               type="button"
               disabled={busy}
               onClick={() => run(() => restoreEngine.restoreSession(s.id))}
               aria-label={`Restore ${s.name}`}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pepper-500 hover:bg-pepper-600 text-white text-[11px] font-bold disabled:opacity-50"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-pepper-500 hover:bg-pepper-600 text-white text-xs font-bold disabled:opacity-50"
             >
               <RotateCcw className="w-3 h-3" aria-hidden="true" />
               Restore
@@ -84,7 +84,7 @@ export const RecoveryBanner: React.FC<Props> = ({ compact = false }) => {
       </ul>
 
       {chromeClosed.length > 0 && (
-        <p className="text-[10px] text-text-muted">
+        <p className="text-xs text-text-muted">
           Chrome also remembers {chromeClosed.length} recently closed window{chromeClosed.length !== 1 ? 's' : ''}. Use
           “Reopen last closed window” to bring back the most recent one with its full history.
         </p>

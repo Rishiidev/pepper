@@ -66,7 +66,7 @@ export const InlineRename: React.FC<Props> = ({ value, onSave, autoFocus = false
         }}
         className="min-w-0 flex-1 bg-surface border border-pepper-500 rounded-md px-2 py-0.5 text-xs font-semibold text-text-primary"
       />
-      <Check className="w-3 h-3 text-emerald-400 shrink-0" aria-hidden="true" />
+      <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
     </span>
   );
 };

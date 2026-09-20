@@ -46,12 +46,12 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
   return (
     <div className="relative overflow-hidden rounded-2xl border border-pepper-500/20 bg-gradient-to-br from-surface-card via-surface to-pepper-500/5 p-6 shadow-xl space-y-5 animate-slide-up">
       {/* Background Glow Effect */}
-      <div className="absolute -right-20 -top-20 w-80 h-80 bg-pepper-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -right-20 -top-20 w-80 h-80 bg-pepper-500/10 rounded-full pointer-events-none" />
 
       {/* Top Meta Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <span className="text-[9px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-md bg-pepper-500/10 text-pepper-400 border border-pepper-500/25 flex items-center gap-1.5">
+          <span className="text-xs uppercase font-bold tracking-widest px-2.5 py-1 rounded-md bg-pepper-500/10 text-pepper-400 border border-pepper-500/25 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
             <span>Continue Working</span>
           </span>
@@ -65,7 +65,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
         <div className="flex items-center gap-2 text-xs">
           <span className="text-text-muted font-semibold">Workspace Health:</span>
           <span
-            className="font-bold font-mono px-2 py-0.5 rounded text-[11px] border"
+            className="font-bold font-mono px-2 py-0.5 rounded text-xs border"
             style={{ backgroundColor: `${health.color}15`, color: health.color, borderColor: `${health.color}30` }}
           >
             {health.score}%
@@ -80,7 +80,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
             {cleanTitle}
           </h2>
           {session.projectName && (
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border text-pepper-400">
+            <span className="text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-surface border border-border text-pepper-400">
               {session.projectName}
             </span>
           )}
@@ -104,7 +104,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
               <Tag className="w-3.5 h-3.5 text-text-muted" />
               <div className="flex gap-1.5">
                 {topDomains.map((domain) => (
-                  <span key={domain} className="px-2 py-0.5 rounded bg-surface border border-border/60 font-mono text-[9px] font-bold">
+                  <span key={domain} className="px-2 py-0.5 rounded bg-surface border border-border/60 font-mono text-xs font-bold">
                     {domain}
                   </span>
                 ))}
@@ -116,7 +116,7 @@ export const ContinueWorkingHero: React.FC<Props> = ({ session }) => {
         {/* Primary CTA */}
         <button
           onClick={handleContinue}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-xl shadow-pepper-500/20 active:scale-[0.98]"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-xl active:scale-[0.98]"
         >
           <LogIn className="w-4 h-4" />
           <span>Resume Workspace</span>

@@ -46,7 +46,7 @@ export const Logo: React.FC<LogoProps> = ({
               width="28"
               height="28"
               rx="4"
-              className="fill-pepper-500/20 blur-sm animate-pulse"
+              className="fill-pepper-500/20"
             />
           )}
 
@@ -72,7 +72,7 @@ export const Logo: React.FC<LogoProps> = ({
                 y="12"
                 width="8"
                 height="4"
-                className="fill-pepper-500 animate-ping opacity-75"
+                className="fill-pepper-500 opacity-75"
               />
             ) : state === 'restoring' ? (
               /* Portal Expanding / Restoring animation element */
@@ -81,7 +81,7 @@ export const Logo: React.FC<LogoProps> = ({
                 y="12"
                 width="8"
                 height="4"
-                className="fill-pepper-400 animate-bounce"
+                className="fill-pepper-400"
               />
             ) : state === 'pinned' ? (
               /* Pinned Dot Indicator in Portal Notch */
@@ -93,7 +93,7 @@ export const Logo: React.FC<LogoProps> = ({
                 y="12"
                 width="8"
                 height="4"
-                className="fill-pepper-500/60 animate-pulse"
+                className="fill-pepper-500/60"
               />
             ) : null}
           </g>
@@ -106,11 +106,11 @@ export const Logo: React.FC<LogoProps> = ({
             <span className="font-extrabold text-sm tracking-[0.2em] text-text-primary uppercase font-mono">
               PEPPER
             </span>
-            <span className="text-[8px] font-bold tracking-widest px-1.5 py-0.5 rounded bg-surface-card border border-border text-text-muted">
+            <span className="text-xs font-bold tracking-widest px-1.5 py-0.5 rounded bg-surface-card border border-border text-text-muted">
               OS
             </span>
           </div>
-          <span className="text-[9px] tracking-wider text-text-muted font-medium uppercase mt-0.5">
+          <span className="text-xs tracking-wider text-text-muted font-medium uppercase mt-0.5">
             Work Memory Engine
           </span>
         </div>

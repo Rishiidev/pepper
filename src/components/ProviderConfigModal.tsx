@@ -151,7 +151,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
       <div className="bg-surface-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 text-text-primary">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -161,16 +161,16 @@ export const ProviderConfigModal: React.FC<Props> = ({
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-sm">{providerName} Config</h3>
                 <span
-                  className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded border ${
+                  className={`text-xs uppercase font-bold px-1.5 py-0.5 rounded border ${
                     isLocal
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                      : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                      ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
+                      : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
                   }`}
                 >
                   {isLocal ? 'LOCAL (Zero Cloud Leak)' : 'CLOUD (Direct API)'}
                 </span>
               </div>
-              <p className="text-[11px] text-text-muted">Bring Your Own Key (BYOK) setup</p>
+              <p className="text-xs text-text-muted">Bring Your Own Key (BYOK) setup</p>
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" className="p-1 rounded-lg text-text-muted hover:bg-surface-hover">
@@ -190,7 +190,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
                 placeholder="sk-or-v1-..."
                 className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
               />
-              <span className="text-[10px] text-text-muted mt-1 block">
+              <span className="text-xs text-text-muted mt-1 block">
                 Keys are stored strictly in local browser storage.
               </span>
             </div>
@@ -203,7 +203,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => setIsCustomModel(!isCustomModel)}
-                className="text-[10px] text-pepper-400 hover:underline font-medium"
+                className="text-xs text-pepper-400 hover:underline font-medium"
               >
                 {isCustomModel ? 'Use Preset List' : 'Enter Custom Model ID'}
               </button>
@@ -223,7 +223,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
                   ))}
                 </select>
                 <ChevronDown className="w-4 h-4 text-text-muted absolute right-2.5 top-2.5 pointer-events-none" />
-                <p className="text-[11px] text-text-muted mt-1.5">
+                <p className="text-xs text-text-muted mt-1.5">
                   {presets.find((p) => p.value === model)?.description || 'Select model for AI tasks'}
                 </p>
               </div>
@@ -236,7 +236,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
                   placeholder="e.g. anthropic/claude-3.5-sonnet"
                   className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
                 />
-                <span className="text-[10px] text-text-muted mt-1 block">
+                <span className="text-xs text-text-muted mt-1 block">
                   Enter exact model identifier string from provider documentation.
                 </span>
               </div>
@@ -261,7 +261,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
             <div
               className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 ${
                 healthStatus.isHealthy
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                   : 'bg-red-500/10 border-red-500/20 text-red-400'
               }`}
             >
@@ -288,7 +288,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl shadow-lg shadow-pepper-500/20 transition-colors"
+              className="px-4 py-2 bg-pepper-500 hover:bg-pepper-600 text-white font-semibold text-xs rounded-xl shadow-lg transition-colors"
             >
               Save Configuration
             </button>

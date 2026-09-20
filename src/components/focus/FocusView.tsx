@@ -51,7 +51,7 @@ export const FocusView: React.FC = () => {
       <div className="space-y-8 max-w-3xl mx-auto py-6 animate-slide-up text-center select-none">
         {/* Active Focus Header */}
         <div className="space-y-2">
-          <span className="text-[10px] font-extrabold uppercase tracking-widest text-pepper-400 px-3 py-1 rounded-full bg-pepper-500/10 border border-pepper-500/20 inline-flex items-center gap-1.5">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-3 py-1 rounded-full bg-pepper-500/10 border border-pepper-500/20 inline-flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Active Focus Engine &bull; {activeSession.mode.toUpperCase()}</span>
           </span>
@@ -93,7 +93,7 @@ export const FocusView: React.FC = () => {
             <div className="text-4xl font-extrabold font-mono text-text-primary tracking-tight pt-2">
               {formatTime(displaySecs)}
             </div>
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+            <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
               {isPaused ? 'PAUSED' : activeSession.mode === 'stopwatch' ? 'ELAPSED WORK' : 'REMAINING'}
             </span>
           </div>
@@ -113,7 +113,7 @@ export const FocusView: React.FC = () => {
                     key={r}
                     className={`w-2.5 h-2.5 rounded-full ${
                       r === currentRound
-                        ? 'bg-pepper-500 animate-pulse'
+                        ? 'bg-pepper-500 '
                         : r < currentRound
                         ? 'bg-emerald-500'
                         : 'bg-border'
@@ -130,7 +130,7 @@ export const FocusView: React.FC = () => {
           {isPaused ? (
             <button
               onClick={resumeFocus}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-xl shadow-pepper-500/25 active:scale-[0.98]"
+              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-xl active:scale-[0.98]"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>Resume Focus</span>
@@ -147,7 +147,7 @@ export const FocusView: React.FC = () => {
 
           <button
             onClick={() => completeFocus()}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-xs text-white transition-all shadow-xl shadow-emerald-500/20 active:scale-[0.98]"
+            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-xs text-white transition-all shadow-xl active:scale-[0.98]"
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Complete Session</span>
@@ -226,7 +226,7 @@ export const FocusView: React.FC = () => {
                 <div className="font-bold text-sm flex items-center gap-1.5">
                   <span>🍅 Pomodoro</span>
                 </div>
-                <p className="text-[11px] text-text-muted">25m work / 5m break interval rounds</p>
+                <p className="text-xs text-text-muted">25m work / 5m break interval rounds</p>
               </button>
 
               <button
@@ -240,7 +240,7 @@ export const FocusView: React.FC = () => {
                 <div className="font-bold text-sm flex items-center gap-1.5">
                   <span>⏱️ Countdown Timer</span>
                 </div>
-                <p className="text-[11px] text-text-muted">Set specific target duration countdown</p>
+                <p className="text-xs text-text-muted">Set specific target duration countdown</p>
               </button>
 
               <button
@@ -254,7 +254,7 @@ export const FocusView: React.FC = () => {
                 <div className="font-bold text-sm flex items-center gap-1.5">
                   <span>⏲️ Stopwatch</span>
                 </div>
-                <p className="text-[11px] text-text-muted">Open-ended count-up work session</p>
+                <p className="text-xs text-text-muted">Open-ended count-up work session</p>
               </button>
             </div>
           </div>
@@ -284,7 +284,7 @@ export const FocusView: React.FC = () => {
           {/* Start Focus CTA */}
           <button
             onClick={handleStart}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-pepper-500 hover:bg-pepper-600 text-white font-extrabold text-sm transition-all shadow-xl shadow-pepper-500/25 active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-pepper-500 hover:bg-pepper-600 text-white font-extrabold text-sm transition-all shadow-xl active:scale-[0.98]"
           >
             <Play className="w-4 h-4 fill-white" />
             <span>Start Focus Session ({targetMemory?.name || 'Workspace'})</span>

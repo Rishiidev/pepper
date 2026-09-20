@@ -78,9 +78,9 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 backdrop-blur-xl animate-fade-in" role="presentation">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/85 animate-fade-in" role="presentation">
       {/* Background Portal Glow */}
-      <div className="absolute w-96 h-96 bg-pepper-500/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+      <div className="absolute w-96 h-96 bg-pepper-500/10 rounded-full pointer-events-none" />
 
       <div
         ref={dialogRef}
@@ -97,7 +97,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <h2 id="onboarding-title" className="font-extrabold text-sm tracking-widest text-text-primary uppercase font-mono">
                 PEPPER OS
               </h2>
-              <p className="text-[10px] text-text-muted uppercase tracking-wider">
+              <p className="text-xs text-text-muted uppercase tracking-wider">
                 Operating System for Human Memory
               </p>
             </div>
@@ -152,16 +152,16 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
             <div className="grid grid-cols-3 gap-3 text-left pt-2">
               <div className="p-3 rounded-xl bg-surface border border-border/60 space-y-1">
-                <span className="text-[10px] font-bold text-pepper-400 uppercase">Momentum</span>
-                <p className="text-[11px] text-text-muted">Zero friction when stopping or resuming tasks.</p>
+                <span className="text-xs font-bold text-pepper-400 uppercase">Momentum</span>
+                <p className="text-xs text-text-muted">Zero friction when stopping or resuming tasks.</p>
               </div>
               <div className="p-3 rounded-xl bg-surface border border-border/60 space-y-1">
-                <span className="text-[10px] font-bold text-blue-400 uppercase">Memory</span>
-                <p className="text-[11px] text-text-muted">Intent and focus recorded automatically.</p>
+                <span className="text-xs font-bold text-blue-700 dark:text-blue-400 uppercase">Memory</span>
+                <p className="text-xs text-text-muted">Intent and focus recorded automatically.</p>
               </div>
               <div className="p-3 rounded-xl bg-surface border border-border/60 space-y-1">
-                <span className="text-[10px] font-bold text-emerald-400 uppercase">Recall</span>
-                <p className="text-[11px] text-text-muted">Natural language search across all past work.</p>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase">Recall</span>
+                <p className="text-xs text-text-muted">Natural language search across all past work.</p>
               </div>
             </div>
           </div>
@@ -170,7 +170,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* Step 2: Silent Auto-Capture */}
         {step === 2 && (
           <div className="space-y-6 text-center py-4 animate-slide-up">
-            <div className="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mx-auto text-violet-400">
+            <div className="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center mx-auto text-violet-700 dark:text-violet-400">
               <Zap className="w-8 h-8" />
             </div>
 
@@ -186,10 +186,10 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <div className="p-4 rounded-2xl bg-surface border border-border/80 space-y-3 text-left">
               <div className="flex items-center justify-between text-xs font-semibold text-text-primary">
                 <span className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-violet-400" />
+                  <Zap className="w-4 h-4 text-violet-700 dark:text-violet-400" />
                   <span>Auto-Captured Checkpoint</span>
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                <span className="text-xs font-bold px-2 py-0.5 rounded bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20">
                   ⚡ Silent Capture
                 </span>
               </div>
@@ -203,7 +203,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* Step 3: Work Memory Search (⌘K) */}
         {step === 3 && (
           <div className="space-y-6 text-center py-4 animate-slide-up">
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-400">
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-700 dark:text-blue-400">
               <Search className="w-8 h-8" />
             </div>
 
@@ -220,7 +220,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
               <div className="flex items-center gap-3 text-xs text-text-primary">
                 <Search className="w-4 h-4 text-pepper-400" />
                 <span className="font-mono text-text-secondary">competitor pricing models...</span>
-                <kbd className="ml-auto text-[9px] font-mono bg-border px-1.5 py-0.5 rounded">⌘K</kbd>
+                <kbd className="ml-auto text-xs font-mono bg-border px-1.5 py-0.5 rounded">⌘K</kbd>
               </div>
             </div>
           </div>
@@ -229,7 +229,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
         {/* Step 4: BYOK & First Capture */}
         {step === 4 && (
           <div className="space-y-6 text-center py-4 animate-slide-up">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-700 dark:text-emerald-400">
               <Key className="w-8 h-8" />
             </div>
 
@@ -304,8 +304,8 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
         {/* Footer Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-border/60">
-          <span className="text-[11px] text-text-muted font-medium flex items-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs text-text-muted font-medium flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
             <span>Local First &bull; Zero Tracking</span>
           </span>
 
@@ -322,7 +322,7 @@ export const OnboardingModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <button
               data-autofocus
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-2.5 bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white rounded-xl transition-all shadow-lg shadow-pepper-500/20 active:scale-[0.98]"
+              className="flex items-center gap-2 px-6 py-2.5 bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white rounded-xl transition-all shadow-lg active:scale-[0.98]"
             >
               <span>
                 {step === totalSteps ? (demoPhase === 'restored' ? "I'm Back — Finish" : 'Skip Demo & Finish') : 'Continue'}
