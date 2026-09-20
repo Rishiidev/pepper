@@ -9,15 +9,9 @@ interface LogoProps {
   showText?: boolean;
 }
 
-/**
- * Pepper geometric P mark
- *
- * Layer 1: Letter P
- * Layer 2: Portal (Doorway into unfinished work)
- * Layer 3: Workspace (Abstract desktop)
- * Layer 4: Memory Block (Saved piece of thinking)
- * Layer 5: Continue / Momentum (The central portal notch)
- */
+/** Pepper mark. Canonical geometry lives in assets/logo.svg; do not redraw. */
+export const LOGO_PATH = 'M0 0H456V409H194V519H0V262H194V342H262V194H0Z';
+
 export const Logo: React.FC<LogoProps> = ({
   size = 28,
   state = 'normal',
@@ -28,75 +22,20 @@ export const Logo: React.FC<LogoProps> = ({
     <div className={`inline-flex items-center gap-3 shrink-0 select-none ${className}`}>
       <div
         className="relative flex items-center justify-center transition-transform duration-300 active:scale-95 cursor-pointer"
-        style={{ width: size, height: size }}
+        style={{ width: size * 456 / 519, height: size }}
       >
         <svg
-          width={size}
+          width={size * 456 / 519}
           height={size}
-          viewBox="0 0 24 24"
+          viewBox="0 0 456 519"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           className="w-full h-full overflow-visible"
         >
-          {/* Ambient Glow for AI or Restoring State */}
           {(state === 'ai' || state === 'restoring') && (
-            <rect
-              x="-2"
-              y="-2"
-              width="28"
-              height="28"
-              rx="4"
-              className="fill-pepper-500/20"
-            />
+            <rect x="-36" y="-36" width="528" height="591" rx="40" className="fill-pepper-500/20" />
           )}
-
-          {/* Geometric P Solid Fill Shapes */}
-          <g className="transition-all duration-300">
-            {/* Top Horizontal Bar */}
-            <rect x="0" y="0" width="24" height="8" fill="currentColor" />
-
-            {/* Right Shoulder */}
-            <rect x="16" y="8" width="8" height="8" fill="currentColor" />
-
-            {/* Middle Horizontal Bridge */}
-            <rect x="8" y="8" width="8" height="4" fill="currentColor" />
-
-            {/* Bottom Left Stem */}
-            <rect x="0" y="12" width="8" height="12" fill="currentColor" />
-
-            {/* Dynamic Center Portal (Negative Space Accent / Animation Element) */}
-            {state === 'saving' ? (
-              /* Portal Compressing / Saving animation element */
-              <rect
-                x="8"
-                y="12"
-                width="8"
-                height="4"
-                className="fill-pepper-500 opacity-75"
-              />
-            ) : state === 'restoring' ? (
-              /* Portal Expanding / Restoring animation element */
-              <rect
-                x="8"
-                y="12"
-                width="8"
-                height="4"
-                className="fill-pepper-400"
-              />
-            ) : state === 'pinned' ? (
-              /* Pinned Dot Indicator in Portal Notch */
-              <rect x="10" y="13" width="4" height="2" className="fill-pepper-500" />
-            ) : state === 'syncing' ? (
-              /* Syncing Motion Sweep */
-              <rect
-                x="8"
-                y="12"
-                width="8"
-                height="4"
-                className="fill-pepper-500/60"
-              />
-            ) : null}
-          </g>
+          <path d={LOGO_PATH} fill="currentColor" className="transition-all duration-300" />
         </svg>
       </div>
 

@@ -7,11 +7,8 @@ const BASE = import.meta.env.BASE_URL;
 
 function Mark({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <rect x="0" y="0" width="24" height="8" />
-      <rect x="16" y="8" width="8" height="8" />
-      <rect x="8" y="8" width="8" height="4" />
-      <rect x="0" y="12" width="8" height="12" />
+    <svg width={(size * 456) / 519} height={size} viewBox="0 0 456 519" fill="currentColor" aria-hidden="true">
+      <path d="M0 0H456V409H194V519H0V262H194V342H262V194H0Z" />
     </svg>
   );
 }
