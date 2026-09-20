@@ -49,6 +49,19 @@ describe('focusEngine', () => {
     expect(execute).not.toHaveBeenCalled();
   });
 
+  it('remembers the task a session was started for, and keeps it through completion', async () => {
+    const s = await focusEngine.startSession(memory, 'timer', 25, { id: 'task_1', title: 'Write docs' });
+    expect(s).toMatchObject({ taskId: 'task_1', taskTitle: 'Write docs' });
+    await focusEngine.completeSession(s.id, 1500);
+    const stored = await db.focusSessions.get(s.id);
+    expect(stored).toMatchObject({ status: 'completed', taskId: 'task_1', taskTitle: 'Write docs' });
+  });
+
+  it('a session without a task has no task fields', async () => {
+    const s = await focusEngine.startSession(memory, 'timer', 25);
+    expect(s.taskId).toBeUndefined();
+  });
+
   it('pause then resume returns the stored status to active', async () => {
     const s = await focusEngine.startSession(memory, 'pomodoro', 25);
     await focusEngine.pauseSession(s.id, 30);

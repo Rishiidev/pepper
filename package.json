@@ -14,7 +14,7 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "test": "vitest run",
-    "test:e2e": "wxt build && node e2e/recovery-and-onboarding.e2e.mjs && node e2e/timeline-and-focus.e2e.mjs && node e2e/design-quality.e2e.mjs",
+    "test:e2e": "wxt build && node e2e/recovery-and-onboarding.e2e.mjs && node e2e/timeline-and-focus.e2e.mjs && node e2e/tasks-and-focus.e2e.mjs && node e2e/design-quality.e2e.mjs",
     "test:site": "npm --prefix website run build && node e2e/site-quality.e2e.mjs"
   },
   "dependencies": {

@@ -11,13 +11,14 @@ export type { PepperBackup } from './backup-validate';
 
 export class BackupEngine {
   async exportAll(): Promise<PepperBackup> {
-    const [sessions, projects, settings, focusSessions, browserSessions, timelineEvents] = await Promise.all([
+    const [sessions, projects, settings, focusSessions, browserSessions, timelineEvents, tasks] = await Promise.all([
       sessionEngine.getAllSessions(),
       db.projects.toArray(),
       settingsRepo.get(),
       db.focusSessions.toArray(),
       db.browserSessions.toArray(),
       db.timelineEvents.toArray(),
+      db.tasks.toArray(),
     ]);
     const portable: Partial<PepperSettings> = {};
     for (const key of PORTABLE_SETTING_KEYS) {
@@ -34,6 +35,7 @@ export class BackupEngine {
       browserSessions,
       // Row ids are local to this database; the importer assigns fresh ones
       timelineEvents: timelineEvents.map(({ id: _id, ...event }) => event),
+      tasks,
     };
   }
 
@@ -63,7 +65,7 @@ export class BackupEngine {
 
     await db.transaction(
       'rw',
-      [db.sessions, db.projects, db.focusSessions, db.browserSessions, db.timelineEvents],
+      [db.sessions, db.projects, db.focusSessions, db.browserSessions, db.timelineEvents, db.tasks],
       async () => {
         if (toPut.length) await db.sessions.bulkPut(toPut.map((s) => ({ ...s, urlHash: hashUrlSet(s.tabs.map((t) => t.url)) })));
         if (backup.projects.length) await db.projects.bulkPut(backup.projects);
@@ -84,6 +86,11 @@ export class BackupEngine {
         const newIds = new Set(newBrowser.map((b) => b.id));
         const newEvents = backup.timelineEvents.filter((e) => newIds.has(e.sessionId));
         if (newEvents.length) await db.timelineEvents.bulkAdd(newEvents);
+
+        // Tasks merge like workspaces: the most recently changed copy of an id wins
+        const currentTasks = await db.tasks.bulkGet(backup.tasks.map((t) => t.id));
+        const tasksToPut = backup.tasks.filter((t, i) => !currentTasks[i] || t.updatedAt > currentTasks[i]!.updatedAt);
+        if (tasksToPut.length) await db.tasks.bulkPut(tasksToPut);
       }
     );
 

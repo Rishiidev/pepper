@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { FocusSession, FocusMode, UserReflection } from '../core/types/focus-session';
 import { PepperSession } from '../core/types/session';
 import { focusEngine } from '../core/engines/focus-engine';
+import { FocusTask } from '../core/types/task';
 
 interface FocusStoreState {
   activeSession: FocusSession | null;
@@ -20,7 +21,7 @@ interface FocusStoreState {
   completedSessionForModal: FocusSession | null;
 
   // Actions
-  startFocus: (memory: PepperSession, mode: FocusMode, targetMinutes?: number) => Promise<void>;
+  startFocus: (memory: PepperSession, mode: FocusMode, targetMinutes?: number, task?: FocusTask) => Promise<void>;
   pauseFocus: () => void;
   resumeFocus: () => void;
   completeFocus: (reflection?: UserReflection, notes?: string) => Promise<void>;
@@ -116,12 +117,12 @@ export const useFocusStore = create<FocusStoreState>((set, get) => {
     _totalPausedMs: 0,
     completedSessionForModal: null,
 
-    startFocus: async (memory: PepperSession, mode: FocusMode, targetMinutes: number = 25) => {
+    startFocus: async (memory: PepperSession, mode: FocusMode, targetMinutes: number = 25, task?: FocusTask) => {
       // Clear any existing timer
       const existingInterval = get().timerIntervalId;
       if (existingInterval) clearInterval(existingInterval);
 
-      const session = await focusEngine.startSession(memory, mode, targetMinutes);
+      const session = await focusEngine.startSession(memory, mode, targetMinutes, task);
       const wallClockStart = Date.now();
 
       const interval = startTicker();

@@ -5,7 +5,13 @@ import { useSessionStore } from '../../stores/session-store';
 import { FocusMode, FocusSession } from '../../core/types/focus-session';
 import { INBOX_SESSION_ID } from '../../core/constants/ids';
 import { focusEngine } from '../../core/engines/focus-engine';
-import { openFocusTarget, OPEN_FOCUS_ID } from '../../core/engines/focus-target';
+import { getFocusTargetForTask, openFocusTarget, OPEN_FOCUS_ID } from '../../core/engines/focus-target';
+import { openTasks } from '../../core/engines/task-engine';
+import { PepperTask } from '../../core/types/task';
+import { useTasks } from '../tasks/useTasks';
+import { TaskAddInput } from '../tasks/TaskAddInput';
+import { TaskList } from '../tasks/TaskList';
+import { PendingFocusTaskPrompt } from '../tasks/FocusTaskPrompt';
 import { formatClock } from '../../core/engines/focus-timing';
 import { formatDurationCompact } from '../../core/engines/timeline-replay';
 import { Button, Card, CardHeader, Chip, Field, ProgressRing, Segmented, Stat } from '../ui';
@@ -21,11 +27,16 @@ const selectClass = 'h-10 w-full rounded-input border bg-surface-card px-3 text-
 
 export const FocusView: React.FC = () => {
   const { sessions } = useSessionStore();
-  const { activeSession, activeMemory, isRunning, isPaused, elapsedSeconds, startFocus, pauseFocus, resumeFocus, completeFocus, cancelFocus } = useFocusStore();
+  const { activeSession, activeMemory, isRunning, isPaused, elapsedSeconds, completedSessionForModal, startFocus, pauseFocus, resumeFocus, completeFocus, cancelFocus } = useFocusStore();
   const [mode, setMode] = useState<FocusMode>('pomodoro');
   const [minutes, setMinutes] = useState('25');
   const [targetId, setTargetId] = useState<string>(OPEN_FOCUS_ID);
+  const [taskId, setTaskId] = useState('');
   const [history, setHistory] = useState<FocusSession[]>([]);
+  const tasks = useTasks();
+  const open = useMemo(() => openTasks(tasks), [tasks]);
+  const recentDone = useMemo(() => tasks.filter((t) => t.done).slice(0, 5), [tasks]);
+  const workspaceNames = useMemo(() => new Map(sessions.map((s) => [s.id, s.name])), [sessions]);
 
   const real = useMemo(() => sessions.filter((s) => s.id !== INBOX_SESSION_ID), [sessions]);
   useEffect(() => {
@@ -37,7 +48,20 @@ export const FocusView: React.FC = () => {
 
   const start = () => {
     const target = real.find((s) => s.id === targetId) ?? openFocusTarget();
-    void startFocus(target, mode, Number(minutes));
+    const task = open.find((t) => t.id === taskId);
+    void startFocus(target, mode, Number(minutes), task ? { id: task.id, title: task.title } : undefined);
+    setTaskId('');
+  };
+
+  /** Picking a task also points "Attach to" at its workspace, when that workspace still exists. */
+  const focusOn = async (t: PepperTask) => {
+    await startFocus(await getFocusTargetForTask(t), mode, Number(minutes), { id: t.id, title: t.title });
+  };
+
+  const pickTask = (id: string) => {
+    setTaskId(id);
+    const ws = open.find((t) => t.id === id)?.workspaceId;
+    if (ws && real.some((s) => s.id === ws)) setTargetId(ws);
   };
 
   if (isRunning && activeSession && activeMemory) {
@@ -62,7 +86,8 @@ export const FocusView: React.FC = () => {
             </ProgressRing>
           </div>
           <div>
-            <h2 className="text-xl font-bold">{activeMemory.name}</h2>
+            <h2 className="text-xl font-bold">{activeSession.taskTitle ?? activeMemory.name}</h2>
+            {activeSession.taskTitle && <p className="text-sm opacity-80">{activeMemory.name}</p>}
             {activeMemory.id !== OPEN_FOCUS_ID && (
               <p className="text-sm opacity-80">{activeMemory.tabCount} tabs · {activeMemory.projectName || 'General'}</p>
             )}
@@ -113,6 +138,20 @@ export const FocusView: React.FC = () => {
               </select>
             )}
           </Field>
+          {open.length > 0 && (
+            <Field label="Task (optional)">
+              {(p) => (
+                <select {...p} value={taskId} onChange={(e) => pickTask(e.target.value)} className={selectClass} style={{ borderColor: 'var(--pp-border-strong)', color: 'var(--pp-text)' }}>
+                  <option value="">No task</option>
+                  {open.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Field>
+          )}
           <div className="space-y-2">
             <p className="text-sm font-semibold">Mode</p>
             <Segmented<FocusMode> label="Focus mode" value={mode} onChange={setMode} options={MODES} />
@@ -133,6 +172,20 @@ export const FocusView: React.FC = () => {
           <Stat label="Focused" value={formatDurationCompact(todaySeconds * 1000)} hint={`${history.filter((f) => f.startedAt >= todayStart).length} sessions`} />
         </Card>
       </div>
+
+      {!completedSessionForModal && <PendingFocusTaskPrompt />}
+
+      <Card as="section" aria-labelledby="focus-tasks" className="space-y-3" data-testid="focus-tasks">
+        <CardHeader eyebrow="Tasks" titleId="focus-tasks" title={open.length === 0 ? 'Nothing to do' : `${open.length} to do`} />
+        <TaskList
+          label="Tasks"
+          tasks={[...open, ...recentDone]}
+          workspaceNames={workspaceNames}
+          onFocus={focusOn}
+          emptyText="Add a task below, or from any tab’s “+” menu."
+        />
+        <TaskAddInput />
+      </Card>
 
       <Card className="space-y-3">
         <CardHeader eyebrow="History" title="Recent sessions" />

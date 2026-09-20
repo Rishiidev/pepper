@@ -96,6 +96,51 @@ describe('backup round trip', () => {
   });
 });
 
+describe('tasks in backups', () => {
+  it('round trips tasks and a re-import never overwrites a newer local copy', async () => {
+    await db.tasks.bulkAdd([
+      { id: 't1', title: 'Write docs', done: false, workspaceId: 'w', url: 'https://a.com/', createdAt: 1, updatedAt: 5 },
+      { id: 't2', title: 'Ship', done: true, createdAt: 2, updatedAt: 9, doneAt: 9 },
+    ]);
+    const validated = validateBackup(JSON.parse(JSON.stringify(await backupEngine.exportAll())));
+    if (!validated.ok) throw new Error(validated.error);
+    expect(validated.backup.tasks.map((t) => t.id).sort()).toEqual(['t1', 't2']);
+
+    await resetDb();
+    await backupEngine.importBackup(validated.backup);
+    expect(await db.tasks.count()).toBe(2);
+    expect((await db.tasks.get('t2'))?.done).toBe(true);
+
+    await db.tasks.update('t1', { title: 'Edited locally', updatedAt: 50 });
+    await backupEngine.importBackup(validated.backup);
+    expect((await db.tasks.get('t1'))?.title).toBe('Edited locally');
+    expect(await db.tasks.count()).toBe(2);
+  });
+
+  it('sanitizes tasks and accepts a v2 backup without them', () => {
+    const res = validateBackup({
+      ...base,
+      version: 3,
+      tasks: [
+        { id: 'ok', title: '  Fine  ', url: 'javascript:alert(1)', done: true, createdAt: 3 },
+        { id: '', title: 'no id' },
+        { id: 'blank', title: '   ' },
+        'junk',
+      ],
+    });
+    if (!res.ok) throw new Error(res.error);
+    expect(res.backup.tasks).toHaveLength(1);
+    expect(res.backup.tasks[0]).toMatchObject({ id: 'ok', title: 'Fine', done: true, url: undefined });
+    const old = validateBackup(base);
+    if (!old.ok) throw new Error(old.error);
+    expect(old.backup.tasks).toEqual([]);
+  });
+
+  it('rejects a backup from a newer version', () => {
+    expect(validateBackup({ ...base, version: 4 }).ok).toBe(false);
+  });
+});
+
 describe('splitSessionKeys', () => {
   it('keeps session-only keys off the persisted copy', () => {
     const { persisted, sessionKeys } = splitSessionKeys({

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, Star, FolderPlus } from 'lucide-react';
+import { Plus, Star, FolderPlus, ListPlus } from 'lucide-react';
 import { PepperSession, PepperTab } from '../../core/types/session';
 import { sessionEngine } from '../../core/engines/session-engine';
+import { taskEngine } from '../../core/engines/task-engine';
 import { workspaceMembership, recentWorkspaces } from '../../core/engines/workspace-membership';
 import { useSettingsStore } from '../../stores/settings-store';
 import { generateSessionName, baseDomain } from '../../core/engines/session-naming';
@@ -61,6 +62,13 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
   const addTo = async (ws: PepperSession) => {
     const res = await workspaceMembership.addTabs(ws.id, tabs);
     setMessage(res.added > 0 ? `Added to ${ws.name}` : `Already in ${ws.name}`);
+    setOpen(false);
+  };
+
+  /** One tab becomes one task, attached to the active workspace when there is one. */
+  const addAsTask = async () => {
+    const added = tabs.length === 1 ? await taskEngine.addFromTab(tabs[0], settings.activeWorkspaceId) : null;
+    setMessage(added ? 'Added as a task' : 'Cannot add this page as a task');
     setOpen(false);
   };
 
@@ -193,6 +201,17 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
             >
               <FolderPlus className="w-3.5 h-3.5" aria-hidden="true" />
               New workspace…
+            </button>
+          )}
+          {tabs.length === 1 && !creating && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={addAsTask}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold text-text-primary hover:bg-surface-hover"
+            >
+              <ListPlus className="w-3.5 h-3.5" aria-hidden="true" />
+              Add as a task
             </button>
           )}
         </div>

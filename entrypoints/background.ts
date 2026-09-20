@@ -6,6 +6,8 @@ import { captureEngine } from '../src/core/engines/capture-engine';
 import { sessionRecorder } from '../src/core/engines/session-recorder';
 import { quickSaveEngine } from '../src/core/engines/quick-save-engine';
 import { projectRepo } from '../src/storage/repositories/project-repo';
+import { settingsRepo } from '../src/storage/repositories/settings-repo';
+import { taskEngine } from '../src/core/engines/task-engine';
 import { providerRegistry, featureFlagsManager } from '../src/core/intelligence';
 import { isSaveableUrl } from '../src/core/utils/url';
 import { rebuildContextMenus, MENU } from '../src/core/engines/context-menus';
@@ -61,6 +63,22 @@ async function addTabFromMenu(tab: chrome.tabs.Tab | undefined, target: 'active'
   } else {
     const res = await workspaceMembership.addTabs(target, [pt]);
     await announceAdded(res.workspace.name, res.added, res.skipped);
+  }
+}
+
+/** Adds the tab as a task and confirms with a two-second badge tick. Never a notification, never on the page. */
+async function addTaskFromMenu(tab: chrome.tabs.Tab | undefined): Promise<void> {
+  const target = tab ?? (await chrome.tabs.query({ active: true, lastFocusedWindow: true }))[0];
+  if (!target?.url || !isSaveableUrl(target.url)) return;
+  const settings = await settingsRepo.get();
+  const added = await taskEngine.addFromTab(target, settings.activeWorkspaceId);
+  if (!added) return;
+  try {
+    await chrome.action.setBadgeBackgroundColor({ color: '#30D158' });
+    await chrome.action.setBadgeText({ text: '✓' });
+    setTimeout(() => void sessionEngine.refreshBadge(), 2000);
+  } catch {
+    // badge is only a courtesy
   }
 }
 
@@ -133,6 +151,8 @@ export default defineBackground(() => {
         await openManager();
       } else if (id === MENU.OPEN_SIDE_PANEL) {
         await openSidePanel(tab?.windowId);
+      } else if (id === MENU.ADD_TASK) {
+        await addTaskFromMenu(tab);
       } else if (id === MENU.ADD_ACTIVE) {
         await addTabFromMenu(tab, 'active');
       } else if (id === MENU.ADD_NEW) {

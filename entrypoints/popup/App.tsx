@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, LayoutGrid, PanelRight, Search, Settings, Star, Undo2 } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, LayoutGrid, PanelRight, Settings, Star, Undo2 } from 'lucide-react';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
-import { useCommandStore } from '../../src/stores/command-store';
 import { Logo } from '../../src/components/brand/Logo';
 import { DomainTabAccordion } from '../../src/components/popup/DomainTabAccordion';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
@@ -10,6 +9,7 @@ import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
 import { InlineRename } from '../../src/components/feedback/InlineRename';
 import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
 import { FocusQuickStart } from '../../src/components/focus/FocusQuickStart';
+import { TasksCard } from '../../src/components/tasks/TasksCard';
 import { AddToWorkspaceMenu } from '../../src/components/workspace/AddToWorkspaceMenu';
 import { Button, IconButton, Card, CardHeader, FaviconStack, Kbd, Switch, ToastHost, toast } from '../../src/components/ui';
 import { workspaceEngine } from '../../src/core/engines/workspace-engine';
@@ -44,7 +44,6 @@ const ago = (ts: number) => {
 export default function App() {
   const { fetchSessions } = useSessionStore();
   const { settings, fetchSettings, updateSettings } = useSettingsStore();
-  const { openPalette } = useCommandStore();
 
   const [view, setView] = useState<'main' | 'settings'>('main');
   const [tabs, setTabs] = useState<PepperTab[]>([]);
@@ -176,9 +175,6 @@ export default function App() {
     <header className="flex items-center justify-between">
       <Logo showText size={22} />
       <div className="flex items-center gap-1 -mr-2">
-        <IconButton aria-label="Search (⌘K)" title="Search (⌘K)" onClick={openPalette}>
-          <Search className="w-4 h-4" aria-hidden="true" />
-        </IconButton>
         <IconButton aria-label="Open side panel" title="Open side panel" onClick={openSidePanel}>
           <PanelRight className="w-4 h-4" aria-hidden="true" />
         </IconButton>
@@ -350,6 +346,7 @@ export default function App() {
       )}
 
       <FocusQuickStart compact />
+      <TasksCard />
 
       <footer className="flex items-center justify-between gap-2 px-2 pt-1 text-xs text-text-muted">
         <span className="inline-flex items-center gap-1.5 min-w-0">

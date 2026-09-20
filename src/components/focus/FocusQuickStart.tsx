@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Pause, Play, Square, Timer } from 'lucide-react';
 import { useFocusStore } from '../../stores/focus-store';
-import { getFocusTarget } from '../../core/engines/focus-target';
+import { getFocusTarget, getFocusTargetForTask } from '../../core/engines/focus-target';
+import { openTasks } from '../../core/engines/task-engine';
+import { useTasks } from '../tasks/useTasks';
+import { PendingFocusTaskPrompt } from '../tasks/FocusTaskPrompt';
 import { formatClock } from '../../core/engines/focus-timing';
 import { Button, IconButton } from '../ui/Button';
 import { Card } from '../ui/Card';
@@ -21,11 +24,16 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
   const { activeSession, isRunning, isPaused, elapsedSeconds, startFocus, pauseFocus, resumeFocus, completeFocus, cancelFocus } = useFocusStore();
   const [minutes, setMinutes] = useState(25);
   const [starting, setStarting] = useState(false);
+  const [taskId, setTaskId] = useState('');
+  const open = openTasks(useTasks());
 
   const start = async () => {
     setStarting(true);
     try {
-      await startFocus(await getFocusTarget(), 'pomodoro', minutes);
+      const task = open.find((t) => t.id === taskId);
+      if (task) await startFocus(await getFocusTargetForTask(task), 'pomodoro', minutes, { id: task.id, title: task.title });
+      else await startFocus(await getFocusTarget(), 'pomodoro', minutes);
+      setTaskId('');
     } finally {
       setStarting(false);
     }
@@ -51,7 +59,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
           >
             {formatClock(shown)}
           </p>
-          <p className="text-xs opacity-80 truncate mt-1 max-w-full">{activeSession.workspaceName}</p>
+          <p className="text-xs opacity-80 truncate mt-1 max-w-full">{activeSession.taskTitle ? `Task: ${activeSession.taskTitle}` : activeSession.workspaceName}</p>
         </div>
         <div className="flex items-center gap-1 ml-auto">
           {isPaused ? (
@@ -75,6 +83,7 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
   }
 
   return (
+    <>
     <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex flex-wrap items-center gap-x-4 gap-y-3" data-testid="focus-card">
       <ProgressRing className="shrink-0" value={0} size={ringSize} stroke={compact ? 6 : 8}>
         <Timer className="w-5 h-5" aria-hidden="true" />
@@ -99,10 +108,28 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = fa
             </button>
           ))}
         </div>
+        {open.length > 0 && (
+          <select
+            aria-label="Task to focus on"
+            value={taskId}
+            onChange={(e) => setTaskId(e.target.value)}
+            className="block h-8 w-full max-w-[14rem] rounded-input border bg-surface-card px-2 text-xs text-text-primary"
+            style={{ borderColor: 'var(--pp-border-strong)' }}
+          >
+            <option value="">No task</option>
+            {open.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.title}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
       <Button className="ml-auto shrink-0" variant={primary ? 'primary' : 'secondary'} onClick={start} disabled={starting} aria-label={`Start ${minutes}:00 focus`}>
         Start
       </Button>
     </Card>
+    <PendingFocusTaskPrompt />
+    </>
   );
 };

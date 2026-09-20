@@ -4,6 +4,7 @@ import { PepperSession } from '../types/session';
 import { FocusSummarySkill } from '../intelligence/skills/focus-summary';
 import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
+import { FocusTask } from '../types/task';
 
 const focusSummarySkill = new FocusSummarySkill();
 
@@ -14,7 +15,8 @@ export class FocusEngine {
   async startSession(
     memory: PepperSession,
     mode: FocusMode,
-    targetMinutes: number = 25
+    targetMinutes: number = 25,
+    task?: FocusTask
   ): Promise<FocusSession> {
     const targetSeconds = mode === 'stopwatch' ? 0 : targetMinutes * 60;
 
@@ -41,6 +43,8 @@ export class FocusEngine {
       sessionId: memory.id,
       workspaceName: memory.name,
       projectName: memory.projectName || 'General',
+      taskId: task?.id,
+      taskTitle: task?.title,
       mode,
       durationSeconds: targetSeconds,
       elapsedSeconds: 0,

@@ -2,10 +2,12 @@ import type { PepperProjectEntity } from '../../storage/db';
 import type { FocusSession, FocusMode, FocusStatus, UserReflection } from '../types/focus-session';
 import type { BrowserSession, TimelineEvent, TimelineEventType } from '../types/timeline';
 import { PepperSession, PepperTab, CaptureType } from '../types/session';
+import type { PepperTask } from '../types/task';
+import { cleanTaskUrl, normalizeTaskTitle } from './task-engine';
 import { PepperSettings, DEFAULT_SETTINGS } from '../types/settings';
 
 export const BACKUP_FORMAT = 'pepper-backup';
-export const BACKUP_VERSION = 2;
+export const BACKUP_VERSION = 3;
 
 /** Settings that are safe to carry between machines. API keys are never exported. */
 export const PORTABLE_SETTING_KEYS: Array<keyof PepperSettings> = [
@@ -36,6 +38,8 @@ export interface PepperBackup {
   focusSessions: FocusSession[];
   browserSessions: BrowserSession[];
   timelineEvents: TimelineEvent[];
+  /** Added in v3; empty when importing an older backup */
+  tasks: PepperTask[];
 }
 
 export type ValidationResult =
@@ -164,6 +168,8 @@ export function sanitizeFocusSession(raw: unknown): FocusSession | null {
     sessionId: str(f.sessionId),
     workspaceName: str(f.workspaceName),
     projectName: optStr(f.projectName),
+    taskId: optStr(f.taskId),
+    taskTitle: optStr(f.taskTitle),
     mode,
     durationSeconds: Math.max(0, num(f.durationSeconds, 0)),
     elapsedSeconds: Math.max(0, num(f.elapsedSeconds, 0)),
@@ -221,6 +227,27 @@ function sanitizeTimelineEvent(raw: unknown): TimelineEvent | null {
   };
 }
 
+export function sanitizeTask(raw: unknown): PepperTask | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const t = raw as Record<string, unknown>;
+  const id = str(t.id);
+  const title = normalizeTaskTitle(str(t.title));
+  if (!id || !title) return null;
+  const createdAt = num(t.createdAt, Date.now());
+  const done = t.done === true;
+  const workspaceId = str(t.workspaceId);
+  return {
+    id,
+    title,
+    done,
+    workspaceId: workspaceId || undefined,
+    url: cleanTaskUrl(optStr(t.url)),
+    createdAt,
+    updatedAt: num(t.updatedAt, createdAt),
+    doneAt: done ? optNum(t.doneAt) ?? num(t.updatedAt, createdAt) : undefined,
+  };
+}
+
 function sanitizeProject(raw: unknown): PepperProjectEntity | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as Record<string, unknown>;
@@ -246,6 +273,7 @@ export function validateBackup(raw: unknown): ValidationResult {
   let focusRaw: unknown[] = [];
   let browserRaw: unknown[] = [];
   let eventsRaw: unknown[] = [];
+  let tasksRaw: unknown[] = [];
   let exportedAt = Date.now();
 
   if (Array.isArray(raw)) {
@@ -263,6 +291,7 @@ export function validateBackup(raw: unknown): ValidationResult {
     focusRaw = Array.isArray(obj.focusSessions) ? obj.focusSessions : [];
     browserRaw = Array.isArray(obj.browserSessions) ? obj.browserSessions : [];
     eventsRaw = Array.isArray(obj.timelineEvents) ? obj.timelineEvents : [];
+    tasksRaw = Array.isArray(obj.tasks) ? obj.tasks : [];
     exportedAt = num(obj.exportedAt, exportedAt);
   } else {
     return { ok: false, error: 'File is not valid backup JSON.' };
@@ -292,6 +321,7 @@ export function validateBackup(raw: unknown): ValidationResult {
       focusSessions: focusRaw.map(sanitizeFocusSession).filter((f): f is FocusSession => f !== null),
       browserSessions: browserRaw.map(sanitizeBrowserSession).filter((b): b is BrowserSession => b !== null),
       timelineEvents: eventsRaw.map(sanitizeTimelineEvent).filter((e): e is TimelineEvent => e !== null),
+      tasks: tasksRaw.map(sanitizeTask).filter((t): t is PepperTask => t !== null),
     },
   };
 }

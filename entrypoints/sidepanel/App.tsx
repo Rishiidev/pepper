@@ -2,14 +2,14 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExternalLink, History, Plus, RotateCcw, Star, X } from 'lucide-react';
 import { Logo } from '../../src/components/brand/Logo';
 import { FocusQuickStart } from '../../src/components/focus/FocusQuickStart';
+import { TasksCard } from '../../src/components/tasks/TasksCard';
 import { AddToWorkspaceMenu } from '../../src/components/workspace/AddToWorkspaceMenu';
 import { CaptureToast } from '../../src/components/feedback/CaptureToast';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
 import { useTodayTimeline } from '../../src/components/timeline/useTodayTimeline';
-import { Button, IconButton, Card, CardHeader, FaviconStack, Kbd, Sparkline, ToastHost, toast } from '../../src/components/ui';
+import { Button, IconButton, Card, CardHeader, FaviconStack, Sparkline, ToastHost, toast } from '../../src/components/ui';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
-import { useCommandStore } from '../../src/stores/command-store';
 import { workspaceMembership } from '../../src/core/engines/workspace-membership';
 import { workspaceEngine } from '../../src/core/engines/workspace-engine';
 import { restoreEngine } from '../../src/core/engines/restore-engine';
@@ -36,7 +36,6 @@ const clock = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: 'numer
 export default function App() {
   const { sessions, fetchSessions } = useSessionStore();
   const { settings, fetchSettings, updateSettings } = useSettingsStore();
-  const { openPalette } = useCommandStore();
   const { events } = useTodayTimeline();
   const [tabs, setTabs] = useState<PepperTab[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed);
@@ -129,9 +128,6 @@ export default function App() {
       <header className="flex items-center justify-between">
         <Logo showText size={22} />
         <div className="flex items-center gap-1 -mr-2">
-          <IconButton aria-label="Search (⌘K)" onClick={openPalette}>
-            <Kbd className="!border-0">⌘K</Kbd>
-          </IconButton>
           <IconButton aria-label="Open dashboard" onClick={() => openDashboard()}>
             <ExternalLink className="w-4 h-4" aria-hidden="true" />
           </IconButton>
@@ -139,6 +135,7 @@ export default function App() {
       </header>
 
       <FocusQuickStart compact primary />
+      <TasksCard />
 
       {/* Active workspace */}
       <Card as="section" aria-labelledby="sp-active" pad="sm" className="space-y-4">
