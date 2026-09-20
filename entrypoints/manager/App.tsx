@@ -116,7 +116,7 @@ export default function App() {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-30 bg-surface border-b border-border px-4 lg:px-8 h-16 flex items-center gap-3">
+        <header className="sticky top-0 z-30 bg-surface border-b border-border px-4 md:px-6 h-16 flex items-center gap-3">
           <button
             type="button"
             onClick={openPalette}
@@ -134,7 +134,7 @@ export default function App() {
           </Button>
         </header>
 
-        <main id="main" className="flex-1 w-full max-w-[1120px] mx-auto px-4 lg:px-8 py-6 pb-28">
+        <main id="main" className="flex-1 w-full max-w-[1168px] mx-auto px-4 md:px-6 py-6 pb-28">
           {view === 'home' && <HomeView onRestore={setRestoring} onNavigate={setView} onStartDemo={() => setOnboardingOpen(true)} onSave={saveWindow} />}
           {view === 'workspaces' && <WorkspacesView onRestore={setRestoring} onSave={saveWindow} />}
           {view === 'timeline' && <TimelineView />}

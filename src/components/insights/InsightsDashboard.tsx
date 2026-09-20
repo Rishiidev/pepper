@@ -92,16 +92,16 @@ export const InsightsDashboard: React.FC = () => {
       {view === 'overview' && hasData && (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card tone="mint" pad="sm">
+            <Card tone="mint">
               <Stat label="Focused" value={fmt(overview.totalFocusedSeconds)} hint={overview.trendPercentage !== undefined ? `${overview.trendPercentage >= 0 ? '+' : ''}${overview.trendPercentage}% vs the period before` : undefined} />
             </Card>
-            <Card pad="sm">
+            <Card>
               <Stat label="Average session" value={fmt(overview.avgSessionSeconds)} />
             </Card>
-            <Card pad="sm">
+            <Card>
               <Stat label="Longest session" value={fmt(overview.longestSessionSeconds)} />
             </Card>
-            <Card tone="lilac" pad="sm">
+            <Card tone="lilac">
               <Stat label="In blocks of 30m+" value={`${deepShare}%`} hint={`${fmt(overview.deepWorkSeconds)} of focus`} />
             </Card>
           </div>

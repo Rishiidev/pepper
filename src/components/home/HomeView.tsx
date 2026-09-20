@@ -147,27 +147,28 @@ export const HomeView: React.FC<Props> = ({ onRestore, onNavigate, onStartDemo, 
       )}
       <div className="grid grid-cols-12 gap-4">
         {/* Resume: the ink hero */}
-        <Card tone="ink" as="section" aria-labelledby="home-resume" className="col-span-12 lg:col-span-7 lg:row-span-2 flex flex-col justify-between gap-6 min-h-64" data-testid="resume-card">
-          <div className="space-y-2">
-            <p className="eyebrow opacity-75">Continue where you left off</p>
-            <h2 id="home-resume" className="text-[28px] font-bold leading-tight">
-              <InlineRename value={latest.name} label="Workspace name" className="max-w-full" onSave={async (n) => void (await sessionEngine.updateSession(latest.id, { name: n }))} />
-            </h2>
-            <p className="text-sm opacity-80">
-              {latest.tabCount} tab{latest.tabCount !== 1 ? 's' : ''} · {ago(latest.createdAt)}
-              {latest.captureType === 'auto_window_close' ? ' · Auto-saved' : latest.captureType === 'crash_recovery' ? ' · Recovered' : ''}
-            </p>
-          </div>
-          <div className="space-y-4">
-            <ul className="space-y-1" aria-label="Tabs in this workspace">
-              {latest.tabs.slice(0, 4).map((t) => (
+        <Card tone="ink" as="section" aria-labelledby="home-resume" className="col-span-12 lg:col-span-7 lg:row-span-2 flex flex-col justify-between gap-8 min-h-72" data-testid="resume-card">
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <p className="eyebrow opacity-75">Continue where you left off</p>
+              <h2 id="home-resume" className="text-[28px] font-bold leading-tight">
+                <InlineRename value={latest.name} label="Workspace name" className="max-w-full" onSave={async (n) => void (await sessionEngine.updateSession(latest.id, { name: n }))} />
+              </h2>
+              <p className="text-sm opacity-80">
+                {latest.tabCount} tab{latest.tabCount !== 1 ? 's' : ''} · {ago(latest.createdAt)}
+                {latest.captureType === 'auto_window_close' ? ' · Auto-saved' : latest.captureType === 'crash_recovery' ? ' · Recovered' : ''}
+              </p>
+            </div>
+            <ul className="space-y-2 border-t border-white/10 pt-4" aria-label="Tabs in this workspace">
+              {latest.tabs.slice(0, 5).map((t) => (
                 <li key={t.url} className="truncate text-sm opacity-85">
                   {t.title || t.url}
                 </li>
               ))}
-              {latest.tabCount > 4 && <li className="text-sm opacity-70">+ {latest.tabCount - 4} more</li>}
+              {latest.tabCount > 5 && <li className="text-sm opacity-70">+ {latest.tabCount - 5} more</li>}
             </ul>
-            <FaviconStack items={latest.tabs} max={8} size={36} ring="var(--pp-ink-bg)" total={latest.tabCount} />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="primary" onClick={() => onRestore(latest)} data-testid="resume-button">
                 Resume
@@ -177,10 +178,11 @@ export const HomeView: React.FC<Props> = ({ onRestore, onNavigate, onStartDemo, 
                 All workspaces
               </Button>
             </div>
+            <FaviconStack items={latest.tabs} max={5} size={36} ring="var(--pp-ink-bg)" total={latest.tabCount} />
           </div>
         </Card>
 
-        <div className="col-span-12 md:col-span-6 lg:col-span-5">
+        <div className="col-span-12 md:col-span-6 lg:col-span-5 [&>*]:h-full">
           <FocusQuickStart />
         </div>
 
@@ -307,7 +309,7 @@ const Checklist: React.FC<{ steps: Array<{ id: string; label: string; done: bool
         {done} of {steps.length} done
       </h2>
     </div>
-    <ul className="flex flex-wrap gap-2 flex-1">
+    <ul className="flex flex-wrap gap-2 w-full md:w-auto md:flex-1">
       {steps.map((s) => (
         <li key={s.id}>
           <Chip tone={s.done ? 'mint' : 'neutral'} className="!h-8 !px-3">
@@ -318,7 +320,7 @@ const Checklist: React.FC<{ steps: Array<{ id: string; label: string; done: bool
         </li>
       ))}
     </ul>
-    <Button size="sm" variant="ghost" onClick={onDismiss}>
+    <Button size="sm" variant="ghost" onClick={onDismiss} className="ml-auto">
       Hide
     </Button>
   </Card>

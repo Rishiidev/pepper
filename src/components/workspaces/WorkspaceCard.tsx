@@ -85,7 +85,7 @@ export const WorkspaceCard: React.FC<Props> = ({ session, onRestore }) => {
     session.captureType === 'crash_recovery' ? <Chip tone="butter">Recovered</Chip> : session.captureType === 'auto_window_close' ? <Chip>Auto-saved</Chip> : null;
 
   return (
-    <Card as="article" aria-label={session.name} pad="sm" className="flex flex-col gap-3" data-testid="workspace-card">
+    <Card as="article" aria-label={session.name} className="flex flex-col gap-4" data-testid="workspace-card">
       <div className="flex items-start justify-between gap-2">
         <FaviconStack items={session.tabs} max={5} size={28} total={session.tabCount} />
         <Menu

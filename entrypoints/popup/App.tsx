@@ -175,7 +175,7 @@ export default function App() {
   const header = (
     <header className="flex items-center justify-between">
       <Logo showText size={22} />
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 -mr-2">
         <IconButton aria-label="Search (⌘K)" title="Search (⌘K)" onClick={openPalette}>
           <Search className="w-4 h-4" aria-hidden="true" />
         </IconButton>
@@ -194,7 +194,7 @@ export default function App() {
 
   if (view === 'settings') {
     return (
-      <div className="w-[400px] p-4 space-y-3 bg-surface text-text-primary">
+      <div className="w-[400px] p-4 space-y-4 bg-surface text-text-primary">
         <ToastHost />
         <header className="flex items-center gap-2">
           <IconButton aria-label="Back" onClick={() => setView('main')}>
@@ -223,13 +223,13 @@ export default function App() {
   }
 
   return (
-    <div className="w-[400px] p-4 space-y-3 bg-surface text-text-primary">
+    <div className="w-[400px] p-4 space-y-4 bg-surface text-text-primary">
       <CommandPalette />
       <ToastHost />
       {header}
 
       {/* Save this window */}
-      <Card tone="ink" pad="sm" as="section" aria-label="Save this window" className="space-y-3" data-testid="save-card">
+      <Card tone="ink" pad="sm" as="section" aria-label="Save this window" className="space-y-4" data-testid="save-card">
         {saved ? (
           <>
             <CardHeader eyebrow="Saved" title={`${saved.tabCount} tabs are safe`} icon={<Check className="w-4 h-4" />} />
@@ -351,7 +351,7 @@ export default function App() {
 
       <FocusQuickStart compact />
 
-      <footer className="flex items-center justify-between gap-2 px-1 text-xs text-text-muted">
+      <footer className="flex items-center justify-between gap-2 px-2 pt-1 text-xs text-text-muted">
         <span className="inline-flex items-center gap-1.5 min-w-0">
           <Star className={`w-3.5 h-3.5 shrink-0 ${activeName ? 'fill-current' : ''}`} aria-hidden="true" />
           <span className="truncate">{activeName ? `Active: ${activeName}` : 'No active workspace'}</span>

@@ -83,21 +83,45 @@ for (const scheme of ['light', 'dark']) {
   };
   const shot = (p, name) => p.screenshot({ path: path.join(OUT, `${name}-${scheme}.png`), fullPage: true });
 
-  // popup and side panel
-  let p = await open('popup.html', 420, 720); await scan(p, `popup ${scheme}`); await shot(p, 'popup'); await p.close();
-  p = await open('sidepanel.html', 400, 900); await scan(p, `sidepanel ${scheme}`); await shot(p, 'sidepanel'); await p.close();
+  // spacing: padding matches radius, page edge equals card gap, header glyphs align with the card edge
+  const spacing = async (p, label, cardSel) => {
+    const m = await p.evaluate((sel) => {
+      const card = document.querySelector(sel);
+      const cs = getComputedStyle(card);
+      const cr = card.getBoundingClientRect();
+      const hdr = document.querySelector('header');
+      const glyph = [...hdr.querySelectorAll('button svg')].pop()?.getBoundingClientRect();
+      const next = card.nextElementSibling?.getBoundingClientRect();
+      return {
+        pad: parseFloat(cs.paddingLeft), radius: parseFloat(cs.borderTopLeftRadius), left: cr.left, right: window.innerWidth - cr.right,
+        glyphOff: glyph ? Math.abs(glyph.right - cr.right) : null, gap: next ? next.top - cr.bottom : null,
+      };
+    }, cardSel);
+    check(`compact card padding 20 / radius 20: ${label}`, m.pad === 20 && m.radius === 20, JSON.stringify(m));
+    check(`outer padding 16 (not tighter than the card): ${label}`, m.left >= 16 && m.right >= 16, JSON.stringify(m));
+    check(`header glyphs align with the card edge: ${label}`, m.glyphOff !== null && m.glyphOff <= 1.5, `off by ${m.glyphOff}px`);
+    check(`gap between cards is 16: ${label}`, m.gap === 16, `gap ${m.gap}`);
+  };
+
+  // popup and side panel (both 400px wide)
+  let p = await open('popup.html', 400, 720); await scan(p, `popup ${scheme}`); await spacing(p, `popup ${scheme}`, '[data-testid=save-card]'); await shot(p, 'popup'); await p.close();
+  p = await open('sidepanel.html', 400, 900); await scan(p, `sidepanel ${scheme}`); await spacing(p, `sidepanel ${scheme}`, 'main > section'); await shot(p, 'sidepanel'); await p.close();
 
   // design page
   p = await open('manager.html?view=design', 1280, 900); await scan(p, `design page ${scheme}`, { design: true }); await p.close();
 
   // dashboard at three widths
-  for (const w of [1280, 768, 390]) {
+  for (const w of [1280, 768, 400]) {
     for (const view of ['home', 'workspaces', 'timeline', 'focus', 'settings']) {
       p = await open(`manager.html?view=${view}`, w, 900);
       await scan(p, `${view} @${w} ${scheme}`);
       const overflow = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       check(`no horizontal scroll: ${view} @${w} ${scheme}`, overflow <= 1, `overflow ${overflow}px`);
-      if (w === 1280 || w === 390) await shot(p, `${view}-${w}`);
+      if (view === 'home' || view === 'workspaces') {
+        const dash = await p.evaluate(() => { const c = [...document.querySelectorAll('main .rounded-card')].find((e) => e.offsetParent); if (!c) return null; const cs = getComputedStyle(c); return { pad: parseFloat(cs.paddingLeft), radius: parseFloat(cs.borderTopLeftRadius) }; });
+        check(`dashboard card padding 24 / radius 24: ${view} @${w} ${scheme}`, !dash || (dash.pad === 24 && dash.radius === 24), JSON.stringify(dash));
+      }
+      await shot(p, `${view}-${w}`);
       if (view === 'timeline' && w === 1280) {
         for (const sub of ['History', 'Insights']) {
           await p.getByRole('radio', { name: sub }).click();

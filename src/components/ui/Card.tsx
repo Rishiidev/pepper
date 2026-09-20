@@ -29,10 +29,12 @@ interface CardProps extends React.HTMLAttributes<HTMLElement> {
 export const Card: React.FC<CardProps> = ({ tone = 'paper', pad = 'md', as: Tag = 'div', className, ...rest }) => (
   <Tag
     className={cn(
-      'rounded-card border animate-slide-up',
+      'border animate-slide-up',
+      // Dashboard cards: 24px padding inside a 24px radius. Compact surfaces (popup, side panel): 20 and 20.
+      pad === 'sm' ? 'rounded-[20px]' : 'rounded-card',
       TONES[tone],
-      pad === 'md' && 'p-5',
-      pad === 'sm' && 'p-4',
+      pad === 'md' && 'p-6',
+      pad === 'sm' && 'p-5',
       className
     )}
     {...rest}

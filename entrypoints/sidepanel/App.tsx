@@ -121,14 +121,14 @@ export default function App() {
   const openDashboard = (query = '') => chrome.tabs.create({ url: chrome.runtime.getURL(`manager.html${query}`) });
 
   return (
-    <main className="min-h-screen p-3 space-y-3 text-sm">
+    <main className="min-h-screen p-4 space-y-4 text-sm">
       <CommandPalette />
       <CaptureToast />
       <ToastHost />
 
-      <header className="flex items-center justify-between px-1">
+      <header className="flex items-center justify-between">
         <Logo showText size={22} />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 -mr-2">
           <IconButton aria-label="Search (⌘K)" onClick={openPalette}>
             <Kbd className="!border-0">⌘K</Kbd>
           </IconButton>
@@ -141,7 +141,7 @@ export default function App() {
       <FocusQuickStart primary />
 
       {/* Active workspace */}
-      <Card as="section" aria-labelledby="sp-active" pad="sm" className="space-y-3">
+      <Card as="section" aria-labelledby="sp-active" pad="sm" className="space-y-4">
         <CardHeader eyebrow="Active workspace" titleId="sp-active" title={active ? active.name : 'None yet'} icon={<Star className={`w-4 h-4 ${active ? 'fill-current' : ''}`} />} />
         {active ? (
           <div className="space-y-2">
@@ -175,7 +175,7 @@ export default function App() {
 
       {/* Suggestions */}
       {suggestions.map((s) => (
-        <Card key={s.key} tone="butter" as="section" aria-label="Suggestion" pad="sm" className="space-y-3">
+        <Card key={s.key} tone="butter" as="section" aria-label="Suggestion" pad="sm" className="space-y-4">
           <CardHeader
             eyebrow="Suggestion"
             title={s.kind === 'add' ? `Add ${s.tabs.length} open tabs to “${s.workspaceName}”?` : `Group ${s.tabs.length} tabs about ${s.topic}?`}
@@ -193,7 +193,7 @@ export default function App() {
       ))}
 
       {/* Open tabs */}
-      <Card as="section" aria-labelledby="sp-tabs" pad="sm" className="space-y-2">
+      <Card as="section" aria-labelledby="sp-tabs" pad="sm" className="space-y-3">
         <CardHeader eyebrow="This window" titleId="sp-tabs" title={`Open tabs (${tabs.length})`} />
         <ul className="-mx-1">
           {tabs.map((t) => (
@@ -209,7 +209,7 @@ export default function App() {
       </Card>
 
       {/* Today */}
-      <Card tone="lilac" as="section" aria-labelledby="sp-timeline" pad="sm" className="space-y-3">
+      <Card tone="lilac" as="section" aria-labelledby="sp-timeline" pad="sm" className="space-y-4">
         <CardHeader
           eyebrow="Today"
           titleId="sp-timeline"
