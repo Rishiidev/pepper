@@ -1,296 +1,158 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Pause, Play, Timer } from 'lucide-react';
 import { useFocusStore } from '../../stores/focus-store';
 import { useSessionStore } from '../../stores/session-store';
-import { FocusMode } from '../../core/types/focus-session';
-import { PepperSession } from '../../core/types/session';
-import { Logo } from '../brand/Logo';
-import { Play, Pause, Square, CheckCircle2, Timer, Clock, StopCircle, Layers, Sparkles } from 'lucide-react';
+import { FocusMode, FocusSession } from '../../core/types/focus-session';
+import { INBOX_SESSION_ID } from '../../core/constants/ids';
+import { focusEngine } from '../../core/engines/focus-engine';
+import { openFocusTarget, OPEN_FOCUS_ID } from '../../core/engines/focus-target';
+import { formatClock } from '../../core/engines/focus-timing';
+import { formatDurationCompact } from '../../core/engines/timeline-replay';
+import { Button, Card, CardHeader, Chip, Field, ProgressRing, Segmented, Stat } from '../ui';
+
+const MODES: Array<{ value: FocusMode; label: string }> = [
+  { value: 'pomodoro', label: 'Pomodoro' },
+  { value: 'timer', label: 'Countdown' },
+  { value: 'stopwatch', label: 'Stopwatch' },
+];
+const MINUTES = ['15', '25', '30', '45', '60', '90'];
+
+const selectClass = 'h-10 w-full rounded-input border bg-surface-card px-3 text-sm text-text-primary';
 
 export const FocusView: React.FC = () => {
   const { sessions } = useSessionStore();
-  const {
-    activeSession,
-    activeMemory,
-    isRunning,
-    isPaused,
-    elapsedSeconds,
-    startFocus,
-    pauseFocus,
-    resumeFocus,
-    completeFocus,
-    cancelFocus,
-  } = useFocusStore();
+  const { activeSession, activeMemory, isRunning, isPaused, elapsedSeconds, startFocus, pauseFocus, resumeFocus, completeFocus, cancelFocus } = useFocusStore();
+  const [mode, setMode] = useState<FocusMode>('pomodoro');
+  const [minutes, setMinutes] = useState('25');
+  const [targetId, setTargetId] = useState<string>(OPEN_FOCUS_ID);
+  const [history, setHistory] = useState<FocusSession[]>([]);
 
-  const [selectedMode, setSelectedMode] = useState<FocusMode>('pomodoro');
-  const [selectedMinutes, setSelectedMinutes] = useState<number>(25);
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(sessions[0]?.id || '');
+  const real = useMemo(() => sessions.filter((s) => s.id !== INBOX_SESSION_ID), [sessions]);
+  useEffect(() => {
+    void focusEngine.getAllSessions().then((all) => setHistory(all.filter((f) => f.status === 'completed').slice(0, 8)));
+  }, [isRunning]);
 
-  const targetMemory = sessions.find((s) => s.id === selectedSessionId) || sessions[0];
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const todaySeconds = history.filter((f) => f.startedAt >= todayStart).reduce((a, f) => a + f.elapsedSeconds, 0);
 
-  const handleStart = () => {
-    if (!targetMemory) return;
-    startFocus(targetMemory, selectedMode, selectedMinutes);
+  const start = () => {
+    const target = real.find((s) => s.id === targetId) ?? openFocusTarget();
+    void startFocus(target, mode, Number(minutes));
   };
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // If a session is active
   if (isRunning && activeSession && activeMemory) {
-    const targetSecs = activeSession.durationSeconds || 1;
-    const remainingSecs = Math.max(0, targetSecs - elapsedSeconds);
-    const displaySecs = activeSession.mode === 'stopwatch' ? elapsedSeconds : remainingSecs;
-    const progressPercent = activeSession.mode === 'stopwatch'
-      ? 100
-      : Math.min(100, Math.round((elapsedSeconds / targetSecs) * 100));
-
+    const countdown = activeSession.mode !== 'stopwatch' && activeSession.durationSeconds > 0;
+    const shown = countdown ? Math.max(0, activeSession.durationSeconds - elapsedSeconds) : elapsedSeconds;
+    const progress = countdown ? elapsedSeconds / activeSession.durationSeconds : 0;
     return (
-      <div className="space-y-8 max-w-3xl mx-auto py-6 animate-slide-up text-center select-none">
-        {/* Active Focus Header */}
-        <div className="space-y-2">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-3 py-1 rounded-full bg-pepper-500/10 border border-pepper-500/20 inline-flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Active Focus Engine &bull; {activeSession.mode.toUpperCase()}</span>
-          </span>
-          <h2 className="text-2xl font-extrabold text-text-primary tracking-tight">
-            {activeMemory.name}
-          </h2>
-          <p className="text-xs text-text-secondary font-medium">
-            Project: <span className="text-pepper-400 font-bold">{activeMemory.projectName || 'General'}</span> &bull; {activeMemory.tabCount} Tabs Attached
-          </p>
-        </div>
-
-        {/* Glowing Circular Timer Component */}
-        <div className="relative w-72 h-72 mx-auto flex items-center justify-center">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle
-              cx="50"
-              cy="50"
-              r="44"
-              className="text-surface-card stroke-current"
-              strokeWidth="6"
-              fill="transparent"
-            />
-            <circle
-              cx="50"
-              cy="50"
-              r="44"
-              className="text-pepper-500 stroke-current transition-all duration-1000 ease-linear"
-              strokeWidth="6"
-              strokeDasharray={276}
-              strokeDashoffset={276 - (276 * progressPercent) / 100}
-              strokeLinecap="round"
-              fill="transparent"
-            />
-          </svg>
-
-          {/* Center Display */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1">
-            <Logo size={36} state={isPaused ? 'normal' : 'saving'} />
-            <div className="text-4xl font-extrabold font-mono text-text-primary tracking-tight pt-2">
-              {formatTime(displaySecs)}
-            </div>
-            <span className="text-xs font-bold text-text-muted uppercase tracking-widest">
-              {isPaused ? 'PAUSED' : activeSession.mode === 'stopwatch' ? 'ELAPSED WORK' : 'REMAINING'}
-            </span>
+      <section aria-labelledby="focus-title" className="space-y-5">
+        <h1 id="focus-title" className="text-[28px] font-bold leading-tight">
+          Focus
+        </h1>
+        <Card tone="mint" className="max-w-xl mx-auto text-center space-y-6 py-8">
+          <p className="eyebrow opacity-75">{isPaused ? 'Paused' : 'Focusing'} · {activeSession.mode}</p>
+          <div className="flex justify-center">
+            <ProgressRing value={progress} size={240} stroke={12} label="Focus progress">
+              <div>
+                <p role="timer" aria-label={`${countdown ? 'time left' : 'elapsed'} ${formatClock(shown)}`} className="display-number !text-[56px]">
+                  {formatClock(shown)}
+                </p>
+                <p className="text-sm opacity-80 mt-2">{countdown ? 'left' : 'elapsed'}</p>
+              </div>
+            </ProgressRing>
           </div>
-        </div>
-
-        {/* Pomodoro Round Indicator */}
-        {activeSession.mode === 'pomodoro' && (
-          <div className="flex items-center justify-center gap-2 text-xs font-mono text-text-muted">
-            <span>
-              Round {activeSession.pomodoroRound || 1} of {activeSession.totalRounds || 4}
-            </span>
-            <div className="flex gap-1.5">
-              {Array.from({ length: activeSession.totalRounds || 4 }, (_, i) => i + 1).map((r) => {
-                const currentRound = activeSession.pomodoroRound || 1;
-                return (
-                  <div
-                    key={r}
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      r === currentRound
-                        ? 'bg-pepper-500 '
-                        : r < currentRound
-                        ? 'bg-emerald-500'
-                        : 'bg-border'
-                    }`}
-                  />
-                );
-              })}
-            </div>
+          <div>
+            <h2 className="text-xl font-bold">{activeMemory.name}</h2>
+            {activeMemory.id !== OPEN_FOCUS_ID && (
+              <p className="text-sm opacity-80">{activeMemory.tabCount} tabs · {activeMemory.projectName || 'General'}</p>
+            )}
           </div>
-        )}
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-4 pt-2">
-          {isPaused ? (
-            <button
-              onClick={resumeFocus}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-pepper-500 hover:bg-pepper-600 font-bold text-xs text-white transition-all shadow-xl active:scale-[0.98]"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Resume Focus</span>
-            </button>
-          ) : (
-            <button
-              onClick={pauseFocus}
-              className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-surface border border-border hover:bg-surface-hover font-bold text-xs text-text-primary transition-all active:scale-[0.98]"
-            >
-              <Pause className="w-4 h-4" />
-              <span>Pause Timer</span>
-            </button>
-          )}
-
-          <button
-            onClick={() => completeFocus()}
-            className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 font-bold text-xs text-white transition-all shadow-xl active:scale-[0.98]"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Complete Session</span>
-          </button>
-
-          <button
-            onClick={cancelFocus}
-            className="p-3 rounded-2xl border border-border hover:bg-surface-hover text-text-muted hover:text-pepper-400 transition-colors"
-            title="Cancel Session"
-              aria-label="Cancel Session">
-            <Square className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {isPaused ? (
+              <Button onClick={resumeFocus}>
+                <Play className="w-4 h-4" aria-hidden="true" />
+                Resume
+              </Button>
+            ) : (
+              <Button onClick={pauseFocus}>
+                <Pause className="w-4 h-4" aria-hidden="true" />
+                Pause
+              </Button>
+            )}
+            <Button onClick={() => completeFocus()}>
+              <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+              Finish
+            </Button>
+            <Button variant="ghost" onClick={cancelFocus}>
+              Cancel
+            </Button>
+          </div>
+        </Card>
+      </section>
     );
   }
 
-  // Pre-Focus Selector Screen
   return (
-    <div className="space-y-8 max-w-3xl mx-auto py-4 animate-slide-up select-none">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-border/80">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
-            <Timer className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="font-bold text-lg text-text-primary tracking-tight">Focus System</h2>
-            <p className="text-xs text-text-muted">
-              Connect Pomodoro, countdown timers, and stopwatches directly to your Workspaces
-            </p>
-          </div>
-        </div>
-      </div>
+    <section aria-labelledby="focus-title" className="space-y-5">
+      <h1 id="focus-title" className="text-[28px] font-bold leading-tight">
+        Focus
+      </h1>
 
-      {sessions.length === 0 ? (
-        <div className="text-center py-16 border border-dashed border-border rounded-2xl bg-surface-card/30 text-text-muted text-xs">
-          No workspace memories captured yet. Save a workspace first to start focus sessions.
-        </div>
-      ) : (
-        <div className="bg-surface-card border border-border/80 rounded-3xl p-6 space-y-6 shadow-xl">
-          {/* Step 1: Select Target Workspace */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-              <Layers className="w-3.5 h-3.5 text-pepper-500" />
-              <span>Target Workspace Memory</span>
-            </label>
-            <select
-              value={selectedSessionId}
-              onChange={(e) => setSelectedSessionId(e.target.value)}
-              className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-xs font-semibold text-text-primary focus:outline-none focus:border-pepper-500"
-            >
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.tabCount} tabs &bull; {s.projectName || 'General'})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Step 2: Select Focus Mode */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-              <Clock className="w-3.5 h-3.5 text-pepper-500" />
-              <span>Choose Focus Mode</span>
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => { setSelectedMode('pomodoro'); setSelectedMinutes(25); }}
-                className={`p-4 rounded-2xl border text-left space-y-1 transition-all ${
-                  selectedMode === 'pomodoro'
-                    ? 'bg-pepper-500/10 border-pepper-500 text-pepper-400'
-                    : 'bg-surface border-border/60 text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <div className="font-bold text-sm flex items-center gap-1.5">
-                  <span>🍅 Pomodoro</span>
-                </div>
-                <p className="text-xs text-text-muted">25m work / 5m break interval rounds</p>
-              </button>
-
-              <button
-                onClick={() => { setSelectedMode('timer'); setSelectedMinutes(45); }}
-                className={`p-4 rounded-2xl border text-left space-y-1 transition-all ${
-                  selectedMode === 'timer'
-                    ? 'bg-pepper-500/10 border-pepper-500 text-pepper-400'
-                    : 'bg-surface border-border/60 text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <div className="font-bold text-sm flex items-center gap-1.5">
-                  <span>⏱️ Countdown Timer</span>
-                </div>
-                <p className="text-xs text-text-muted">Set specific target duration countdown</p>
-              </button>
-
-              <button
-                onClick={() => { setSelectedMode('stopwatch'); setSelectedMinutes(0); }}
-                className={`p-4 rounded-2xl border text-left space-y-1 transition-all ${
-                  selectedMode === 'stopwatch'
-                    ? 'bg-pepper-500/10 border-pepper-500 text-pepper-400'
-                    : 'bg-surface border-border/60 text-text-secondary hover:text-text-primary'
-                }`}
-              >
-                <div className="font-bold text-sm flex items-center gap-1.5">
-                  <span>⏲️ Stopwatch</span>
-                </div>
-                <p className="text-xs text-text-muted">Open-ended count-up work session</p>
-              </button>
-            </div>
-          </div>
-
-          {/* Step 3: Duration Preset Picker (If Countdown or Pomodoro) */}
-          {selectedMode !== 'stopwatch' && (
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-text-muted block">Duration</label>
-              <div className="flex gap-2">
-                {[15, 25, 30, 45, 60, 90].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setSelectedMinutes(m)}
-                    className={`flex-1 py-2.5 rounded-xl border text-xs font-bold font-mono transition-all ${
-                      selectedMinutes === m
-                        ? 'bg-pepper-500 text-white border-pepper-500'
-                        : 'bg-surface border-border/60 text-text-secondary hover:text-text-primary'
-                    }`}
-                  >
-                    {m}m
-                  </button>
+      <div className="grid grid-cols-12 gap-4">
+        <Card tone="mint" className="col-span-12 lg:col-span-7 space-y-5">
+          <CardHeader eyebrow="New session" title="What are you working on?" icon={<Timer className="w-4 h-4" />} />
+          <Field label="Attach to">
+            {(p) => (
+              <select {...p} value={targetId} onChange={(e) => setTargetId(e.target.value)} className={selectClass} style={{ borderColor: 'var(--pp-border-strong)', color: 'var(--pp-text)' }}>
+                <option value={OPEN_FOCUS_ID}>Nothing in particular</option>
+                {real.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.tabCount} tabs)
+                  </option>
                 ))}
-              </div>
+              </select>
+            )}
+          </Field>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">Mode</p>
+            <Segmented<FocusMode> label="Focus mode" value={mode} onChange={setMode} options={MODES} />
+          </div>
+          {mode !== 'stopwatch' && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Minutes</p>
+              <Segmented label="Minutes" value={minutes} onChange={setMinutes} options={MINUTES.map((m) => ({ value: m, label: m }))} />
             </div>
           )}
+          <Button variant="primary" onClick={start}>
+            Start focus
+          </Button>
+        </Card>
 
-          {/* Start Focus CTA */}
-          <button
-            onClick={handleStart}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-pepper-500 hover:bg-pepper-600 text-white font-extrabold text-sm transition-all shadow-xl active:scale-[0.98]"
-          >
-            <Play className="w-4 h-4 fill-white" />
-            <span>Start Focus Session ({targetMemory?.name || 'Workspace'})</span>
-          </button>
-        </div>
-      )}
-    </div>
+        <Card className="col-span-12 lg:col-span-5 space-y-4">
+          <CardHeader eyebrow="Today" title="Focus time" />
+          <Stat label="Focused" value={formatDurationCompact(todaySeconds * 1000)} hint={`${history.filter((f) => f.startedAt >= todayStart).length} sessions`} />
+        </Card>
+      </div>
+
+      <Card className="space-y-3">
+        <CardHeader eyebrow="History" title="Recent sessions" />
+        {history.length === 0 ? (
+          <p className="text-sm text-text-muted">Finished sessions show up here, attached to the workspace you worked on.</p>
+        ) : (
+          <ul className="divide-y divide-border">
+            {history.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{f.workspaceName}</p>
+                  <p className="text-xs text-text-muted">{new Date(f.startedAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })}</p>
+                </div>
+                {f.userReflection && <Chip>{f.userReflection}</Chip>}
+                <span className="font-mono text-sm">{formatDurationCompact(f.elapsedSeconds * 1000)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+    </section>
   );
 };

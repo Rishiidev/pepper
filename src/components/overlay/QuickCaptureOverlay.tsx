@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PepperTab } from '../../core/types/session';
 import { localNamingEngine } from '../../core/engines/local-naming-engine';
-import { Sparkles, Layers, CheckCircle2, AlertCircle, X, Cpu, RotateCcw, ArrowRight, FolderKanban, Tag } from 'lucide-react';
 
 export interface QuickCaptureTabMeta {
   tabs: PepperTab[];
   domainCount: number;
-  estimatedRamSavedMb: number;
+  estimatedRamSavedMb?: number;
   projects: string[];
 }
 
@@ -23,7 +22,6 @@ export const QuickCaptureOverlay: React.FC<Props> = ({ meta, onSave, onClose }) 
   const [selectedProject, setSelectedProject] = useState(meta.projects[0] || 'General');
   const [tags, setTags] = useState<string[]>(localGen.tags);
   const [saveMode, setSaveMode] = useState<'save_and_close' | 'save_only'>('save_and_close');
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -105,229 +103,88 @@ export const QuickCaptureOverlay: React.FC<Props> = ({ meta, onSave, onClose }) 
     }
   };
 
+  const saving = status === 'saving';
+
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2147483647,
-        backgroundColor: 'rgba(9, 9, 11, 0.65)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        userSelect: 'none',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          position: 'fixed',
-          left: '50%',
-          top: '42%',
-          transform: 'translate(-50%, -50%)',
-          width: '580px',
-          maxWidth: '92vw',
-          maxHeight: '80vh',
-          backgroundColor: '#121316',
-          border: '1px solid rgba(249, 115, 22, 0.3)',
-          borderRadius: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px rgba(249, 115, 22, 0.15)',
-          color: '#f4f4f5',
-          overflow: 'hidden',
-          animation: 'pepperSlideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Style Tag for internal animation */}
-        <style>{`
-          @keyframes pepperSlideUp {
-            from { opacity: 0; transform: translate(-50%, -46%) scale(0.97); }
-            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-          }
-        `}</style>
-
-        {/* Header Bar */}
-        <div style={{ padding: '20px 24px 16px 24px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '8px', backgroundColor: 'rgba(249, 115, 22, 0.15)', border: '1px solid rgba(249, 115, 22, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#f97316', fontWeight: 800, fontSize: '13px' }}>
-              P
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#f97316' }}>
-                PEPPER &bull; Quick Capture
-              </div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#f4f4f5' }}>
-                Current Browser Workspace
-              </div>
-            </div>
+    <div className="pp-scrim" onClick={onClose} role="presentation">
+      <style>{CSS}</style>
+      <div className="pp-panel" role="dialog" aria-modal="true" aria-label="Save this window to Pepper" onClick={(e) => e.stopPropagation()}>
+        {status === 'success' ? (
+          <div className="pp-done" role="status">
+            <div className="pp-check" aria-hidden="true">✓</div>
+            <div className="pp-title">Saved {meta.tabs.length} tab{meta.tabs.length !== 1 ? 's' : ''}</div>
+            <div className="pp-muted">“{title}” is in your workspaces.</div>
           </div>
+        ) : (
+          <>
+            <div className="pp-eyebrow">This window · {meta.tabs.length} tab{meta.tabs.length !== 1 ? 's' : ''} · {meta.domainCount} site{meta.domainCount !== 1 ? 's' : ''}</div>
+            <label className="pp-label" htmlFor="pp-name">Workspace name</label>
+            <input id="pp-name" ref={titleInputRef} className="pp-input" type="text" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} placeholder="Name this workspace" />
 
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', padding: '4px', borderRadius: '6px' }}
-          >
-            <X style={{ width: '18px', height: '18px' }} />
-          </button>
-        </div>
-
-        {/* Body Section */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {status === 'success' ? (
-            <div style={{ padding: '28px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-              <CheckCircle2 style={{ width: '42px', height: '42px', color: '#10b981' }} />
-              <div style={{ fontSize: '16px', fontWeight: 800, color: '#f4f4f5' }}>Workspace Saved to Pepper</div>
-              <div style={{ fontSize: '12px', color: '#a1a1aa' }}>
-                "{title}" &bull; {meta.tabs.length} tabs captured ({meta.estimatedRamSavedMb} MB recovered)
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Workspace Title Input */}
-              <div>
-                <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a1a1aa', marginBottom: '6px' }}>
-                  Workspace Name
-                </label>
-                <input
-                  ref={titleInputRef}
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter workspace name..."
-                  style={{
-                    width: '100%',
-                    backgroundColor: '#18181b',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                    borderRadius: '12px',
-                    padding: '12px 14px',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: '#f4f4f5',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-
-              {/* Stats Bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#18181b', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)', fontSize: '12px', color: '#a1a1aa' }}>
-                <span style={{ fontWeight: 700, color: '#f4f4f5' }}>{meta.tabs.length} Tabs</span>
-                <span>&bull;</span>
-                <span>{meta.domainCount} Domains</span>
-                <span>&bull;</span>
-                <span style={{ color: '#f97316', fontWeight: 700 }}>~{meta.estimatedRamSavedMb} MB RAM Recoverable</span>
-              </div>
-
-              {/* Project & Tags Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a1a1aa', marginBottom: '6px' }}>
-                    Project
-                  </label>
-                  <select
-                    value={selectedProject}
-                    onChange={(e) => setSelectedProject(e.target.value)}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#18181b',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '10px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#f4f4f5',
-                      outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="General">General</option>
-                    {meta.projects.filter((p) => p !== 'General').map((p) => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a1a1aa', marginBottom: '6px' }}>
-                    Save Action Mode
-                  </label>
-                  <select
-                    value={saveMode}
-                    onChange={(e) => setSaveMode(e.target.value as any)}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#18181b',
-                      border: '1px solid rgba(255, 255, 255, 0.12)',
-                      borderRadius: '10px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      color: '#f4f4f5',
-                      outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="save_and_close">Save &amp; Close Tabs</option>
-                    <option value="save_only">Save Workspace Only</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Tag Badges */}
-              {tags.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: '#71717a' }}>Tags:</span>
-                  {tags.map((t) => (
-                    <span key={t} style={{ fontSize: '11px', fontWeight: 700, backgroundColor: 'rgba(249, 115, 22, 0.12)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.25)', padding: '2px 8px', borderRadius: '6px' }}>
-                      #{t}
-                    </span>
+            <div className="pp-row">
+              <label className="pp-field">
+                <span className="pp-label">Project</span>
+                <select className="pp-input" value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)}>
+                  <option value="General">General</option>
+                  {meta.projects.filter((p) => p !== 'General').map((p) => (
+                    <option key={p} value={p}>{p}</option>
                   ))}
-                </div>
-              )}
-
-              {/* Error Notification */}
-              {errorMessage && (
-                <div style={{ padding: '10px 14px', backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '10px', color: '#f87171', fontSize: '12px', fontWeight: 600 }}>
-                  {errorMessage}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Footer Actions & Shortcut Hints */}
-        {status !== 'success' && (
-          <div style={{ padding: '14px 24px', backgroundColor: '#18181b', borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '11px', color: '#a1a1aa' }}>
-              <span><kbd style={{ padding: '2px 5px', borderRadius: '4px', backgroundColor: '#27272a', border: '1px solid #3f3f46', fontSize: '10px', fontFamily: 'monospace', color: '#f4f4f5' }}>Enter</kbd> Save</span>
-              <span><kbd style={{ padding: '2px 5px', borderRadius: '4px', backgroundColor: '#27272a', border: '1px solid #3f3f46', fontSize: '10px', fontFamily: 'monospace', color: '#f4f4f5' }}>⌘+Enter</kbd> Save &amp; Close</span>
-              <span><kbd style={{ padding: '2px 5px', borderRadius: '4px', backgroundColor: '#27272a', border: '1px solid #3f3f46', fontSize: '10px', fontFamily: 'monospace', color: '#f4f4f5' }}>Esc</kbd> Close</span>
+                </select>
+              </label>
+              <label className="pp-field">
+                <span className="pp-label">After saving</span>
+                <select className="pp-input" value={saveMode} onChange={(e) => setSaveMode(e.target.value as 'save_and_close' | 'save_only')}>
+                  <option value="save_and_close">Close the tabs</option>
+                  <option value="save_only">Keep the tabs open</option>
+                </select>
+              </label>
             </div>
 
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
-                onClick={() => handleExecuteSave(saveMode === 'save_and_close')}
-                disabled={status === 'saving'}
-                style={{
-                  backgroundColor: '#f97316',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '10px',
-                  padding: '8px 18px',
-                  fontSize: '12px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)',
-                }}
-              >
-                {status === 'saving' ? 'Saving...' : saveMode === 'save_and_close' ? 'Save & Close' : 'Save Workspace'}
+            {errorMessage && <div className="pp-error" role="alert">{errorMessage}</div>}
+
+            <div className="pp-actions">
+              <span className="pp-muted">Enter saves · Esc closes</span>
+              <button className="pp-btn pp-btn-ghost" type="button" onClick={onClose}>Cancel</button>
+              <button className="pp-btn pp-btn-primary" type="button" disabled={saving} onClick={() => handleExecuteSave(saveMode === 'save_and_close')}>
+                {saving ? 'Saving…' : 'Save window'}
               </button>
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
   );
 };
+
+/** The overlay lives in a shadow root on any web page, so it carries its own tokens and follows the OS theme. */
+const CSS = `
+  :host, .pp-scrim { all: initial; }
+  .pp-scrim {
+    --card: #FFFFFF; --text: #111412; --text2: #4A514B; --muted: #666D67; --border: #C9CFC5; --field: #F5F7F2; --red: #D8322B;
+    position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: flex-start; justify-content: center; padding-top: 14vh;
+    background: rgba(14, 16, 15, 0.5); font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--text);
+  }
+  @media (prefers-color-scheme: dark) {
+    .pp-scrim { --card: #171A18; --text: #F2F4F0; --text2: #B4BBB4; --muted: #8D958E; --border: #363D38; --field: #1E221F; }
+  }
+  .pp-panel { box-sizing: border-box; width: 460px; max-width: 92vw; background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 20px; box-shadow: 0 24px 60px -20px rgba(0,0,0,.45); animation: pp-in 160ms ease-out; }
+  .pp-panel * { box-sizing: border-box; font-family: inherit; }
+  .pp-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+  .pp-label { display: block; font-size: 12px; font-weight: 700; color: var(--text2); margin: 0 0 6px; }
+  .pp-input { display: block; width: 100%; height: 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--field); color: var(--text); padding: 0 12px; font-size: 14px; font-weight: 600; }
+  .pp-input:focus-visible, .pp-btn:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+  .pp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  .pp-field { display: block; }
+  .pp-actions { display: flex; align-items: center; gap: 8px; margin-top: 18px; }
+  .pp-muted { font-size: 12px; color: var(--muted); margin-right: auto; }
+  .pp-btn { height: 40px; border-radius: 999px; border: 1px solid transparent; padding: 0 20px; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .pp-btn:disabled { opacity: .6; cursor: default; }
+  .pp-btn-primary { background: var(--red); color: #fff; }
+  .pp-btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .pp-error { margin-top: 12px; font-size: 13px; font-weight: 600; color: var(--red); }
+  .pp-done { text-align: center; padding: 18px 8px; }
+  .pp-check { width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 50%; background: #A9F5A4; color: #0E1A10; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; }
+  .pp-title { font-size: 18px; font-weight: 700; }
+  @keyframes pp-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .pp-panel { animation: none; } }
+`;

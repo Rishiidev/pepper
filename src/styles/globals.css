@@ -37,7 +37,7 @@
   --pp-border-strong: #C9CFC5;
   --pp-text: #111412;
   --pp-text-2: #4A514B;
-  --pp-text-muted: #666D67;
+  --pp-text-muted: #5B625C;
   --pp-red: #D8322B;
   --pp-red-hover: #C22A24;
   --pp-red-text: #C42B25;
@@ -150,10 +150,8 @@
   * {
     border-color: var(--pp-border);
   }
-  html {
-    font-size: 14px;
-  }
   body {
+    font-size: 14px;
     background-color: var(--pp-canvas);
     color: var(--pp-text);
     font-family: var(--font-sans);

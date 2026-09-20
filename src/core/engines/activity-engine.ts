@@ -493,7 +493,7 @@ export class ActivityEngine {
         : 'Work activity is transitioning from setup into active task execution.',
       evidence: accomplishments[0] ? `Recent accomplishment: "${accomplishments[0]}"` : 'Session intent logs analyzed.',
       confidence,
-      suggestedAction: 'Keep workspace context saved to preserve momentum.',
+      suggestedAction: 'Keep your workspace saved so you can pick it back up.',
     });
 
     // 4. Recommendation & Next Action
@@ -502,10 +502,10 @@ export class ActivityEngine {
       id: 'ai_rec_1',
       type: 'Recommendation',
       title: 'Context Resumption Strategy',
-      insight: 'Resuming saved browser workspaces preserves up to 85% more momentum than starting new tabs.',
-      evidence: `${workspaces.length} saved workspaces available for instant reconstruction.`,
+      insight: 'Restoring a saved workspace is faster than rebuilding it from memory.',
+      evidence: `${workspaces.length} saved workspaces are ready to restore.`,
       confidence: 'High',
-      suggestedAction: 'Click Reconstruct Memory on your active project workspace.',
+      suggestedAction: 'Restore the workspace you were last working in.',
       targetWorkspaceId: targetSession?.sessionId,
     });
 
@@ -567,7 +567,7 @@ export class ActivityEngine {
       aiSummary: `Over the past 30 days, you dedicated ${(totalFocusedSeconds / 3600).toFixed(1)} hours across ${dist.length || 1} active projects. Top project: ${topProject}.`,
       nextMonthRecommendations: [
         `Consolidate research sessions in ${topProject} into execution blocks.`,
-        'Use 25-minute Pomodoro rounds to maintain momentum on long tasks.',
+        'Use 25-minute Pomodoro rounds for long tasks.',
       ],
     };
   }

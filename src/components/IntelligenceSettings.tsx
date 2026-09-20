@@ -3,413 +3,147 @@ import { useIntelligenceSettingsStore } from '../stores/intelligence-settings-st
 import { ProviderConfigModal } from './ProviderConfigModal';
 import { HealthDashboardModal } from './HealthDashboardModal';
 import { keyVaultRepo, ProviderConfigsMap } from '../storage/repositories/key-vault-repo';
-import { Cpu, Zap, Database, Terminal, ShieldCheck, Activity, RefreshCw, Key, CheckCircle, Sliders, HeartPulse } from 'lucide-react';
+import { Button, Card, CardHeader, Chip, Switch } from './ui';
 
+/** Only providers that are actually implemented. */
+const PROVIDERS = [
+  { id: 'openai', name: 'OpenAI', detail: 'GPT-4o mini and others', isLocal: false },
+  { id: 'anthropic', name: 'Anthropic', detail: 'Claude', isLocal: false },
+  { id: 'gemini', name: 'Google Gemini', detail: 'Gemini Flash and Pro', isLocal: false },
+  { id: 'openrouter', name: 'OpenRouter', detail: 'One key, many models', isLocal: false },
+  { id: 'ollama', name: 'Ollama', detail: 'Runs on your computer', isLocal: true },
+];
+
+const FLAGS: Array<{ key: 'semanticSearch' | 'embeddings' | 'localModels'; label: string; hint: string }> = [
+  { key: 'semanticSearch', label: 'Meaning-based search', hint: 'Find workspaces by idea, not just words. Needs a provider.' },
+  { key: 'embeddings', label: 'Local search index', hint: 'Builds a private index on this device.' },
+  { key: 'localModels', label: 'Use local models when possible', hint: 'Prefer Ollama over cloud providers.' },
+];
+
+const COMMAND_NAMES: Record<string, string> = {
+  _execute_action: 'Open the Pepper popup',
+  'save-session': 'Save this window',
+  'save-and-close-current-tab': 'Save this tab and close it',
+  'add-tab-to-workspace': 'Add this tab to the active workspace',
+  'open-manager': 'Open the dashboard',
+  'open-side-panel': 'Open the side panel',
+  'restore-last': 'Restore the most recent workspace',
+  'toggle-focus-timer': 'Pause or resume the focus timer',
+};
+
+/** Optional AI, keyboard shortcuts. Everything else in Pepper works without any of this. */
 export const IntelligenceSettings: React.FC = () => {
-  const {
-    aiEnabled,
-    featureFlags,
-    providerCount,
-    activeProviderName,
-    installedSkillsCount,
-    cacheSize,
-    logs,
-    toggleAI,
-    updateFlag,
-    clearCache,
-    refreshMetrics,
-  } = useIntelligenceSettingsStore();
+  const { aiEnabled, featureFlags, activeProviderName, cacheSize, toggleAI, updateFlag, clearCache, refreshMetrics } = useIntelligenceSettingsStore();
+  const [configs, setConfigs] = useState<ProviderConfigsMap>({});
+  const [selected, setSelected] = useState<(typeof PROVIDERS)[number] | null>(null);
+  const [health, setHealth] = useState(false);
+  const [commands, setCommands] = useState<Array<{ name?: string; shortcut?: string }>>([]);
 
-  const [savedConfigs, setSavedConfigs] = useState<ProviderConfigsMap>({});
-  const [selectedProvider, setSelectedProvider] = useState<{ id: string; name: string; isLocal?: boolean } | null>(null);
-  const [isHealthModalOpen, setIsHealthModalOpen] = useState(false);
-  const [registeredCommands, setRegisteredCommands] = useState<Array<{ name?: string; description?: string; shortcut?: string }>>([]);
-
-  const fetchConfigs = async () => {
-    const configs = await keyVaultRepo.getAll();
-    setSavedConfigs(configs);
-    refreshMetrics();
+  const load = async () => {
+    setConfigs(await keyVaultRepo.getAll());
+    void refreshMetrics();
   };
-
-  const fetchChromeCommands = async () => {
-    if (typeof chrome !== 'undefined' && chrome.commands) {
-      try {
-        const cmds = await chrome.commands.getAll();
-        setRegisteredCommands(cmds);
-      } catch (err) {
-        console.warn('Failed to fetch Chrome commands:', err);
-      }
+  const loadCommands = async () => {
+    try {
+      setCommands(await chrome.commands.getAll());
+    } catch {
+      // not in an extension page
     }
   };
 
   useEffect(() => {
-    fetchConfigs();
-    fetchChromeCommands();
-
-    const handleFocus = () => fetchChromeCommands();
-    window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleFocus);
-
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleFocus);
-    };
+    void load();
+    void loadCommands();
+    const onFocus = () => void loadCommands();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, []);
 
-  const providersList = [
-    { id: 'openai', name: 'OpenAI (GPT-4o / GPT-4o-mini)', isLocal: false },
-    { id: 'anthropic', name: 'Anthropic (Claude 3.5 / Opus)', isLocal: false },
-    { id: 'gemini', name: 'Google Gemini (1.5 Pro / Flash)', isLocal: false },
-    { id: 'openrouter', name: 'OpenRouter Gateway (Unified)', isLocal: false },
-    { id: 'ollama', name: 'Ollama (Local LLM)', isLocal: true },
-    { id: 'lmstudio', name: 'LM Studio (Local Host)', isLocal: true },
-    { id: 'azure', name: 'Azure OpenAI Service', isLocal: false },
-    { id: 'bedrock', name: 'AWS Bedrock Gateway', isLocal: false },
-  ];
-
   return (
-    <div className="space-y-6 max-w-4xl mx-auto p-6 bg-surface text-text-primary">
-      {selectedProvider && (
-        <ProviderConfigModal
-          providerId={selectedProvider.id}
-          providerName={selectedProvider.name}
-          isLocal={selectedProvider.isLocal}
-          isOpen={!!selectedProvider}
-          onClose={() => setSelectedProvider(null)}
-          onSaved={fetchConfigs}
-        />
-      )}
+    <>
+      {selected && <ProviderConfigModal providerId={selected.id} providerName={selected.name} isLocal={selected.isLocal} isOpen onClose={() => setSelected(null)} onSaved={load} />}
+      <HealthDashboardModal isOpen={health} onClose={() => setHealth(false)} />
 
-      {/* Health Diagnostic Modal */}
-      <HealthDashboardModal isOpen={isHealthModalOpen} onClose={() => setIsHealthModalOpen(false)} />
+      <Card as="section" aria-labelledby="ai-title" className="space-y-4">
+        <CardHeader eyebrow="Optional" titleId="ai-title" title="AI features" />
+        <p className="text-sm text-text-secondary">
+          Everything in Pepper works without AI. Add your own provider for smarter workspace names and summaries. Your key stays in this browser and goes only to the provider you choose.
+        </p>
+        <label className="flex items-center justify-between gap-4 rounded-inner bg-surface-active px-4 py-3">
+          <span>
+            <span className="block text-sm font-semibold">Use AI for names and summaries</span>
+            <span className="block text-xs text-text-muted">{aiEnabled ? `Using ${activeProviderName || 'no provider yet'}` : 'Off. Pepper names workspaces on your device.'}</span>
+          </span>
+          <Switch checked={aiEnabled} onChange={(v) => void toggleAI(v)} label="Use AI for names and summaries" />
+        </label>
 
-      {/* Header Banner */}
-      <div className="flex items-center justify-between pb-4 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-pepper-500/10 border border-pepper-500/20 text-pepper-400">
-            <Cpu className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold tracking-tight">Intelligence Platform (BYOK)</h2>
-              <span className="text-xs uppercase font-bold tracking-widest px-2 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
-                Phase 2 Full
-              </span>
-            </div>
-            <p className="text-xs text-text-muted">
-              Bring Your Own Keys &bull; Capability Router &bull; Local Vectors &bull; Zero Hardcoded Vendors
-            </p>
-          </div>
-        </div>
-
-        {/* Diagnostic Panel & Master AI Toggle */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsHealthModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 font-bold text-xs transition-colors"
-          >
-            <HeartPulse className="w-4 h-4" />
-            <span>Health Check Panel</span>
-          </button>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <span className="text-xs font-semibold text-text-secondary">AI Master Switch</span>
-            <div
-              onClick={() => toggleAI(!aiEnabled)}
-              className={`w-11 h-6 rounded-full transition-colors relative cursor-pointer ${
-                aiEnabled ? 'bg-pepper-500' : 'bg-border'
-              }`}
-            >
-              <div
-                className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${
-                  aiEnabled ? 'left-6' : 'left-1'
-                }`}
-              />
-            </div>
-          </label>
-        </div>
-      </div>
-
-      {/* Metrics Summary */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Providers</span>
-            <Zap className="w-4 h-4 text-pepper-400" />
-          </div>
-          <div className="text-xl font-bold text-text-primary">{providerCount}</div>
-          <div className="text-xs text-text-muted truncate">
-            Active: {activeProviderName || 'Mock Provider'}
-          </div>
-        </div>
-
-        <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Skills</span>
-            <Activity className="w-4 h-4 text-blue-700 dark:text-blue-400" />
-          </div>
-          <div className="text-xl font-bold text-text-primary">{installedSkillsCount}</div>
-          <div className="text-xs text-text-muted">Summary, Title, Tags, Vectors</div>
-        </div>
-
-        <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Cache Size</span>
-            <Database className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-          </div>
-          <div className="text-xl font-bold text-text-primary">{cacheSize} entries</div>
-          <button onClick={clearCache} className="text-xs text-pepper-400 hover:underline font-medium">
-            Clear Cache
-          </button>
-        </div>
-
-        <div className="bg-surface-card border border-border rounded-xl p-4 space-y-1">
-          <div className="flex items-center justify-between text-text-muted">
-            <span className="text-xs font-semibold uppercase tracking-wider">Privacy Engine</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-          </div>
-          <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">Local First</div>
-          <div className="text-xs text-text-muted">Keys stored locally</div>
-        </div>
-      </div>
-
-      {/* BYOK Providers Configuration Grid */}
-      <div className="bg-surface-card border border-border rounded-xl p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-            <Key className="w-4 h-4 text-pepper-500" />
-            <span>Connect Providers (Bring Your Own Keys)</span>
-          </h3>
-          <span className="text-xs text-text-muted">Direct API requests from your machine</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {providersList.map((p) => {
-            const config = savedConfigs[p.id];
-            const isConfigured = !!config?.apiKey || (p.isLocal && !!config?.endpoint);
-
+        <ul className="divide-y divide-border">
+          {PROVIDERS.map((p) => {
+            const c = configs[p.id];
+            const ready = !!c?.apiKey || (p.isLocal && !!c?.endpoint);
             return (
-              <div
-                key={p.id}
-                className="p-3.5 rounded-xl border border-border/80 bg-surface/50 flex items-center justify-between hover:border-border transition-colors"
-              >
-                <div className="space-y-1 min-w-0 pr-3">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs text-text-primary">{p.name}</span>
-                    <span
-                      className={`text-xs uppercase font-bold px-1.5 py-0.2 rounded border ${
-                        p.isLocal
-                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-                          : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20'
-                      }`}
-                    >
-                      {p.isLocal ? 'LOCAL' : 'CLOUD'}
-                    </span>
-                  </div>
-                  <div className="text-xs text-text-muted flex items-center gap-1.5">
-                    {isConfigured ? (
-                      <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Configured ({config.model || 'default'})
-                      </span>
-                    ) : (
-                      <span>Not Configured</span>
-                    )}
-                  </div>
+              <li key={p.id} className="flex items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">
+                    {p.name} <Chip tone={p.isLocal ? 'mint' : 'neutral'}>{p.isLocal ? 'On your device' : 'Cloud'}</Chip>
+                  </p>
+                  <p className="text-xs text-text-muted">{p.detail}</p>
                 </div>
-
-                <button
-                  onClick={() => setSelectedProvider(p)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors shrink-0"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-pepper-400" />
-                  <span>Configure</span>
-                </button>
-              </div>
+                {ready && <Chip tone="mint">Connected</Chip>}
+                <Button size="sm" onClick={() => setSelected(p)}>
+                  {ready ? 'Edit' : 'Set up'}
+                </Button>
+              </li>
             );
           })}
-        </div>
-      </div>
+        </ul>
 
-      {/* Feature Flags Section */}
-      <div className="bg-surface-card border border-border rounded-xl p-5 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-pepper-500" />
-          <span>Capability Feature Flags</span>
-        </h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
-            <div>
-              <div className="text-xs font-semibold text-text-primary">Semantic Search</div>
-              <div className="text-xs text-text-muted">Vector embedding search over workspaces</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={featureFlags.semanticSearch}
-              onChange={(e) => updateFlag('semanticSearch', e.target.checked)}
-              className="accent-pepper-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
-            <div>
-              <div className="text-xs font-semibold text-text-primary">Embeddings Engine</div>
-              <div className="text-xs text-text-muted">Local vector index computation</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={featureFlags.embeddings}
-              onChange={(e) => updateFlag('embeddings', e.target.checked)}
-              className="accent-pepper-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
-            <div>
-              <div className="text-xs font-semibold text-text-primary">Local Models (Ollama)</div>
-              <div className="text-xs text-text-muted">Route offline workloads to local LLMs</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={featureFlags.localModels}
-              onChange={(e) => updateFlag('localModels', e.target.checked)}
-              className="accent-pepper-500"
-            />
-          </label>
-
-          <label className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-surface/40 cursor-pointer">
-            <div>
-              <div className="text-xs font-semibold text-text-primary">Experimental Providers</div>
-              <div className="text-xs text-text-muted">Enable beta/custom LLM provider adapters</div>
-            </div>
-            <input
-              type="checkbox"
-              checked={featureFlags.experimentalProviders}
-              onChange={(e) => updateFlag('experimentalProviders', e.target.checked)}
-              className="accent-pepper-500"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Keyboard Shortcuts Settings (Dynamic Chrome API) */}
-      <div className="bg-surface-card border border-border rounded-xl p-5 space-y-4 shadow-sm">
-        <div className="flex items-center justify-between pb-3 border-b border-border">
-          <div>
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-pepper-400" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">
-                Keyboard Shortcuts ({registeredCommands.length} Commands Registered)
-              </h3>
-            </div>
-            <p className="text-xs text-text-muted mt-0.5">
-              Managed directly by Chrome Extension Shortcuts Manager
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchChromeCommands}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-border bg-surface text-text-secondary hover:text-text-primary text-xs font-semibold transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Refresh Shortcuts</span>
-            </button>
-
-            <button
-              onClick={async () => {
-                if (typeof chrome !== 'undefined' && chrome.tabs) {
-                  try {
-                    await chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-                  } catch {
-                    alert('Open chrome://extensions/shortcuts in Chrome address bar to manage keybindings.');
-                  }
-                } else {
-                  alert('Open chrome://extensions/shortcuts in Chrome address bar to manage keybindings.');
-                }
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-pepper-500/30 bg-pepper-500/10 hover:bg-pepper-500/20 text-pepper-400 text-xs font-bold transition-colors"
-            >
-              <Sliders className="w-3.5 h-3.5" />
-              <span>Change in Chrome</span>
-            </button>
-          </div>
-        </div>
-
-        {registeredCommands.length === 0 ? (
-          <div className="p-4 rounded-xl border border-dashed border-border/60 text-center text-xs text-text-muted">
-            Reading commands from Chrome extension runtime... If not loaded, reload extension via <code>chrome://extensions</code>.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-            {registeredCommands.map((cmd) => (
-              <div key={cmd.name} className="p-3.5 rounded-xl border border-border/80 bg-surface/50 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-text-primary tracking-tight">
-                    {cmd.description || cmd.name}
-                  </span>
-
-                  {cmd.shortcut ? (
-                    <kbd className="px-2 py-0.5 rounded bg-pepper-500/10 font-mono text-xs text-pepper-400 font-extrabold border border-pepper-500/20">
-                      {cmd.shortcut}
-                    </kbd>
-                  ) : (
-                    <span className="text-xs font-extrabold uppercase px-2 py-0.5 rounded bg-surface border border-border text-text-muted">
-                      Not assigned
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between text-xs text-text-muted pt-1">
-                  <span className="font-mono text-pepper-400/80">Command: {cmd.name}</span>
-                  <button
-                    onClick={async () => {
-                      if (typeof chrome !== 'undefined' && chrome.tabs) {
-                        try {
-                          await chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
-                        } catch {
-                          alert('Open chrome://extensions/shortcuts to edit.');
-                        }
-                      }
-                    }}
-                    className="font-bold text-pepper-400 hover:underline"
-                  >
-                    Change in Chrome &rarr;
-                  </button>
-                </div>
-              </div>
+        <details className="rounded-inner border border-border px-4 py-3">
+          <summary className="cursor-pointer text-sm font-semibold">Advanced</summary>
+          <div className="mt-3 space-y-3">
+            {FLAGS.map((f) => (
+              <label key={f.key} className="flex items-center justify-between gap-4">
+                <span>
+                  <span className="block text-sm font-semibold">{f.label}</span>
+                  <span className="block text-xs text-text-muted">{f.hint}</span>
+                </span>
+                <Switch checked={featureFlags[f.key]} onChange={(v) => void updateFlag(f.key, v)} label={f.label} />
+              </label>
             ))}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button size="sm" onClick={() => setHealth(true)}>
+                Check connections
+              </Button>
+              <Button size="sm" variant="ghost" onClick={clearCache}>
+                Clear AI cache ({cacheSize})
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+        </details>
+      </Card>
 
-      {/* Telemetry Log Output */}
-      <div className="bg-surface-card border border-border rounded-xl p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-text-muted">
-            Intelligence Telemetry &amp; Logs ({logs.length})
-          </h3>
-          <button onClick={fetchConfigs} className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-primary">
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        {logs.length === 0 ? (
-          <div className="text-xs text-text-muted py-4 text-center border border-dashed border-border/60 rounded-lg">
-            No intelligence execution logs recorded yet. Platform is fully active.
-          </div>
-        ) : (
-          <div className="space-y-2 max-h-40 overflow-y-auto font-mono text-xs">
-            {logs.map((log) => (
-              <div key={log.id} className="p-2 rounded bg-surface border border-border/40 flex items-center justify-between">
-                <span>[{log.status}] Task: {log.taskId}</span>
-                <span className="text-text-muted">{log.durationMs}ms | Provider: {log.providerId}</span>
-              </div>
+      <Card as="section" aria-labelledby="keys-title" className="space-y-3">
+        <CardHeader
+          eyebrow="Keyboard"
+          titleId="keys-title"
+          title="Shortcuts"
+          action={
+            <Button size="sm" onClick={() => chrome.tabs.create({ url: 'chrome://extensions/shortcuts' })}>
+              Change in Chrome
+            </Button>
+          }
+        />
+        <ul className="divide-y divide-border">
+          {commands
+            .filter((c) => c.name && COMMAND_NAMES[c.name])
+            .map((c) => (
+              <li key={c.name} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                <span>{COMMAND_NAMES[c.name!]}</span>
+                {c.shortcut ? <kbd className="rounded-md border border-border-strong px-2 py-0.5 font-mono text-xs" style={{ borderColor: 'var(--pp-border-strong)' }}>{c.shortcut}</kbd> : <span className="text-xs text-text-muted">Not set</span>}
+              </li>
             ))}
-          </div>
-        )}
-      </div>
-    </div>
+        </ul>
+      </Card>
+    </>
   );
 };

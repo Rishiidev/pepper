@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Same tokens as the extension. The site follows the visitor's system theme. */
+:root {
+  color-scheme: light dark;
+  --canvas: #ECEFE8; --card: #FFFFFF; --border: #E1E5DD; --border-strong: #C9CFC5;
+  --text: #111412; --text-2: #4A514B; --muted: #5B625C; --red: #D8322B; --red-hover: #C22A24;
+  --ink-bg: #141715; --ink-fg: #F5F7F2; --ink-accent: #A9F5A4;
+  --mint-bg: #A9F5A4; --mint-fg: #0E1A10;
+  --lilac-bg: #B8A6FF; --lilac-fg: #17123A;
+  --butter-bg: #FFE066; --butter-fg: #2A2200;
+  --shadow: 0 1px 0 rgba(17,20,18,.04), 0 12px 32px -16px rgba(17,20,18,.2);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #0E100F; --card: #171A18; --border: #262B27; --border-strong: #363D38;
+    --text: #F2F4F0; --text-2: #B4BBB4; --muted: #8D958E; --red-hover: #E5443C;
+    --ink-bg: #232824; --ink-fg: #F2F4F0;
+    --mint-bg: #16241A; --mint-fg: #DDF7DA; --lilac-bg: #1E1A33; --lilac-fg: #E7E1FF; --butter-bg: #2B2510; --butter-fg: #FFF3C2;
+    --shadow: none;
+  }
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-card: var(--card);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-ink-2: var(--text-2);
+  --color-muted: var(--muted);
+  --color-red: var(--red);
+  --color-zink: var(--ink-bg);
+  --color-zink-fg: var(--ink-fg);
+  --color-zmint: var(--mint-bg);
+  --color-zmint-fg: var(--mint-fg);
+  --color-zlilac: var(--lilac-bg);
+  --color-zlilac-fg: var(--lilac-fg);
+  --color-zbutter: var(--butter-bg);
+  --color-zbutter-fg: var(--butter-fg);
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-card: 24px;
+}
+
+body { background: var(--canvas); color: var(--text); font-family: var(--font-sans); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; border-radius: 8px; }
+@layer components {
+.eyebrow { font-size: 12px; line-height: 16px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.card { border-radius: var(--radius-card); border: 1px solid var(--border); background: var(--card); box-shadow: var(--shadow); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 24px; border-radius: 999px; font-weight: 700; font-size: 16px; transition: background-color .15s, border-color .15s; }
+.btn-primary { background: var(--red); color: #fff; }
+.btn-primary:hover { background: var(--red-hover); }
+.btn-secondary { border: 1px solid var(--border-strong); color: var(--text); }
+.btn-secondary:hover { background: var(--card); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

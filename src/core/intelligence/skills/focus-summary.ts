@@ -24,7 +24,7 @@ export class FocusSummarySkill extends IntelligenceSkill<FocusSession, FocusSumm
     const session = task.input;
     const minutes = Math.max(1, Math.round(session.elapsedSeconds / 60));
 
-    const prompt = `You are Pepper's Work Memory AI. Analyze this ${minutes}-minute focus session for workspace "${session.workspaceName}".
+    const prompt = `You are Pepper's focus assistant. Analyze this ${minutes}-minute focus session for workspace "${session.workspaceName}".
 
 Workspace: ${session.workspaceName}
 Project: ${session.projectName || 'General'}

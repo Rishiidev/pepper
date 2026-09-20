@@ -19,7 +19,7 @@ export const Field: React.FC<FieldProps> = ({ label, hint, children, className }
       </label>
       {children({ id, 'aria-describedby': hintId })}
       {hint && (
-        <p id={hintId} className="text-xs text-text-muted">
+        <p id={hintId} className="text-xs opacity-75">
           {hint}
         </p>
       )}

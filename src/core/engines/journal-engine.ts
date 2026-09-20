@@ -16,7 +16,7 @@ export class JournalEngine {
           uninterruptedRatio: 75,
           taskCompletion: 75,
         },
-        explanation: 'Start your first focus session to build real-time workspace momentum.',
+        explanation: 'Start your first focus session to see your focus time here.',
       };
     }
 
@@ -94,7 +94,7 @@ export class JournalEngine {
       inProgressTasks: inProgress.length > 0 ? inProgress : ['Resume active workspace flow'],
       aiReflection: dateFiltered.length > 0
         ? `Today you dedicated ${hours} hours of deep focus across ${projects.join(', ') || 'workspaces'}. Most momentum occurred during uninterrupted sessions.`
-        : 'No completed focus sessions logged today yet. Start a focus timer to build momentum.',
+        : 'No completed focus sessions logged today yet. Start a focus timer to begin.',
       momentumScore: this.calculateMomentumScore(dateFiltered).score,
     };
   }
@@ -116,9 +116,9 @@ export class JournalEngine {
       {
         id: 'pat_2',
         title: 'Workspace Resumption Rate',
-        description: `You have logged ${sessions.length} focus sessions across your active memories.`,
+        description: `You have logged ${sessions.length} focus sessions across your workspaces.`,
         category: 'productivity',
-        actionableSuggestion: 'Resuming existing workspaces preserves 85% more momentum than starting new tabs.',
+        actionableSuggestion: 'Restore an existing workspace instead of rebuilding your tabs.',
       },
       {
         id: 'pat_3',

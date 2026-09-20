@@ -222,8 +222,6 @@ export default function App() {
     );
   }
 
-  const domainCount = new Set(chosen.map((t) => hostOf(t.url)).filter(Boolean)).size;
-
   return (
     <div className="w-[400px] p-4 space-y-3 bg-surface text-text-primary">
       <CommandPalette />
@@ -275,7 +273,7 @@ export default function App() {
 
             <Button variant="primary" className="w-full" disabled={saving || chosen.length === 0} onClick={() => void save()} data-testid="save-window">
               {saving ? 'Saving…' : 'Save window'}
-              <Kbd className="!text-white !border-white/40">⌘S</Kbd>
+              <Kbd className="!text-white !border-white/60">⌘S</Kbd>
             </Button>
             {error && (
               <p role="alert" className="text-sm font-semibold text-pepper-400">
@@ -290,7 +288,7 @@ export default function App() {
                 onClick={() => setChooseOpen(!chooseOpen)}
                 className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
               >
-                Choose tabs ({domainCount} site{domainCount !== 1 ? 's' : ''})
+                Choose tabs
                 {chooseOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
               </button>
               <label className="inline-flex items-center gap-2">

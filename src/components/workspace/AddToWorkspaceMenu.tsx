@@ -114,7 +114,7 @@ export const AddToWorkspaceMenu: React.FC<Props> = ({ tabs, label, text, classNa
         className={
           text
             ? 'flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border text-xs font-semibold text-text-primary hover:bg-surface-hover'
-            : 'p-1 rounded-md text-text-muted hover:text-pepper-400 hover:bg-surface-hover'
+            : 'inline-flex h-6 w-6 items-center justify-center rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-hover'
         }
       >
         <Plus className="w-3.5 h-3.5" aria-hidden="true" />

@@ -18,7 +18,7 @@ import { suggestFromTabs, WorkspaceSuggestion } from '../../core/engines/suggest
 import { buildRecap, dayBounds, formatDurationCompact, hourlyActivity } from '../../core/engines/timeline-replay';
 import { focusEngine } from '../../core/engines/focus-engine';
 import { FocusSession } from '../../core/types/focus-session';
-import { ACTIVATION_KEY, ActivationState, checklist, emptyActivation, getActivation, patchActivation } from '../../core/engines/activation';
+import { ACTIVATION_KEY, ActivationState, checklist, emptyActivation, getActivation, patchActivation, shouldAskForReview } from '../../core/engines/activation';
 import { timelineStore } from '../../core/engines/timeline-store';
 import { BrowserSession } from '../../core/types/timeline';
 
@@ -128,6 +128,23 @@ export const HomeView: React.FC<Props> = ({ onRestore, onNavigate, onStartDemo, 
   return (
     <div className="space-y-4">
       <h1 className="sr-only">Home</h1>
+      {shouldAskForReview(activation) && (
+        <Card tone="mint" as="section" aria-label="Review Pepper" pad="sm" className="flex flex-wrap items-center gap-3" data-testid="review-prompt">
+          <p className="flex-1 min-w-48 text-sm font-semibold">You have restored {activation.counts.restore} workspaces. Enjoying Pepper? A quick review helps other people find it.</p>
+          <Button
+            size="sm"
+            onClick={() => {
+              void patchActivation({ reviewPromptShown: true });
+              void chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
+            }}
+          >
+            Leave a review
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => patchActivation({ reviewPromptShown: true })}>
+            Not now
+          </Button>
+        </Card>
+      )}
       <div className="grid grid-cols-12 gap-4">
         {/* Resume: the ink hero */}
         <Card tone="ink" as="section" aria-labelledby="home-resume" className="col-span-12 lg:col-span-7 lg:row-span-2 flex flex-col justify-between gap-6 min-h-64" data-testid="resume-card">

@@ -1,33 +1,24 @@
-import { Navbar } from './components/Navbar';
-import { Hero } from './components/Hero';
-import { ProblemSection } from './components/ProblemSection';
-import { HowItWorks } from './components/HowItWorks';
-import { ComparisonTable } from './components/ComparisonTable';
-import { FeatureGrid } from './components/FeatureGrid';
-import { RealWorkflow } from './components/RealWorkflow';
-import { PrivacySection } from './components/PrivacySection';
-import { FAQ } from './components/FAQ';
-import { FinalCTA } from './components/FinalCTA';
-import { Footer } from './components/Footer';
+import { Nav, Hero, Trust, DemoSection, Features, HowItWorks, Privacy, Faq, FinalCta, Footer, StickyCta } from './components/Sections';
 
-export function App() {
+export default function App() {
   return (
-    <div className="min-h-screen bg-[#08090F] text-[#F4F5F7] antialiased selection:bg-[#FF4D43] selection:text-white">
-      <Navbar />
-      <main>
+    <>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-card focus:px-4 focus:py-2">
+        Skip to content
+      </a>
+      <Nav />
+      <main id="main">
         <Hero />
-        <ProblemSection />
+        <Trust />
+        <DemoSection />
+        <Features />
         <HowItWorks />
-        <ComparisonTable />
-        <FeatureGrid />
-        <RealWorkflow />
-        <PrivacySection />
-        <FAQ />
-        <FinalCTA />
+        <Privacy />
+        <Faq />
+        <FinalCta />
       </main>
       <Footer />
-    </div>
+      <StickyCta />
+    </>
   );
 }
-
-export default App;

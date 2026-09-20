@@ -10,10 +10,10 @@ interface Props {
 
 const LEVEL_COLORS: Record<ActivityLevel, { bg: string; border: string; label: string }> = {
   0: { bg: 'bg-surface-card/60', border: 'border-border/40', label: 'No work recorded' },
-  1: { bg: 'bg-pepper-500/20', border: 'border-pepper-500/30', label: 'Light activity (1-29 pts)' },
-  2: { bg: 'bg-pepper-500/40', border: 'border-pepper-500/50', label: 'Focused activity (30-59 pts)' },
-  3: { bg: 'bg-pepper-500/70', border: 'border-pepper-500/80', label: 'Strong progress (60-84 pts)' },
-  4: { bg: 'bg-pepper-500', border: 'border-pepper-400', label: 'High-impact work (85-100 pts)' },
+  1: { bg: 'bg-zone-mint-accent/20', border: 'border-zone-mint-accent/30', label: 'Light activity (1-29 pts)' },
+  2: { bg: 'bg-zone-mint-accent/40', border: 'border-zone-mint-accent/50', label: 'Focused activity (30-59 pts)' },
+  3: { bg: 'bg-zone-mint-accent/70', border: 'border-zone-mint-accent/80', label: 'Strong progress (60-84 pts)' },
+  4: { bg: 'bg-zone-mint-accent', border: 'border-zone-mint-accent', label: 'High-impact work (85-100 pts)' },
 };
 
 export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSelectDay }) => {
@@ -90,30 +90,28 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
   };
 
   return (
-    <div className="bg-surface-card border border-border/80 rounded-3xl p-6 space-y-4 shadow-xl select-none relative">
+    <div className="bg-surface-card border border-border rounded-card p-5 space-y-4 shadow-card relative overflow-x-auto">
       {/* Graph Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/60">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-extrabold uppercase tracking-widest text-pepper-400 px-2.5 py-0.5 rounded-md bg-pepper-500/10 border border-pepper-500/20">
-              Work Activity Matrix
-            </span>
+            <span className="eyebrow text-text-muted">Activity</span>
             <button aria-label="How is activity calculated?"
               onClick={() => setShowScoringHelp(!showScoringHelp)}
-              className="text-text-muted hover:text-pepper-400 transition-colors"
+              className="text-text-muted hover:text-text-secondary transition-colors"
               title="How is activity calculated?"
             >
               <HelpCircle className="w-3.5 h-3.5" />
             </button>
           </div>
           <h3 className="text-base font-bold text-text-primary tracking-tight pt-1">
-            52-Week Work Contribution &amp; Progress Graph
+            Your last 13 weeks
           </h3>
         </div>
 
         <div className="flex items-center gap-4 text-xs">
           <div className="text-text-muted text-xs font-medium">
-            Click any day to view daily timeline &amp; AI journal
+            Pick a day to see what you did
           </div>
         </div>
       </div>
@@ -123,10 +121,10 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
         <div className="p-4 rounded-2xl bg-surface border border-border/80 space-y-2 text-xs animate-slide-up">
           <div className="font-bold text-pepper-400 flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Transparent Work Activity Score Algorithm</span>
+            <span>How the score works</span>
           </div>
           <p className="text-text-secondary leading-relaxed text-xs">
-            Pepper measures <strong>meaningful work momentum</strong> rather than surveillance metrics like mouse movement or raw browser time. Score (0–100) is calculated from 5 transparent factors:
+            Each square is a day. Its color comes from a 0–100 score built from these factors, using only your saved workspaces and focus sessions:
           </p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs pt-1">
             <div className="p-2 rounded-xl bg-surface-card border border-border/40 font-mono">
@@ -165,7 +163,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
             {monthLabels.map((m, idx) => (
               <div
                 key={idx}
-                style={{ marginLeft: idx === 0 ? `${m.weekIndex * 13}px` : `${(m.weekIndex - (monthLabels[idx - 1]?.weekIndex || 0)) * 13 - 20}px` }}
+                style={{ marginLeft: idx === 0 ? `${m.weekIndex * 28}px` : `${(m.weekIndex - (monthLabels[idx - 1]?.weekIndex || 0)) * 13 - 20}px` }}
               >
                 {m.name}
               </div>
@@ -175,16 +173,16 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
           {/* Grid Layout: Days (Rows 0-6) x Weeks (Columns 0-51) */}
           <div className="flex items-start gap-1">
             {/* Day Labels Column */}
-            <div className="flex flex-col justify-between h-[98px] text-xs font-mono text-text-muted pr-2 shrink-0 py-0.5">
+            <div className="flex flex-col justify-between h-[192px] text-xs font-mono text-text-muted pr-2 shrink-0 py-0.5">
               <span>Mon</span>
               <span>Wed</span>
               <span>Fri</span>
             </div>
 
             {/* Matrix Columns */}
-            <div className="flex items-center gap-[3.5px]">
+            <div className="flex items-center gap-1">
               {weeks.map((week, wIdx) => (
-                <div key={wIdx} className="flex flex-col gap-[3.5px]">
+                <div key={wIdx} className="flex flex-col gap-1">
                   {week.map((day, dIdx) => {
                     const globalIdx = wIdx * 7 + dIdx;
                     const isSelected = selectedDateStr === day.dateStr;
@@ -199,12 +197,13 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
                           setHoveredDay(day);
                           setFocusedIndex(globalIdx);
                         }}
-                        className={`w-3 h-3 rounded-[3px] border transition-all duration-150 relative cursor-pointer ${levelStyle.bg} ${levelStyle.border} ${
-                          isSelected ? 'ring-2 ring-pepper-400 ring-offset-1 ring-offset-surface scale-125 z-20' : ''
-                        } ${isFocused ? 'scale-110 z-10' : 'hover:scale-125 hover:z-20'} ${
-                          day.isToday ? 'border-pepper-400 shadow-sm ' : ''
+                        className={`w-6 h-6 rounded-md border transition-all duration-150 relative cursor-pointer ${levelStyle.bg} ${levelStyle.border} ${
+                          isSelected ? 'ring-2 ring-text-primary ring-offset-1 ring-offset-surface-card z-20' : ''
+                        } ${isFocused ? 'z-10' : 'hover:z-20'} ${
+                          day.isToday ? 'border-text-primary' : ''
                         }`}
                         title={`${day.dateStr}: ${levelStyle.label}`}
+                        aria-label={`${day.dateStr}: ${levelStyle.label}`}
                       />
                     );
                   })}
@@ -253,7 +252,7 @@ export const ContributionGraph: React.FC<Props> = ({ days, selectedDateStr, onSe
             {([0, 1, 2, 3, 4] as ActivityLevel[]).map((lvl) => (
               <div
                 key={lvl}
-                className={`w-3 h-3 rounded-[3px] border ${LEVEL_COLORS[lvl].bg} ${LEVEL_COLORS[lvl].border}`}
+                className={`w-6 h-6 rounded-md border ${LEVEL_COLORS[lvl].bg} ${LEVEL_COLORS[lvl].border}`}
                 title={LEVEL_COLORS[lvl].label}
               />
             ))}

@@ -1,4 +1,4 @@
-# Contributing to PEPPER OS
+# Contributing to Pepper
 
 Thank you for helping build the future operating system for human memory!
 

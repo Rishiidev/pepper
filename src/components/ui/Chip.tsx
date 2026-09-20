@@ -18,7 +18,7 @@ export const Chip: React.FC<ChipProps> = ({ tone = 'neutral', className, ...rest
 
 export const Kbd: React.FC<React.HTMLAttributes<HTMLElement>> = ({ className, ...rest }) => (
   <kbd
-    className={cn('inline-flex items-center rounded-md border border-current/25 px-1.5 py-0.5 text-xs font-mono font-semibold opacity-80', className)}
+    className={cn('inline-flex items-center rounded-md border border-current/40 px-1.5 py-0.5 text-xs font-mono font-semibold', className)}
     {...rest}
   />
 );

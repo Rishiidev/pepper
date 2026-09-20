@@ -43,9 +43,8 @@ mgr.on('pageerror', (e) => errors.push(String(e)));
 await mgr.goto(`chrome-extension://${extId}/manager.html`);
 await mgr.waitForSelector('[role=dialog]', { timeout: 8000 });
 check('onboarding opens as an accessible dialog', await mgr.locator('[role=dialog][aria-modal=true]').count() === 1);
-for (let i = 0; i < 4; i++) await mgr.getByRole('button', { name: /^Continue/ }).click();
 await mgr.screenshot({ path: `${SHOTS}/onboarding-demo-1.png` });
-check('final step is the live demo', await mgr.getByText('See it work, live').isVisible());
+check('first screen is the live demo', await mgr.getByRole('dialog').getByRole('heading', { name: /Close it\. It.s saved\./ }).isVisible());
 
 // Point the demo at localhost pages so it does not depend on the network
 await swEval(() => { /* no-op: demo uses wikipedia URLs; window creation only needs a URL */ });
@@ -63,10 +62,11 @@ await mgr.screenshot({ path: `${SHOTS}/onboarding-demo-2.png` });
 const badge = await swEval(() => chrome.action.getBadgeText({}));
 check('badge flashed +3 (or already reset)', /\+3|^\d*$/.test(badge), `badge="${badge}"`);
 await mgr.getByRole('button', { name: 'Restore it' }).click();
-await mgr.getByText(/That is Pepper/).waitFor({ timeout: 15000 }).then(
+await mgr.getByText(/That.s Pepper/).waitFor({ timeout: 15000 }).then(
   () => check('restore reopened the window', true), () => check('restore reopened the window', false));
 await mgr.screenshot({ path: `${SHOTS}/onboarding-demo-3.png` });
-await mgr.getByRole('button', { name: /Finish/ }).click();
+await mgr.getByRole('button', { name: 'Continue' }).click();
+await mgr.getByRole('button', { name: 'Finish' }).click();
 await mgr.locator('[role=dialog]').waitFor({ state: 'detached', timeout: 5000 }).then(() => check('onboarding closes after finishing', true), () => check('onboarding closes after finishing', false));
 
 // ---------- Auto-capture on window close, feedback, naming ----------

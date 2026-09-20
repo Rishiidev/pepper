@@ -1,152 +1,69 @@
-# ⚡ PEPPER OS — The Operating System for Human Memory
+# Pepper
 
-<div align="center">
-  <img src="assets/social-preview.svg" alt="PEPPER OS — Operating System for Human Memory" width="100%"/>
-  <br/><br/>
+**Close it. It's saved.**
 
-**Leave any workspace instantly. Return as if you never left.**
+Pepper saves a browser window the moment you close it, and brings every tab back in one click. Find anything with ⌘K. It works offline, stays on your device, and needs no account.
 
-[![Direct Download](https://img.shields.io/badge/📥_Direct_Download-.zip-FF3B30?style=for-the-badge&logo=github)](https://github.com/Rishiidev/pepper/archive/refs/heads/main.zip)
-[![Latest Release](https://img.shields.io/badge/🚀_Release-v1.0.0-blue?style=for-the-badge)](https://github.com/Rishiidev/pepper/releases/tag/v1.0.0)
-[![Stars](https://img.shields.io/github/stars/Rishiidev/pepper?style=for-the-badge&color=gold)](https://github.com/Rishiidev/pepper/stargazers)
-[![License](https://img.shields.io/github/license/Rishiidev/pepper?style=for-the-badge)](LICENSE)
+Works in Chrome, Edge, Brave and Arc (Manifest V3).
 
-*Works in Chrome · Edge · Brave · Arc · Opera · Manifest V3*
+## What it does
 
-</div>
+- **Auto-save.** Close a window with two or more tabs and it appears in your workspaces. If Chrome crashes or quits mid-save, Pepper rebuilds the windows it had not finished and offers them back.
+- **Restore in one click.** Same tabs, same order, the tab you were on in front. Or "Reopen last closed window" from the toolbar popup.
+- **Find anything (⌘K).** Searches workspace names, tab titles and sites. Forgives typos, understands "pricing last week", and works with no AI.
+- **Session timeline (optional, off by default).** See when you opened Chrome and which tabs you used, scrub to any moment, and pull tabs into a workspace. Local only, skips incognito, and you can block sites.
+- **Add any tab to a workspace.** A "+" menu everywhere, a right-click menu, and `Alt+Shift+A` for the active workspace. Pepper also suggests tabs that belong together.
+- **Focus timer.** A Pomodoro you start from the popup or side panel. It finishes itself and shows minutes left on the toolbar badge, even with no Pepper page open.
+- **Backup.** Export and import JSON. API keys are never included.
+- **Light and dark**, following your system.
 
----
+## Privacy
 
-## 😫 The Frustrations Pepper Slays
+Everything stays in your browser on your device. There is no account, no server and no analytics. The optional AI feature only runs if you add your own key, and then requests go straight from your browser to the provider you pick. Keys are stored in this browser's extension storage (not synced, not encrypted at rest).
 
-### 1. The 20-Minute Context Rebuilding Penalty
-Every time a meeting starts or your focus is interrupted, you close your browser window. When you return, your momentum is destroyed. You spend 15 to 30 minutes hunting for old tabs, re-reading documentation, and trying to remember *what* you were doing and *why*.
+Permissions: `tabs` (read titles and addresses to save and restore), `storage` and `unlimitedStorage` (keep your data locally), `activeTab` and `scripting` (the quick-save panel), `contextMenus`, `notifications` (optional), `sessions` (reopen a closed window), `alarms` (finish the timer, timeline heartbeat), `idle` (only for the timeline), `sidePanel`.
 
-### 2. Tab Hoarding & RAM Paralysis
-You keep 50+ tabs open across 5 windows because you're terrified of losing your work. Your browser consumes 12 GB of RAM, your laptop fan screams, and finding the one tab you need takes 30 seconds of visual scanning.
+## Install
 
-### 3. Manual Tab Saver Friction
-Traditional tab managers (OneTab, Toby, Session Buddy) feel like filing cabinets. They force you to type names, pick folders, and manage bookmarks manually. Nobody wants to manage tabs—we want to get work done.
+Pepper is not on the Chrome Web Store yet.
 
----
+1. Download the repository and run:
+   ```bash
+   npm install
+   npm run build
+   ```
+2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**, and choose `.output/chrome-mv3`.
 
-## 💡 Why Install Pepper OS?
-
-Pepper OS is not a tab manager. It is **The Operating System for Human Memory**.
-
-- **Leave Instantly**: Close any window at any moment. Pepper silently records your open tabs, active focus time, domain clusters, and AI context intent.
-- **Return Instantly**: Press `⌘K` or click **Reconstruct Memory**—Pepper expands its geometric portal and re-hydrates your exact workspace flow in milliseconds.
-- **Save 15+ Hours a Month**: Eliminates context-switching friction and tab overload.
-- **100% Local-First & BYOK**: Your keys and memory indexes stay on your machine. Connect OpenAI, Anthropic, Gemini, or local Ollama LLMs safely.
-
----
-
-## 🚀 Complete Feature Guide
-
-### 1. ⚡ Silent Context Auto-Capture
-- **Zero Friction**: Automatically captures all open tabs, active window state, and attention signals when a window closes.
-- **Attention Tracking**: Measures how long you spend on each tab (e.g. 15m on Stack Overflow vs 2s on Google).
-- **Domain Cluster Naming**: Auto-names workspaces from domain intent (e.g. "Development & Debugging" instead of "Window 24").
-
-### 2. 🧠 Work Memory Recall (⌘K)
-- **Natural Language Search**: Search by what you remember (e.g. "that pricing research" or "Shopify checkout").
-- **8-Weighted Field Scoring**: Searches names, intent, summary, project, tags, domain clusters, tab titles, and URLs.
-- **Match-Reason Indicators**: Visual badges showing why a memory matched (intent, domain, summary, tag).
-
-### 3. 💫 Context Reconstruction Portal
-- **"I'm Back" Emotional Goal**: Full-screen geometric portal expansion overlay when resuming work.
-- **Re-Hydration Stream**: Re-opens your exact tabs in order, placing you right back in your flow state.
-
-### 4. 🤖 BYOK 5-Provider Intelligence Engine
-- **Supported Providers**: OpenAI, Anthropic, Google Gemini, OpenRouter, and Ollama (local LLM).
-- **Local First**: API keys are stored only in this browser's local extension storage (`chrome.storage.local`). They are never synced or sent anywhere except the provider you choose. They are not encrypted at rest.
-
-### 5. 🎨 Linear / Apple Dark Mode Design System
-- **Ultra-Clean Monochrome**: Custom `#050507` background, high-contrast typography, maximum whitespace.
-- **Interactive Geometric P Logo**: SVG mark with state animations (`normal`, `saving`, `restoring`, `ai`, `pinned`, `syncing`).
-
-### 6. 🎓 Interactive 4-Step Onboarding Tour
-- Step-by-step product tour introducing Work Memory, Silent Auto-Capture, ⌘K Recall, and BYOK setup.
-
----
-
-## 📥 Direct Download Links
-
-- 📥 **[Download Latest Source Code (.zip)](https://github.com/Rishiidev/pepper/archive/refs/heads/main.zip)**
-- 🚀 **[View GitHub Releases (v1.0.0)](https://github.com/Rishiidev/pepper/releases/tag/v1.0.0)**
-
----
-
-## 🛠️ How to Install & Use (Step-by-Step Guide)
-
-### Step 1: Installation
-
-#### Method A: From Release / Source (Recommended)
-1. Download the **[pepper.zip](https://github.com/Rishiidev/pepper/archive/refs/heads/main.zip)** archive and extract it.
-2. Open Chrome (or Edge / Brave / Arc) and navigate to `chrome://extensions/`.
-3. Enable **Developer mode** (toggle switch in top-right corner).
-4. Click **Load unpacked** and select the `.output/chrome-mv3` folder inside the repository.
-
-#### Method B: Build from Source
-```bash
-git clone https://github.com/Rishiidev/pepper.git
-cd pepper-v2
-npm install
-npm run build
-```
-Then load `.output/chrome-mv3` in `chrome://extensions/`.
-
----
-
-### Step 2: How to Use Pepper OS
-
-#### 1. Capturing a Memory
-- **Automatic**: Simply close any browser window. Pepper silently captures the workspace in the background.
-- **Manual**: Click the Pepper extension icon in your browser toolbar → click **Save Memory** (or press `⌘S`).
-
-#### 2. Recalling & Reconstructing Context
-- **Using ⌘K Search**: Press `⌘K` anywhere in the Pepper dashboard → type what you remember (e.g. "pricing research") → press `Enter`.
-- **Using Reconstruct Memory**: Open the dashboard → click **Reconstruct Memory** on any card. The geometric portal expands and brings you right back to your work.
-
-#### 3. Setting Up AI Providers (BYOK)
-- Go to **Settings** in the dashboard.
-- Select your provider (OpenAI, Anthropic, Gemini, OpenRouter, Ollama Local LLM).
-- Paste your API key → saved in this browser's local extension storage (not synced, not encrypted at rest).
-
----
-
-## ⌨️ Keyboard Shortcuts Reference
+## Shortcuts
 
 | Shortcut | Action |
 |---|---|
-| `⌘K` / `Ctrl+K` | Open Work Memory Search |
-| `⌘S` / `Ctrl+S` | Save Current Memory |
-| `⌘⇧O` / `Ctrl+Shift+O` | Open Pepper Memory Dashboard |
-| `ESC` | Close Search / Overlay |
+| `⌘K` / `Ctrl+K` | Find anything |
+| `⌘S` / `Ctrl+S` | Save window (in the popup) |
+| `⌘⇧C` / `Alt+Shift+C` | Save the current tab and close it |
+| `⌘⇧A` / `Alt+Shift+A` | Add the current tab to the active workspace |
+| `⌘⇧P` / `Alt+Shift+P` | Open the popup |
 
----
+Change or add shortcuts at `chrome://extensions/shortcuts`. Chrome allows four suggested shortcuts, so "Open dashboard", "Open side panel", "Restore last" and "Toggle focus timer" are unassigned by default.
 
-## 🏛️ Logo System Architecture
+## Develop
 
+```bash
+npm run dev        # extension with hot reload
+npm run compile    # type check
+npm test           # unit tests (Vitest)
+npm run test:e2e   # end-to-end tests in real Chromium (needs: npx playwright-core install chromium)
+node e2e/design-quality.e2e.mjs   # accessibility, minimum text size, one primary action per view
+node e2e/store-assets.mjs         # regenerate Chrome Web Store screenshots into store/
+cd website && npm run build       # marketing site
 ```
-┌───────────┐
-│           │   Top Bar (24x8)
-├───┬───────┤
-│   │   P   │   Right Shoulder (8x8) & Center Portal Notch
-├───┴───┬───┤
-│   │ P │   │   Left Stem (8x12) & Inner Memory Block
-└───┴───┴───┘
-```
 
----
+Open `manager.html?view=design` in the extension for the design system page, including a live contrast table.
 
-## 📄 License
+## Design system
 
-MIT License © 2026 [Rishiidev](https://github.com/Rishiidev)
+Light is the reference look and dark is its own palette; both follow the system. Color has one job each: ink for the hero, mint for focus and time, lilac for the timeline, butter for things that need attention. Red is reserved for the single primary action on a view. Type is Plus Jakarta Sans, bundled locally, with 12px as the smallest size.
 
----
+## License
 
-<div align="center">
-<b>Found PEPPER OS useful? A ⭐ helps others find it.</b><br>
-<a href="https://github.com/Rishiidev/pepper">⭐ Star this repo</a>
-</div>
+MIT. See [LICENSE](LICENSE).

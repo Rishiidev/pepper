@@ -195,12 +195,12 @@ const DayView: React.FC = () => {
       {/* Recap */}
       <Card tone="lilac" className="space-y-4">
         <p className="text-xl font-bold leading-snug">{recap.sentence}</p>
-        <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Stat size="md" label="Active" value={formatDurationCompact(recap.activeMs)} />
           <Stat size="md" label="Focus" value={formatDurationCompact(recap.focusSeconds * 1000)} />
           <Stat size="md" label="Tabs opened" value={String(recap.tabsOpened)} />
           <Stat size="md" label="Away" value={formatDurationCompact(recap.awayMs)} />
-        </dl>
+        </div>
         {recap.topDomains.length > 0 && (
           <ul className="space-y-1.5" aria-label="Time by site">
             {recap.topDomains.map((d) => (
@@ -292,7 +292,7 @@ const DayView: React.FC = () => {
                 <ul className="divide-y divide-border" aria-label={`Tabs open at ${clock(at)}`}>
                   {replay.tabs.map((t) => (
                     <li key={t.tabId} className="flex items-center gap-3 py-2">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${t.tabId === replay.activeTabId ? 'bg-text-primary' : 'bg-border-strong'}`} style={t.tabId === replay.activeTabId ? undefined : { background: 'var(--pp-border-strong)' }} aria-label={t.tabId === replay.activeTabId ? 'Active tab' : undefined} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${t.tabId === replay.activeTabId ? 'bg-text-primary' : 'bg-border-strong'}`} style={t.tabId === replay.activeTabId ? undefined : { background: 'var(--pp-border-strong)' }} role={t.tabId === replay.activeTabId ? 'img' : undefined} aria-label={t.tabId === replay.activeTabId ? 'Active tab' : undefined} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">{t.title}</p>
                         <p className="truncate text-xs text-text-muted">
@@ -320,7 +320,7 @@ const DayView: React.FC = () => {
                               aria-label={`${clock(e.ts)}, ${describeEvent(e)}. Jump to this moment`}
                               className={`flex-1 min-w-0 flex items-center gap-3 rounded-input px-2 py-1.5 text-left hover:bg-surface-hover ${e.ts === currentTs ? 'bg-surface-active' : ''}`}
                             >
-                              <time className="w-16 shrink-0 font-mono text-xs text-text-muted">{clock(e.ts)}</time>
+                              <time className="w-16 shrink-0 font-mono text-xs text-text-secondary">{clock(e.ts)}</time>
                               <span className="truncate text-sm">{describeEvent(e)}</span>
                               {e.type === 'session_end' && e.reason === 'interrupted' && <Chip tone="butter">Interrupted</Chip>}
                             </button>

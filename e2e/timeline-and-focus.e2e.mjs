@@ -46,17 +46,17 @@ mgr.on('pageerror', (e) => errors.push('mgr: ' + String(e)));
 await mgr.goto(`chrome-extension://${extId}/manager.html`);
 // dismiss onboarding
 await mgr.waitForSelector('[role=dialog]');
-await mgr.getByRole('button', { name: 'Skip tour' }).click();
+await mgr.getByRole('button', { name: 'Skip for now' }).click();
 
 // ---------- Opt-in + blocklist through the real settings UI ----------
 await mgr.getByRole('button', { name: /^Settings$/ }).first().click();
-check('tracking is off by default', await mgr.getByRole('checkbox', { name: /Record my browser session/ }).isChecked() === false);
+check('tracking is off by default', await mgr.getByRole('switch', { name: /Record my browser session/ }).isChecked() === false);
 await mgr.getByLabel('Never record these sites').fill('blocked.localhost');
 await mgr.getByLabel('Never record these sites').blur();
 await sleep(400);
 const saved = await swEval(async () => (await chrome.storage.local.get('pepper_v2_settings')).pepper_v2_settings);
 check('blocklist saved and parsed', JSON.stringify(saved.trackingBlocklist) === '["blocked.localhost"]', JSON.stringify(saved.trackingBlocklist));
-await mgr.getByRole('checkbox', { name: /Record my browser session/ }).check();
+await mgr.getByRole('switch', { name: /Record my browser session/ }).check();
 await sleep(1500);
 const heartbeat = await swEval(async () => (await chrome.alarms.getAll()).map((a) => a.name));
 check('recorder started (heartbeat alarm)', heartbeat.includes('pepper_recorder_heartbeat'), heartbeat.join(','));

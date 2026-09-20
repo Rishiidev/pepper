@@ -5,6 +5,26 @@ All notable changes to **PEPPER OS** will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased — redesign]
+
+### Changed
+- **New design system**: a soft light/dark palette that follows your system, mint/lilac/butter zones with one red primary action per view, Plus Jakarta Sans bundled locally (no Google Fonts), rounded bento cards, 12px minimum text.
+- **Popup**: one ink card to save the window in a click (⌘S), Undo, inline rename; reopen-last and focus timer below.
+- **Dashboard**: five sections (Home, Workspaces, Timeline, Focus, Settings). Home leads with "Continue where you left off". History and Insights now live inside Timeline.
+- **Timeline**: a real hour axis with session bands, scrubber, and a log grouped by hour.
+- **Onboarding**: opens with a live demo ("Close it. It's saved."), then two optional choices. It no longer saves or closes your real tabs.
+- **Plain language**: "Memory OS", "Reconstruct Memory" and similar are gone. Invented scores and the "85% more momentum" claim are removed.
+- Deleting a workspace uses an Undo toast instead of a confirm dialog.
+- AI settings list only the five providers that exist and hide advanced options behind a disclosure.
+- Marketing site rebuilt to match, with real screenshots and a plain-language permissions list.
+
+### Added
+- Toasts with Undo, a design-system page (`?view=design`) with a live WCAG contrast table, local-only "Get started" checklist, one-time review prompt after the third restore.
+- Design-quality end-to-end gates (axe, 12px minimum, one primary action, no horizontal scroll) in both themes, and Chrome Web Store screenshot generator.
+
+### Fixed
+- Tabs that were still loading when a window closed were left out of the auto-save.
+
 ## [Unreleased — session timeline]
 
 ### Added

@@ -9,9 +9,9 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
   }),
   manifest: {
-    name: 'PEPPER — Workspace Platform',
+    name: 'Pepper — Never lose your tabs',
     short_name: 'PEPPER',
-    description: 'Save, search, manage, and restore browser workspaces. Free RAM by organizing tabs.',
+    description: 'Close a window and Pepper saves it. Get every tab back in one click. Find anything with ⌘K. Works offline, stays on your device.',
     icons: {
       16: 'icons/icon-16.png',
       48: 'icons/icon-48.png',
@@ -26,7 +26,7 @@ export default defineConfig({
       'http://localhost:11434/*'
     ],
     action: {
-      default_title: 'PEPPER — Work Memory Engine',
+      default_title: 'Pepper — Close it. It’s saved.',
       default_popup: 'popup.html',
     },
     commands: {

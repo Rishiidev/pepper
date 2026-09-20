@@ -125,7 +125,7 @@ export default function App() {
             style={{ borderColor: 'var(--pp-border-strong)' }}
           >
             <Search className="w-4 h-4" aria-hidden="true" />
-            <span className="flex-1 text-left">Find anything</span>
+            <span className="flex-1 text-left whitespace-nowrap">Find anything</span>
             <Kbd>⌘K</Kbd>
           </button>
           <div className="flex-1" />

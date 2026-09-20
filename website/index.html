@@ -1,53 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" class="dark scroll-smooth">
+<html lang="en" class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Pepper — Save Your Work. Close Your Tabs.</title>
-    <meta
-      name="description"
-      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
-    />
-    <meta name="theme-color" content="#08090F" />
-
-    <!-- Open Graph / Facebook -->
+    <title>Pepper: close it, it's saved. Get every tab back in one click.</title>
+    <meta name="description" content="Pepper saves a browser window the moment you close it and brings every tab back in one click. Find anything with ⌘K. Works offline, stays on your device." />
+    <meta name="color-scheme" content="light dark" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Pepper — Save Your Work. Close Your Tabs." />
-    <meta
-      property="og:description"
-      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
-    />
-    <meta property="og:site_name" content="PEPPER Work Memory Engine" />
-
-    <!-- Twitter / X -->
+    <meta property="og:title" content="Pepper: close it, it's saved." />
+    <meta property="og:description" content="Close a window and Pepper saves it. Get every tab back in one click. Local-first, no account." />
+    <meta property="og:site_name" content="Pepper" />
+    <meta property="og:image" content="/pepper/img/2-restore-light.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Pepper — Save Your Work. Close Your Tabs." />
-    <meta
-      name="twitter:description"
-      content="Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter and free RAM, and restores your work when you need it."
-    />
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FF4D43'><rect x='0' y='0' width='24' height='8'/><rect x='16' y='8' width='8' height='8'/><rect x='8' y='8' width='8' height='4'/><rect x='0' y='12' width='8' height='12'/></svg>" />
-
-    <!-- Structured Data (JSON-LD) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23D8322B'><rect x='0' y='0' width='24' height='8'/><rect x='16' y='8' width='8' height='8'/><rect x='8' y='8' width='8' height='4'/><rect x='0' y='12' width='8' height='12'/></svg>" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "SoftwareApplication",
-        "name": "PEPPER Work Memory Engine",
-        "operatingSystem": "Chrome OS, macOS, Windows, Linux",
-        "applicationCategory": "ProductivityApplication",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "description": "Pepper saves browser tabs as organized workspaces, lets you close them to reduce clutter, and restores your work when you need it."
+        "name": "Pepper",
+        "operatingSystem": "Chrome, Edge, Brave, Arc",
+        "applicationCategory": "BrowserApplication",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "description": "Pepper saves a browser window when you close it and restores every tab in one click. Local-first, no account."
       }
     </script>
   </head>
-  <body class="bg-[#08090F] text-[#F4F5F7] antialiased selection:bg-[#FF4D43] selection:text-white">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
