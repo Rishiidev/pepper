@@ -238,6 +238,8 @@ await popup.setViewportSize({ width: 420, height: 640 });
 await popup.goto(`chrome-extension://${extId}/popup.html`);
 await sleep(1200);
 check('popup has one-click Pomodoro start', await popup.getByRole('button', { name: /Start \d+:00 focus/ }).count() === 1);
+await popup.getByRole('button', { name: /Choose tabs/ }).click();
+await sleep(400);
 check('popup has per-tab add-to-workspace buttons', await popup.getByRole('button', { name: /to a workspace$/ }).count() >= 1);
 await popup.screenshot({ path: `${SHOTS}/popup-dark.png` });
 

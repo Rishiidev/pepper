@@ -37,7 +37,7 @@ export const InlineRename: React.FC<Props> = ({ value, onSave, autoFocus = false
         type="button"
         onClick={() => setEditing(true)}
         aria-label={`${label}: ${value}. Press to rename`}
-        className={`group inline-flex items-center gap-1.5 text-left font-semibold text-text-primary hover:text-pepper-400 ${className}`}
+        className={`group inline-flex items-center gap-1.5 text-left font-semibold text-current hover:underline underline-offset-2 ${className}`}
       >
         <span className="truncate">{value}</span>
         <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 shrink-0" aria-hidden="true" />
@@ -64,9 +64,9 @@ export const InlineRename: React.FC<Props> = ({ value, onSave, autoFocus = false
             setEditing(false);
           }
         }}
-        className="min-w-0 flex-1 bg-surface border border-pepper-500 rounded-md px-2 py-0.5 text-xs font-semibold text-text-primary"
+        className="min-w-0 flex-1 bg-black/10 dark:bg-white/10 border border-current/50 rounded-input px-2 py-1 text-sm font-semibold text-current"
       />
-      <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+      <Check className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
     </span>
   );
 };

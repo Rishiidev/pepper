@@ -1,235 +1,155 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, LayoutGrid, PanelRight, Search, Settings, Star, Undo2 } from 'lucide-react';
 import { useSessionStore } from '../../src/stores/session-store';
 import { useSettingsStore } from '../../src/stores/settings-store';
 import { useCommandStore } from '../../src/stores/command-store';
 import { Logo } from '../../src/components/brand/Logo';
 import { DomainTabAccordion } from '../../src/components/popup/DomainTabAccordion';
 import { CommandPalette } from '../../src/components/command-palette/CommandPalette';
-import { workspaceEngine } from '../../src/core/engines/workspace-engine';
-import { sessionEngine, RAM_PER_TAB_MB } from '../../src/core/engines/session-engine';
-import { recoveryEngine, LastClosed } from '../../src/core/engines/recovery-engine';
 import { RecoveryBanner } from '../../src/components/recovery/RecoveryBanner';
 import { InlineRename } from '../../src/components/feedback/InlineRename';
 import { ThemeToggle } from '../../src/components/settings/ThemeToggle';
-import { workspaceMembership } from '../../src/core/engines/workspace-membership';
 import { FocusQuickStart } from '../../src/components/focus/FocusQuickStart';
 import { AddToWorkspaceMenu } from '../../src/components/workspace/AddToWorkspaceMenu';
+import { Button, IconButton, Card, CardHeader, FaviconStack, Kbd, Switch, ToastHost, toast } from '../../src/components/ui';
+import { workspaceEngine } from '../../src/core/engines/workspace-engine';
+import { sessionEngine } from '../../src/core/engines/session-engine';
+import { restoreEngine } from '../../src/core/engines/restore-engine';
+import { recoveryEngine, LastClosed } from '../../src/core/engines/recovery-engine';
+import { workspaceMembership } from '../../src/core/engines/workspace-membership';
+import { generateSessionName, baseDomain } from '../../src/core/engines/session-naming';
+import { featureFlagsManager } from '../../src/core/intelligence';
 import { AutoTitleSkill } from '../../src/core/intelligence/skills/auto-title';
 import { projectRepo } from '../../src/storage/repositories/project-repo';
+import { recordActivation } from '../../src/core/engines/activation';
 import { PepperTab, PepperSession } from '../../src/core/types/session';
 import { PepperProjectEntity } from '../../src/storage/db';
-import {
-  Settings,
-  LayoutGrid,
-  Save,
-  RotateCcw,
-  ArrowLeft,
-  CheckCircle2,
-  Sparkles,
-  RefreshCw,
-  Edit2,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Folder,
-  Plus,
-  Zap,
-  Undo2,
-  PanelRight,
-  Star,
-} from 'lucide-react';
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+};
+
+const ago = (ts: number) => {
+  const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m} min ago`;
+  const h = Math.round(m / 60);
+  return h < 24 ? `${h}h ago` : `${Math.round(h / 24)}d ago`;
+};
 
 export default function App() {
-  const { fetchSessions, filteredSessions, restoreSession } = useSessionStore();
+  const { fetchSessions } = useSessionStore();
   const { settings, fetchSettings, updateSettings } = useSettingsStore();
   const { openPalette } = useCommandStore();
 
-  const [view, setView] = useState<'save' | 'settings' | 'success'>('save');
+  const [view, setView] = useState<'main' | 'settings'>('main');
   const [tabs, setTabs] = useState<PepperTab[]>([]);
-  const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-
-  // AI & Project State
-  const [aiTitle, setAiTitle] = useState('');
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [detectedProject, setDetectedProject] = useState<string>('General');
-  const [projectsList, setProjectsList] = useState<PepperProjectEntity[]>([]);
-
-  // Advanced Drawer
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [customTags, setCustomTags] = useState<string>('checkout, research');
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<PepperSession | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [name, setName] = useState('');
+  const nameEdited = useRef(false);
+  const [project, setProject] = useState('General');
+  const [projects, setProjects] = useState<PepperProjectEntity[]>([]);
+  const [tags, setTags] = useState('');
+  const [chooseOpen, setChooseOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState<PepperSession | null>(null);
   const [lastClosed, setLastClosed] = useState<LastClosed | null>(null);
-  const [reopenError, setReopenError] = useState<string | null>(null);
-  const [activeWorkspaceName, setActiveWorkspaceName] = useState<string | null>(null);
+  const [activeName, setActiveName] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // BUG-07 FIX: Use refs to avoid stale closures in keyboard listener
-  const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
-  const selectedIndicesRef = useRef(selectedIndices);
-  selectedIndicesRef.current = selectedIndices;
-  const aiTitleRef = useRef(aiTitle);
-  aiTitleRef.current = aiTitle;
-  const detectedProjectRef = useRef(detectedProject);
-  detectedProjectRef.current = detectedProject;
-  const customTagsRef = useRef(customTags);
-  customTagsRef.current = customTags;
-  const isSavingRef = useRef(isSaving);
-  isSavingRef.current = isSaving;
+  // Latest values for the keyboard handler
+  const latest = useRef({ save: () => {}, canSave: false });
 
   useEffect(() => {
-    fetchSessions();
-    fetchSettings();
-    loadCurrentTabsAndAI();
-    workspaceMembership.getActiveWorkspace().then((w) => setActiveWorkspaceName(w?.name ?? null)).catch(() => undefined);
+    void fetchSessions();
+    void fetchSettings();
+    void load();
     recoveryEngine.peekLastClosed().then(setLastClosed).catch(() => setLastClosed(null));
+    workspaceMembership.getActiveWorkspace().then((w) => setActiveName(w?.name ?? null)).catch(() => undefined);
 
-    // Keyboard Navigation Listener
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      const typing = /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName) || t.isContentEditable;
+      if (((e.metaKey || e.ctrlKey) && e.key === 's') || (e.key === 'Enter' && !typing && !e.metaKey)) {
         e.preventDefault();
-        handleSave();
-      } else if (e.key === 'Escape') {
+        if (latest.current.canSave) latest.current.save();
+      } else if (e.key === 'Escape' && !typing) {
         window.close();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
-        e.preventDefault();
-        generateAiTitle(tabsRef.current);
       }
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const loadCurrentTabsAndAI = async () => {
+  async function load() {
     const current = await workspaceEngine.getActiveWindowTabs();
     setTabs(current);
-    setSelectedIndices(new Set(current.map((_, i) => i)));
+    setSelected(new Set(current.map((_, i) => i)));
 
-    // Load custom projects
     const projs = await projectRepo.getAll();
-    setProjectsList(projs);
+    setProjects(projs);
+    const domains = current.map((t) => hostOf(t.url));
+    setProject(projs.find((p) => domains.some((d) => d.toLowerCase().includes(p.name.toLowerCase())))?.name ?? 'General');
 
-    // Auto-detect project based on domains
-    const domains = current.map((t) => {
-      try {
-        return new URL(t.url).hostname.replace(/^www\./, '');
-      } catch {
-        return '';
-      }
-    });
-
-    let bestMatch = projs.length > 0 ? projs[0].name : 'General';
-    for (const p of projs) {
-      if (domains.some((d) => d.toLowerCase().includes(p.name.toLowerCase()))) {
-        bestMatch = p.name;
-        break;
-      }
-    }
-    setDetectedProject(bestMatch);
-
-    // Auto-trigger AI title generation
-    generateAiTitle(current);
-  };
-
-  const generateAiTitle = async (currentTabs: PepperTab[]) => {
-    if (currentTabs.length === 0) return;
-    setIsGeneratingTitle(true);
-    try {
+    // Instant local name; an AI title replaces it only if AI is on and the user has not typed one
+    const clusters = [...new Set(domains.filter(Boolean).map(baseDomain))];
+    if (current.length > 0) setName(generateSessionName(current, clusters));
+    await featureFlagsManager.hydrateFromStorage();
+    if (featureFlagsManager.isEnabled('aiEnabled') && current.length > 0) {
       const skill = new AutoTitleSkill();
-      const res = await skill.execute({
-        id: `task_popup_title_${Date.now()}`,
-        skillId: skill.id,
-        priority: 'HIGH',
-        requirements: skill.requirements,
-        input: currentTabs,
-        context: { traceId: `popup_${Date.now()}`, createdAt: Date.now() },
-      });
-
-      if (res.success && res.data && typeof res.data === 'string') {
-        setAiTitle(res.data);
-      } else {
-        setAiTitle('Active Workspace');
-      }
-    } catch {
-      setAiTitle('Active Workspace');
-    } finally {
-      setIsGeneratingTitle(false);
+      skill
+        .execute({ id: `popup_title_${Date.now()}`, skillId: skill.id, priority: 'HIGH', requirements: skill.requirements, input: current, context: { traceId: `popup_${Date.now()}`, createdAt: Date.now() } })
+        .then((res) => {
+          if (res.success && typeof res.data === 'string' && !nameEdited.current) setName(res.data);
+        })
+        .catch(() => undefined);
     }
-  };
+  }
 
-  const handleSave = async () => {
-    const currentSelected = selectedIndicesRef.current;
-    const currentTabs = tabsRef.current;
-    const currentSaving = isSavingRef.current;
-    const currentTitle = aiTitleRef.current;
-    const currentProject = detectedProjectRef.current;
-    const currentTagsStr = customTagsRef.current;
+  const chosen = tabs.filter((_, i) => selected.has(i));
 
-    if (currentSelected.size === 0 || currentSaving) return;
-    setIsSaving(true);
+  async function save() {
+    if (chosen.length === 0 || saving) return;
+    setSaving(true);
+    setError(null);
     try {
-      const selectedTabs = currentTabs.filter((_, idx) => currentSelected.has(idx));
-      const titleToUse = currentTitle.trim() || 'Saved Workspace';
-      // BUG-08 FIX: Propagate detected/selected project name to workspaceEngine
-      const session = await workspaceEngine.saveWorkspace(titleToUse, selectedTabs, currentProject);
-
-      if (session) {
-        // BUG-13 FIX: Parse and save custom tags entered in Advanced Options
-        const parsedTags = currentTagsStr
-          .split(',')
-          .map((t) => t.trim())
-          .filter(Boolean);
-        if (parsedTags.length > 0) {
-          await sessionEngine.updateSession(session.id, { tags: parsedTags });
-        }
-
-        setLastSaved(session);
-        setView('success');
-      }
+      const session = await workspaceEngine.saveWorkspace(name.trim() || 'Saved workspace', chosen, project, settings.closeTabsOnSave);
+      if (!session) throw new Error('nothing saved');
+      const parsed = tags.split(',').map((t) => t.trim()).filter(Boolean);
+      if (parsed.length > 0) await sessionEngine.updateSession(session.id, { tags: parsed });
+      setSaved(session);
     } catch (err) {
       console.error('Save failed:', err);
+      setError('Could not save this window. Your tabs are still open.');
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
+  }
+  latest.current = { save: () => void save(), canSave: view === 'main' && !saved && chosen.length > 0 && !saving };
+
+  const undo = async () => {
+    if (!saved) return;
+    await restoreEngine.restoreSession(saved.id);
+    await sessionEngine.deleteSession(saved.id);
+    window.close();
   };
 
-  const handleToggleIndex = (index: number) => {
-    const next = new Set(selectedIndices);
-    if (next.has(index)) next.delete(index);
-    else next.add(index);
-    setSelectedIndices(next);
-  };
-
-  const handleToggleDomain = (indices: number[], select: boolean) => {
-    const next = new Set(selectedIndices);
-    indices.forEach((i) => {
-      if (select) next.add(i);
-      else next.delete(i);
-    });
-    setSelectedIndices(next);
-  };
-
-  const handleToggleAll = () => {
-    if (selectedIndices.size === tabs.length) {
-      setSelectedIndices(new Set());
-    } else {
-      setSelectedIndices(new Set(tabs.map((_, i) => i)));
-    }
-  };
-
-  const handleReopen = async () => {
-    setReopenError(null);
+  const reopen = async () => {
     try {
-      await recoveryEngine.reopenLastClosedWindow();
+      const target = await recoveryEngine.reopenLastClosedWindow();
+      // Pepper snapshots are counted by the restore engine; Chrome's own restore is counted here
+      if (target?.source === 'chrome') void recordActivation('restore');
       window.close();
-    } catch (err) {
-      setReopenError('Could not reopen that window.');
-      console.warn('Reopen failed:', err);
+    } catch {
+      toast('Could not reopen that window');
     }
   };
 
+  const openDashboard = () => chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
   const openSidePanel = async () => {
     try {
       const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
@@ -240,353 +160,209 @@ export default function App() {
     }
   };
 
-  const openManager = () => {
-    if (typeof chrome !== 'undefined' && chrome.tabs) {
-      chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
-    } else {
-      window.open('/manager.html', '_blank');
-    }
+  const toggle = (i: number) => {
+    const next = new Set(selected);
+    if (next.has(i)) next.delete(i);
+    else next.add(i);
+    setSelected(next);
+  };
+  const toggleMany = (idx: number[], on: boolean) => {
+    const next = new Set(selected);
+    idx.forEach((i) => (on ? next.add(i) : next.delete(i)));
+    setSelected(next);
   };
 
-  const estimatedRamMb = Math.round(selectedIndices.size * RAM_PER_TAB_MB);
-  const domainCount = new Set(
-    tabs.map((t) => {
-      try {
-        return new URL(t.url).hostname.replace(/^www\./, '');
-      } catch {
-        return '';
-      }
-    }).filter(Boolean)
-  ).size;
+  const header = (
+    <header className="flex items-center justify-between">
+      <Logo showText size={22} />
+      <div className="flex items-center gap-1">
+        <IconButton aria-label="Search (⌘K)" title="Search (⌘K)" onClick={openPalette}>
+          <Search className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+        <IconButton aria-label="Open side panel" title="Open side panel" onClick={openSidePanel}>
+          <PanelRight className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+        <IconButton aria-label="Open dashboard" title="Open dashboard" onClick={openDashboard}>
+          <LayoutGrid className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+        <IconButton aria-label="Settings" title="Settings" onClick={() => setView('settings')}>
+          <Settings className="w-4 h-4" aria-hidden="true" />
+        </IconButton>
+      </div>
+    </header>
+  );
+
+  if (view === 'settings') {
+    return (
+      <div className="w-[400px] p-4 space-y-3 bg-surface text-text-primary">
+        <ToastHost />
+        <header className="flex items-center gap-2">
+          <IconButton aria-label="Back" onClick={() => setView('main')}>
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+          </IconButton>
+          <h1 className="text-lg font-bold">Settings</h1>
+        </header>
+        <Card className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-sm font-semibold">Theme</span>
+            <ThemeToggle />
+          </div>
+          <label className="flex items-center justify-between gap-4">
+            <span>
+              <span className="block text-sm font-semibold">Close tabs after saving</span>
+              <span className="block text-xs text-text-muted">Frees memory right away</span>
+            </span>
+            <Switch checked={settings.closeTabsOnSave} onChange={(v) => updateSettings({ closeTabsOnSave: v })} label="Close tabs after saving" />
+          </label>
+          <Button className="w-full" onClick={openDashboard}>
+            All settings in the dashboard
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const domainCount = new Set(chosen.map((t) => hostOf(t.url)).filter(Boolean)).size;
 
   return (
-    <div className="w-[400px] bg-surface text-text-primary p-4.5 min-h-[510px] flex flex-col font-sans select-none relative">
+    <div className="w-[400px] p-4 space-y-3 bg-surface text-text-primary">
       <CommandPalette />
+      <ToastHost />
+      {header}
 
-      {/* Save View */}
-      {view === 'save' && (
-        <div className="flex-1 flex flex-col justify-between space-y-4">
-          {/* Header */}
-          <header className="flex items-center justify-between border-b border-border pb-3">
-            <Logo showText size={24} />
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={openSidePanel}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
-                aria-label="Open side panel"
-                title="Open side panel"
-              >
-                <PanelRight className="w-4 h-4" aria-hidden="true" />
-              </button>
-              <button
-                onClick={() => setView('settings')}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
-                title="Settings"
-              
-              aria-label="Settings">
-                <Settings className="w-4 h-4" />
-              </button>
-              <button
-                onClick={openManager}
-                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded-lg transition-colors"
-                title="Open Manager"
-              aria-label="Open Manager">
-                <LayoutGrid className="w-4 h-4" />
-              </button>
+      {/* Save this window */}
+      <Card tone="ink" pad="sm" as="section" aria-label="Save this window" className="space-y-3" data-testid="save-card">
+        {saved ? (
+          <>
+            <CardHeader eyebrow="Saved" title={`${saved.tabCount} tabs are safe`} icon={<Check className="w-4 h-4" />} />
+            <InlineRename value={saved.name} autoFocus={false} label="Rename saved workspace" className="text-base" onSave={async (n) => setSaved(await sessionEngine.updateSession(saved.id, { name: n }))} />
+            <div className="flex gap-2">
+              <Button onClick={undo} className="flex-1">
+                <Undo2 className="w-4 h-4" aria-hidden="true" />
+                Undo
+              </Button>
+              <Button variant="ghost" onClick={() => window.close()} className="flex-1">
+                Done
+              </Button>
             </div>
-          </header>
-
-          <RecoveryBanner compact />
-
-          <FocusQuickStart compact />
-
-          {activeWorkspaceName && (
-            <p className="flex items-center gap-1.5 text-xs text-text-secondary -mt-2">
-              <Star className="w-3 h-3 text-amber-700 dark:text-amber-400 fill-amber-400" aria-hidden="true" />
-              Active workspace: <strong className="text-text-primary truncate">{activeWorkspaceName}</strong>
-              <span className="text-text-muted">· Alt+Shift+A adds a tab</span>
-            </p>
-          )}
-
-          {lastClosed && (
-            <div>
-              <button
-                type="button"
-                onClick={handleReopen}
-                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-surface-card hover:bg-surface-hover text-left transition-colors"
-              >
-                <Undo2 className="w-4 h-4 text-pepper-400 shrink-0" aria-hidden="true" />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-xs font-bold text-text-primary">Reopen last closed window</span>
-                  <span className="block text-xs text-text-muted truncate">
-                    {lastClosed.tabCount} tab{lastClosed.tabCount !== 1 ? 's' : ''} · {lastClosed.label}
-                  </span>
-                </span>
-              </button>
-              {reopenError && <p role="alert" className="text-xs text-red-500 mt-1">{reopenError}</p>}
-            </div>
-          )}
-
-          {/* Top Metrics Strip */}
-          <div className="bg-surface-card border border-pepper-500/30 rounded-xl p-2.5 grid grid-cols-4 gap-2 text-center text-xs shadow-inner">
-            <div>
-              <span className="text-xs text-text-muted font-medium block">Tabs</span>
-              <span className="font-bold text-text-primary">{selectedIndices.size} Tabs</span>
-            </div>
-            <div>
-              <span className="text-xs text-text-muted font-medium block">RAM Freed</span>
-              <span className="font-bold text-emerald-700 dark:text-emerald-400">{estimatedRamMb} MB</span>
-            </div>
-            <div>
-              <span className="text-xs text-text-muted font-medium block">Domains</span>
-              <span className="font-bold text-pepper-400">{domainCount} Domain{domainCount !== 1 ? 's' : ''}</span>
-            </div>
-            <div>
-              <span className="text-xs text-text-muted font-medium block">Restore</span>
-              <span className="font-bold text-blue-700 dark:text-blue-400">&lt; 1 sec</span>
-            </div>
+          </>
+        ) : tabs.length === 0 ? (
+          <div className="py-4">
+            <p className="text-base font-bold">No web tabs to save</p>
+            <p className="text-sm opacity-80 mt-1">Open a page, then come back. Closing a window saves it automatically.</p>
           </div>
-
-          {/* AI Workspace Suggested Name */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-text-primary flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-pepper-400" />
-                <span>Suggested Workspace Name</span>
-              </label>
-
-              <div className="flex items-center gap-2 text-xs font-semibold">
-                <button
-                  type="button"
-                  onClick={() => generateAiTitle(tabs)}
-                  disabled={isGeneratingTitle}
-                  className="flex items-center gap-1 text-pepper-400 hover:underline transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 ${isGeneratingTitle ? 'animate-spin' : ''}`} />
-                  <span>Regenerate</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditingTitle(!isEditingTitle)}
-                  className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
-                >
-                  {isEditingTitle ? <Check className="w-3 h-3 text-emerald-700 dark:text-emerald-400" /> : <Edit2 className="w-3 h-3" />}
-                  <span>{isEditingTitle ? 'Accept' : 'Edit'}</span>
-                </button>
+        ) : (
+          <>
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="eyebrow opacity-75">This window</p>
+                <p className="display-number !text-[32px] mt-1">
+                  {chosen.length} tab{chosen.length !== 1 ? 's' : ''}
+                </p>
               </div>
+              <FaviconStack items={chosen} max={5} ring="var(--pp-ink-bg)" total={chosen.length} />
             </div>
 
-            <div className="relative">
-              <input
-                type="text"
-                value={aiTitle}
-                onChange={(e) => {
-                  setAiTitle(e.target.value);
-                  setIsEditingTitle(true);
-                }}
-                disabled={isGeneratingTitle}
-                placeholder={isGeneratingTitle ? '✨ Analyzing tabs & generating title...' : 'e.g. Shopify Checkout'}
-                className="w-full bg-surface-card border border-border rounded-xl px-3 py-2 text-xs font-bold text-text-primary placeholder:text-pepper-400/70 focus:outline-none focus:border-pepper-500 transition-colors shadow-inner"
-              />
-            </div>
-          </div>
+            <InlineRename
+              value={name}
+              label="Workspace name"
+              className="text-sm w-full"
+              onSave={async (n) => {
+                nameEdited.current = true;
+                setName(n);
+              }}
+            />
 
-          {/* Compressed 1-Row Assigned Project Chip */}
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-surface-card border border-border text-xs">
-            <div className="flex items-center gap-2">
-              <Folder className="w-4 h-4 text-pepper-500" />
-              <span className="text-text-muted font-semibold">Project</span>
-            </div>
+            <Button variant="primary" className="w-full" disabled={saving || chosen.length === 0} onClick={() => void save()} data-testid="save-window">
+              {saving ? 'Saving…' : 'Save window'}
+              <Kbd className="!text-white !border-white/40">⌘S</Kbd>
+            </Button>
+            {error && (
+              <p role="alert" className="text-sm font-semibold text-pepper-400">
+                {error}
+              </p>
+            )}
 
-            <div className="flex items-center gap-2">
-              <select
-                value={detectedProject}
-                onChange={(e) => setDetectedProject(e.target.value)}
-                className="bg-surface border border-border/80 rounded-lg px-2.5 py-1 text-xs font-bold text-pepper-400 focus:outline-none cursor-pointer"
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <button
+                type="button"
+                aria-expanded={chooseOpen}
+                onClick={() => setChooseOpen(!chooseOpen)}
+                className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"
               >
-                <option value="General">General</option>
-                {projectsList.map((p) => (
-                  <option key={p.id} value={p.name}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-pepper-500/10 text-pepper-400 border border-pepper-500/20">
-                Auto-detected
-              </span>
-            </div>
-          </div>
-
-          {/* Grouped Tabs Accordion */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-text-muted">
-              <span>Browser Tabs Grouped by Domain</span>
-              <button onClick={handleToggleAll} className="text-xs text-pepper-400 hover:underline">
-                {selectedIndices.size === tabs.length ? 'Deselect All' : 'Select All (⌘A)'}
+                Choose tabs ({domainCount} site{domainCount !== 1 ? 's' : ''})
+                {chooseOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
               </button>
+              <label className="inline-flex items-center gap-2">
+                <span className="text-xs opacity-80">Close tabs after saving</span>
+                <Switch onInk checked={settings.closeTabsOnSave} onChange={(v) => updateSettings({ closeTabsOnSave: v })} label="Close tabs after saving" />
+              </label>
             </div>
 
-            <div className="max-h-36 overflow-y-auto pr-1">
-              <DomainTabAccordion
-                tabs={tabs}
-                selectedIndices={selectedIndices}
-                onToggleIndex={handleToggleIndex}
-                onToggleDomain={handleToggleDomain}
-                renderRowAction={(tab) => (
-                  <AddToWorkspaceMenu tabs={[tab]} label={`Add ${tab.title || tab.url} to a workspace`} />
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Progressive Disclosure: Advanced Options */}
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="flex items-center gap-1 text-xs font-semibold text-text-muted hover:text-text-primary"
-            >
-              <span>Advanced Options</span>
-              {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-
-            {showAdvanced && (
-              <div className="pt-2 space-y-2 text-xs animate-slide-up">
-                <div>
-                  <label className="block text-xs text-text-muted font-medium mb-1">Custom Tags</label>
-                  <input
-                    type="text"
-                    value={customTags}
-                    onChange={(e) => setCustomTags(e.target.value)}
-                    placeholder="comma separated tags"
-                    className="w-full bg-surface-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-primary font-mono"
+            {chooseOpen && (
+              <div className="space-y-3 rounded-inner bg-surface-card text-text-primary p-3">
+                <div className="max-h-44 overflow-y-auto pr-1">
+                  <DomainTabAccordion
+                    tabs={tabs}
+                    selectedIndices={selected}
+                    onToggleIndex={toggle}
+                    onToggleDomain={toggleMany}
+                    renderRowAction={(tab) => <AddToWorkspaceMenu tabs={[tab]} label={`Add ${tab.title || tab.url} to a workspace`} />}
                   />
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* 1-Click Save CTA & Impact Breakdown */}
-          <div className="space-y-2 pt-1">
-            <button
-              onClick={handleSave}
-              disabled={isSaving || selectedIndices.size === 0}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-pepper-500 hover:bg-pepper-600 active:bg-pepper-700 font-bold text-xs text-white rounded-xl transition-all shadow-xl disabled:opacity-50 hover:scale-[1.01]"
-            >
-              <Save className="w-4 h-4" />
-              <span>{isSaving ? 'Capturing Memory…' : `Save Memory (Enter / ⌘S)`}</span>
-            </button>
-
-            <div className="grid grid-cols-2 gap-1 text-xs font-medium text-text-muted text-center pt-0.5">
-              <span>✓ Closes {selectedIndices.size} tabs</span>
-              <span>✓ {estimatedRamMb} MB freed</span>
-              <span>✓ AI summary generated</span>
-              <span>✓ Instant restore enabled</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Settings View */}
-      {view === 'settings' && (
-        <div className="flex-1 flex flex-col justify-between space-y-4">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-3">
-              <button onClick={() => setView('save')} className="p-1 text-text-muted hover:text-text-primary rounded">
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <h2 className="font-bold text-sm text-text-primary">SETTINGS & TEMPLATES</h2>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold text-text-muted mb-1">Name Template</label>
-                <input
-                  type="text"
-                  value={settings.nameTemplate}
-                  onChange={(e) => updateSettings({ nameTemplate: e.target.value })}
-                  placeholder="{{date}} — {{time}}"
-                  className="w-full bg-surface-card border border-border rounded-lg px-3 py-2 text-text-primary font-mono"
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-t border-border/50">
-                <div className="font-semibold text-text-primary">Theme</div>
-                <ThemeToggle />
-              </div>
-
-              <div className="flex items-center justify-between py-2 border-t border-border/50">
-                <div>
-                  <div className="font-semibold text-text-primary">Close Tabs After Saving</div>
-                  <div className="text-xs text-text-muted font-medium">Free RAM immediately</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="text-xs font-semibold space-y-1">
+                    Project
+                    <select value={project} onChange={(e) => setProject(e.target.value)} className="h-9 w-full rounded-input border bg-surface-card px-2 text-sm font-normal" style={{ borderColor: 'var(--pp-border-strong)' }}>
+                      <option value="General">General</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="text-xs font-semibold space-y-1">
+                    Tags
+                    <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="research, checkout" className="h-9 w-full rounded-input border bg-surface-card px-2 text-sm font-normal" style={{ borderColor: 'var(--pp-border-strong)' }} />
+                  </label>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={settings.closeTabsOnSave}
-                  onChange={(e) => updateSettings({ closeTabsOnSave: e.target.checked })}
-                  className="accent-pepper-500 w-4 h-4"
-                />
               </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setView('save')}
-            className="w-full py-2 bg-surface-card hover:bg-surface-hover border border-border font-semibold text-xs rounded-lg"
-          >
-            Back to Save
-          </button>
-        </div>
-      )}
-
-      {/* Success View */}
-      {view === 'success' && (
-        <div className="flex-1 flex flex-col items-center justify-center text-center space-y-4 py-8">
-          <CheckCircle2 className="w-12 h-12 text-pepper-500" />
-          <div className="space-y-1">
-            <h2 className="text-base font-bold text-text-primary">✓ Workspace Saved!</h2>
-            {lastSaved && (
-              <InlineRename
-                value={lastSaved.name}
-                label="Rename saved workspace"
-                autoFocus
-                className="text-xs text-pepper-400 justify-center"
-                onSave={async (name) => {
-                  const updated = await sessionEngine.updateSession(lastSaved.id, { name });
-                  setLastSaved(updated);
-                }}
-              />
             )}
-            <div className="text-xs text-text-muted space-y-0.5 pt-1">
-              <p>✓ {lastSaved?.tabCount} tabs closed &bull; {estimatedRamMb} MB Recovered</p>
-              <p>✓ AI Summary Generated &bull; Assigned to {detectedProject}</p>
-            </div>
-          </div>
+          </>
+        )}
+      </Card>
 
-          <div className="flex gap-2 w-full pt-4">
-            <button
-              onClick={async () => {
-                if (lastSaved) {
-                  await useSessionStore.getState().restoreSession(lastSaved.id);
-                  await useSessionStore.getState().deleteSession(lastSaved.id);
-                  window.close();
-                }
-              }}
-              className="flex-1 py-2 px-3 bg-surface-card hover:bg-surface-hover border border-border text-xs font-semibold rounded-lg text-text-primary"
-            >
-              Undo & Restore
-            </button>
-            <button
-              onClick={() => window.close()}
-              className="flex-1 py-2 px-3 bg-pepper-500 hover:bg-pepper-600 text-xs font-semibold rounded-lg text-white font-bold"
-            >
-              Done
-            </button>
-          </div>
-        </div>
+      {/* Recovery, or reopen the last closed window */}
+      <RecoveryBanner compact />
+      {lastClosed && (
+        <Card tone="butter" pad="sm" as="section" aria-label="Reopen last closed window" data-testid="reopen-card">
+          <button type="button" onClick={reopen} className="flex w-full items-center gap-3 text-left">
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">Reopen last closed window</span>
+              <span className="block text-xs opacity-80 truncate">
+                {lastClosed.tabCount} tab{lastClosed.tabCount !== 1 ? 's' : ''} · {ago(lastClosed.closedAt)} · {lastClosed.label}
+              </span>
+            </span>
+            <span aria-hidden="true" className="inline-flex h-8 items-center rounded-full border border-current/40 px-3.5 text-xs font-semibold">
+              Reopen
+            </span>
+          </button>
+        </Card>
       )}
+
+      <FocusQuickStart compact />
+
+      <footer className="flex items-center justify-between gap-2 px-1 text-xs text-text-muted">
+        <span className="inline-flex items-center gap-1.5 min-w-0">
+          <Star className={`w-3.5 h-3.5 shrink-0 ${activeName ? 'fill-current' : ''}`} aria-hidden="true" />
+          <span className="truncate">{activeName ? `Active: ${activeName}` : 'No active workspace'}</span>
+        </span>
+        <span className="shrink-0">
+          <Kbd>⌘K</Kbd> search
+        </span>
+      </footer>
+      {saved && <p className="sr-only" role="status">Saved {saved.tabCount} tabs</p>}
     </div>
   );
 }

@@ -219,3 +219,14 @@ export function buildRecap(events: TimelineEvent[], focus: FocusSession[], range
 
   return { activeMs, focusSeconds, tabsOpened, sessionCount: sessionIds.size, awayMs, topDomains, sentence };
 }
+
+/** Active milliseconds per hour of the given day (24 values), for sparklines. */
+export function hourlyActivity(events: TimelineEvent[], dayFrom: number): number[] {
+  const buckets = new Array<number>(24).fill(0);
+  for (const e of events) {
+    if (e.type !== 'tab_active' || !e.spentMs) continue;
+    const h = Math.floor((e.ts - dayFrom) / 3_600_000);
+    if (h >= 0 && h < 24) buckets[h] += e.spentMs;
+  }
+  return buckets;
+}

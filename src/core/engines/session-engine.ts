@@ -1,5 +1,6 @@
 import { INBOX_SESSION_ID } from '../constants/ids';
 import { focusBadgeText } from './focus-timing';
+import { recordActivation } from './activation';
 import { PepperSession, PepperTab, SessionStats, CaptureType } from '../types/session';
 import { sessionRepo } from '../../storage/repositories/session-repo';
 import { eventBus } from '../events/event-bus';
@@ -71,6 +72,7 @@ export class SessionEngine {
     };
 
     await sessionRepo.save(session);
+    void recordActivation('save');
     eventBus.emit('session:created', { session });
     await this.refreshBadge();
     await this.notifyCrossContextSync();

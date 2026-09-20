@@ -1,5 +1,6 @@
 import { sessionEngine, INBOX_SESSION_ID } from './session-engine';
 import { PepperTab } from '../types/session';
+import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
 
 export class RestoreEngine {
@@ -61,6 +62,7 @@ export class RestoreEngine {
       }
     }
 
+    void recordActivation('restore');
     await sessionEngine.updateSession(sessionId, { restoredAt: Date.now() }).catch(() => undefined);
     eventBus.emit('session:restored', { sessionId, tabCount: tabsToRestore.length });
   }

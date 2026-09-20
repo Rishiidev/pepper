@@ -105,7 +105,7 @@ check('inline rename persisted', renamed === 'Stripe work', renamed);
 // ---------- Search ----------
 await mgr.keyboard.press('Escape');
 await mgr.keyboard.press('Control+k');
-await mgr.getByRole('combobox', { name: 'Search your work memory' }).fill('stripe webhok');
+await mgr.getByRole('combobox', { name: 'Find anything' }).fill('stripe webhok');
 await sleep(400);
 check('⌘K fuzzy search finds the workspace with typos, no AI', await mgr.getByRole('option', { name: /Stripe work/ }).count() > 0);
 await mgr.screenshot({ path: `${SHOTS}/palette-dark.png` });
@@ -125,7 +125,7 @@ await sleep(1000);
 await mgr.evaluate(() => chrome.tabs.create({ url: 'about:blank', active: false })); // wakes the worker
 await sleep(3000);
 await mgr.goto(`chrome-extension://${extId}/manager.html`);
-await mgr.getByText('Restore your last session').waitFor({ timeout: 8000 }).then(
+await mgr.getByTestId('recovery-card').waitFor({ timeout: 8000 }).then(
   () => check('crash recovery banner appears after restart', true), () => check('crash recovery banner appears after restart', false));
 await mgr.screenshot({ path: `${SHOTS}/recovery-dark.png` });
 
@@ -143,7 +143,7 @@ await mgr.evaluate(async () => { const k = 'pepper_v2_settings'; const cur = (aw
 await sleep(500);
 check('light theme applied', await mgr.evaluate(() => document.documentElement.dataset.theme) === 'light');
 const bg = await mgr.evaluate(() => getComputedStyle(document.body).backgroundColor);
-check('light background is actually light', bg === 'rgb(245, 245, 248)', bg);
+check('light background is actually light', bg === 'rgb(236, 239, 232)', bg);
 await mgr.screenshot({ path: `${SHOTS}/manager-light.png` });
 await popup.reload(); await sleep(800);
 await popup.screenshot({ path: `${SHOTS}/popup-light.png` });

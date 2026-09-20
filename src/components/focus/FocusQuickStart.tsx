@@ -3,16 +3,21 @@ import { Pause, Play, Square, Timer } from 'lucide-react';
 import { useFocusStore } from '../../stores/focus-store';
 import { getFocusTarget } from '../../core/engines/focus-target';
 import { formatClock } from '../../core/engines/focus-timing';
+import { Button, IconButton } from '../ui/Button';
+import { Card } from '../ui/Card';
+import { ProgressRing } from '../ui/ProgressRing';
 
 const PRESETS = [15, 25, 50];
 
 interface Props {
-  /** Tighter layout for the popup */
+  /** Popup layout: smaller ring */
   compact?: boolean;
+  /** Make Start the red primary action (side panel). In the popup, Save is primary instead. */
+  primary?: boolean;
 }
 
-/** One-click Pomodoro: start, pause and stop from the popup or the side panel. */
-export const FocusQuickStart: React.FC<Props> = ({ compact = false }) => {
+/** One-click Pomodoro. A mint (focus and time) card with a progress ring. */
+export const FocusQuickStart: React.FC<Props> = ({ compact = false, primary = false }) => {
   const { activeSession, isRunning, isPaused, elapsedSeconds, startFocus, pauseFocus, resumeFocus, completeFocus, cancelFocus } = useFocusStore();
   const [minutes, setMinutes] = useState(25);
   const [starting, setStarting] = useState(false);
@@ -26,79 +31,78 @@ export const FocusQuickStart: React.FC<Props> = ({ compact = false }) => {
     }
   };
 
+  const ringSize = compact ? 64 : 96;
+
   if (isRunning && activeSession) {
     const countdown = activeSession.mode !== 'stopwatch' && activeSession.durationSeconds > 0;
     const shown = countdown ? Math.max(0, activeSession.durationSeconds - elapsedSeconds) : elapsedSeconds;
+    const progress = countdown ? elapsedSeconds / activeSession.durationSeconds : 0;
     return (
-      <section aria-label="Focus timer" className="rounded-xl border border-pepper-500/40 bg-pepper-500/5 p-3 flex items-center gap-3">
+      <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex items-center gap-4" data-testid="focus-card">
+        <ProgressRing value={progress} size={ringSize} stroke={compact ? 6 : 8} label="Focus progress">
+          <Timer className="w-5 h-5" aria-hidden="true" />
+        </ProgressRing>
         <div className="min-w-0 flex-1">
-          <div
+          <p className="eyebrow opacity-75">{isPaused ? 'Paused' : 'Focusing'}</p>
+          <p
             role="timer"
-            aria-live="off"
             aria-label={`${isPaused ? 'Paused, ' : ''}${countdown ? 'time left' : 'elapsed'} ${formatClock(shown)}`}
-            className={`font-mono font-extrabold ${compact ? 'text-xl' : 'text-3xl'} text-pepper-400 leading-none`}
+            className={`display-number ${compact ? '!text-[32px]' : ''}`}
           >
             {formatClock(shown)}
-          </div>
-          <p className="text-xs text-text-muted truncate mt-1">
-            {isPaused ? 'Paused' : 'Focusing'} · {activeSession.workspaceName}
           </p>
+          <p className="text-xs opacity-80 truncate mt-1">{activeSession.workspaceName}</p>
         </div>
-        {isPaused ? (
-          <button type="button" onClick={resumeFocus} aria-label="Resume focus timer" className="p-2 rounded-lg bg-pepper-500 text-white hover:bg-pepper-600">
-            <Play className="w-4 h-4" aria-hidden="true" />
+        <div className="flex flex-col gap-1">
+          {isPaused ? (
+            <IconButton aria-label="Resume focus timer" onClick={resumeFocus} className="!text-current hover:!bg-black/10">
+              <Play className="w-4 h-4" aria-hidden="true" />
+            </IconButton>
+          ) : (
+            <IconButton aria-label="Pause focus timer" onClick={pauseFocus} className="!text-current hover:!bg-black/10">
+              <Pause className="w-4 h-4" aria-hidden="true" />
+            </IconButton>
+          )}
+          <IconButton aria-label="Finish focus session now" title="Finish and save" onClick={() => completeFocus()} className="!text-current hover:!bg-black/10">
+            <Square className="w-4 h-4" aria-hidden="true" />
+          </IconButton>
+          <button type="button" onClick={cancelFocus} aria-label="Cancel focus session" className="text-xs font-semibold underline opacity-80 hover:opacity-100">
+            Cancel
           </button>
-        ) : (
-          <button type="button" onClick={pauseFocus} aria-label="Pause focus timer" className="p-2 rounded-lg border border-border text-text-primary hover:bg-surface-hover">
-            <Pause className="w-4 h-4" aria-hidden="true" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => completeFocus()}
-          aria-label="Finish focus session now"
-          title="Finish and save"
-          className="p-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600"
-        >
-          <Square className="w-4 h-4" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          onClick={cancelFocus}
-          aria-label="Cancel focus session"
-          className="text-xs font-semibold text-text-muted hover:text-red-500"
-        >
-          Cancel
-        </button>
-      </section>
+        </div>
+      </Card>
     );
   }
 
   return (
-    <section aria-label="Focus timer" className="rounded-xl border border-border bg-surface-card p-3 flex items-center gap-2">
-      <button
-        type="button"
-        onClick={start}
-        disabled={starting}
-        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-pepper-500 hover:bg-pepper-600 text-white text-xs font-bold disabled:opacity-60"
-      >
-        <Timer className="w-4 h-4" aria-hidden="true" />
-        <span>Start {minutes}:00 focus</span>
-      </button>
-      <div role="radiogroup" aria-label="Focus length in minutes" className="flex rounded-lg border border-border overflow-hidden">
-        {PRESETS.map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="radio"
-            aria-checked={minutes === m}
-            onClick={() => setMinutes(m)}
-            className={`px-2 py-2 text-xs font-bold font-mono ${minutes === m ? 'bg-pepper-500/15 text-pepper-400' : 'text-text-muted hover:text-text-primary'}`}
-          >
-            {m}
-          </button>
-        ))}
+    <Card tone="mint" as="section" aria-label="Focus timer" pad="sm" className="flex items-center gap-4" data-testid="focus-card">
+      <ProgressRing value={0} size={ringSize} stroke={compact ? 6 : 8}>
+        <Timer className="w-5 h-5" aria-hidden="true" />
+      </ProgressRing>
+      <div className="min-w-0 flex-1 space-y-2">
+        <div>
+          <p className="eyebrow opacity-75">Focus</p>
+          <p className="display-number !text-[32px]">{minutes}:00</p>
+        </div>
+        <div role="radiogroup" aria-label="Focus length in minutes" className="inline-flex rounded-full bg-black/10 dark:bg-white/10 p-0.5">
+          {PRESETS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={minutes === m}
+              aria-label={`${m} minutes`}
+              onClick={() => setMinutes(m)}
+              className={`h-7 min-w-9 rounded-full px-2 text-xs font-bold font-mono ${minutes === m ? 'bg-zone-mint-fg text-zone-mint' : 'opacity-80 hover:opacity-100'}`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
       </div>
-    </section>
+      <Button variant={primary ? 'primary' : 'secondary'} onClick={start} disabled={starting} aria-label={`Start ${minutes}:00 focus`}>
+        Start
+      </Button>
+    </Card>
   );
 };

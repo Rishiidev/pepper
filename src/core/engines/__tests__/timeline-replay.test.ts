@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tabsOpenAt, buildRecap, domainLabel, formatDuration, sessionsOnDay, describeEvent } from '../timeline-replay';
+import { hourlyActivity, tabsOpenAt, buildRecap, domainLabel, formatDuration, sessionsOnDay, describeEvent } from '../timeline-replay';
 import { TimelineEvent } from '../../types/timeline';
 import { FocusSession } from '../../types/focus-session';
 
@@ -87,5 +87,16 @@ describe('helpers', () => {
     expect(describeEvent(ev(0, 'session_start', { reason: 'startup' }))).toBe('Opened Chrome');
     expect(describeEvent(ev(0, 'session_end', { reason: 'interrupted' }))).toBe('Chrome closed unexpectedly');
     expect(describeEvent(ev(0, 'tab_switch', { title: 'Figma' }))).toBe('Switched to Figma');
+  });
+});
+
+describe('hourlyActivity', () => {
+  it('buckets active time by hour', () => {
+    const from = 0;
+    const evs = [ev(30 * MIN, 'tab_active', { spentMs: 5 * MIN }), ev(90 * MIN, 'tab_active', { spentMs: 2 * MIN }), ev(95 * MIN, 'tab_active', { spentMs: MIN })];
+    const b = hourlyActivity(evs, from);
+    expect(b).toHaveLength(24);
+    expect(b[0]).toBe(5 * MIN);
+    expect(b[1]).toBe(3 * MIN);
   });
 });

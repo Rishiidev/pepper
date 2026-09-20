@@ -1,58 +1,65 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutGrid, Save, Search, Star, X } from 'lucide-react';
 import { useCommandStore } from '../../stores/command-store';
 import { useSessionStore } from '../../stores/session-store';
-import { searchEngine, RankedResult } from '../../core/engines/search-engine';
+import { searchEngine } from '../../core/engines/search-engine';
 import { sanitizeDisplayTitle } from '../../core/utils/text-sanitizer';
-import {
-  Search,
-  Save,
-  RotateCcw,
-  LayoutGrid,
-  Star,
-  Trash2,
-  X,
-  Zap,
-  Brain,
-  Clock,
-  Globe,
-  Tag,
-  FileText,
-  Sparkles,
-} from 'lucide-react';
-
-const MATCH_ICONS: Record<string, React.ReactNode> = {
-  name: <FileText className="w-3 h-3 text-pepper-400" />,
-  intent: <Brain className="w-3 h-3 text-violet-700 dark:text-violet-400" />,
-  summary: <Sparkles className="w-3 h-3 text-emerald-700 dark:text-emerald-400" />,
-  project: <LayoutGrid className="w-3 h-3 text-blue-700 dark:text-blue-400" />,
-  tag: <Tag className="w-3 h-3 text-amber-700 dark:text-amber-400" />,
-  domain: <Globe className="w-3 h-3 text-cyan-700 dark:text-cyan-400" />,
-  tab_title: <FileText className="w-3 h-3 text-text-muted" />,
-  tab_url: <Globe className="w-3 h-3 text-text-muted" />,
-  all: <Clock className="w-3 h-3 text-text-muted" />,
-};
+import { recordActivation } from '../../core/engines/activation';
+import { Card } from '../ui/Card';
+import { Chip, Kbd } from '../ui/Chip';
+import { FaviconStack } from '../ui/FaviconStack';
 
 const MATCH_LABELS: Record<string, string> = {
-  name: 'Name match',
-  intent: 'Memory intent',
-  summary: 'AI summary',
+  name: 'Name',
+  intent: 'Intent',
+  summary: 'Summary',
   project: 'Project',
-  tag: 'Tag match',
-  domain: 'Domain',
+  tag: 'Tag',
+  domain: 'Site',
   tab_title: 'Tab title',
-  tab_url: 'URL match',
+  tab_url: 'URL',
   all: 'Recent',
 };
 
+const RECENT_KEY = 'pepper_recent_searches';
+
+const loadRecent = (): string[] => {
+  try {
+    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+  } catch {
+    return [];
+  }
+};
+
+const timeAgo = (ts: number) => {
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return days < 7 ? `${days}d ago` : `${Math.floor(days / 7)}w ago`;
+};
+
+interface Row {
+  id: string;
+  kind: 'action' | 'workspace';
+  label: string;
+  run: () => void | Promise<void>;
+  sessionId?: string;
+}
+
+/** Find anything: workspaces, tabs and sites. Works offline, no AI needed. */
 export const CommandPalette: React.FC = () => {
   const { isOpen, searchQuery, closePalette, setSearchQuery } = useCommandStore();
   const { sessions, saveWorkspace, restoreSession, deleteSession, toggleFavorite } = useSessionStore();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [rankedResults, setRankedResults] = useState<RankedResult[]>([]);
+  const [selected, setSelected] = useState(0);
+  const [recent, setRecent] = useState<string[]>(loadRecent);
+  const counted = useRef(false);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         useCommandStore.getState().togglePalette();
@@ -60,299 +67,234 @@ export const CommandPalette: React.FC = () => {
         closePalette();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, closePalette]);
 
   useEffect(() => {
     if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 50);
-      setSelectedIndex(0);
+      counted.current = false;
+      setRecent(loadRecent());
+      setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [isOpen]);
 
-  // Re-rank when query changes
+  const ranked = useMemo(() => (isOpen ? searchEngine.rankedSearch(sessions, { query: searchQuery }).slice(0, 12) : []), [isOpen, sessions, searchQuery]);
+
+  useEffect(() => setSelected(0), [searchQuery, isOpen]);
   useEffect(() => {
-    if (!isOpen) return;
-    const results = searchEngine.rankedSearch(sessions, { query: searchQuery });
-    setRankedResults(results.slice(0, 12));
-    setSelectedIndex(0);
-  }, [searchQuery, sessions, isOpen]);
+    if (isOpen && searchQuery.trim() && !counted.current) {
+      counted.current = true;
+      void recordActivation('search');
+    }
+  }, [isOpen, searchQuery]);
+
+  const rememberQuery = () => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    try {
+      localStorage.setItem(RECENT_KEY, JSON.stringify([q, ...loadRecent().filter((x) => x !== q)].slice(0, 5)));
+    } catch {
+      // storage blocked
+    }
+  };
+
+  const openDashboard = () => {
+    if (typeof chrome !== 'undefined' && chrome.tabs) chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
+    else window.open('/manager.html', '_blank');
+  };
+
+  const rows: Row[] = useMemo(() => {
+    const actions: Row[] = searchQuery
+      ? []
+      : [
+          { id: 'save', kind: 'action', label: 'Save this window', run: async () => void (await saveWorkspace()) },
+          { id: 'dash', kind: 'action', label: 'Open dashboard', run: openDashboard },
+        ];
+    const workspaces: Row[] = ranked.map((r) => ({
+      id: r.session.id,
+      kind: 'workspace',
+      label: r.session.name,
+      sessionId: r.session.id,
+      run: () => restoreSession(r.session.id),
+    }));
+    return [...actions, ...workspaces];
+  }, [ranked, searchQuery, saveWorkspace, restoreSession]);
 
   if (!isOpen) return null;
 
-  const handleSave = async () => {
-    await saveWorkspace();
+  const choose = async (row: Row) => {
+    rememberQuery();
     closePalette();
+    await row.run();
   };
 
-  const handleOpenManager = () => {
-    if (typeof chrome !== 'undefined' && chrome.tabs) {
-      chrome.tabs.create({ url: chrome.runtime.getURL('manager.html') });
-    } else {
-      window.open('/manager.html', '_blank');
-    }
-    closePalette();
-  };
-
-  const handleRestore = (sessionId: string) => {
-    restoreSession(sessionId);
-    closePalette();
-  };
-
-  const handleKeyNav = (e: React.KeyboardEvent) => {
-    const totalItems = rankedResults.length + (searchQuery ? 0 : 2); // +2 for quick actions
-    if (totalItems === 0 && e.key !== 'Enter') return;
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (rows.length === 0 && e.key !== 'Enter') return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev + 1) % totalItems);
+      setSelected((s) => (s + 1) % Math.max(1, rows.length));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
-    } else if (e.key === 'Home' && totalItems > 0) {
+      setSelected((s) => (s - 1 + rows.length) % Math.max(1, rows.length));
+    } else if (e.key === 'Home') {
       e.preventDefault();
-      setSelectedIndex(0);
-    } else if (e.key === 'End' && totalItems > 0) {
+      setSelected(0);
+    } else if (e.key === 'End') {
       e.preventDefault();
-      setSelectedIndex(totalItems - 1);
+      setSelected(Math.max(0, rows.length - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (!searchQuery) {
-        if (selectedIndex === 0) handleSave();
-        else if (selectedIndex === 1) handleOpenManager();
-        else if (rankedResults[selectedIndex - 2]) {
-          handleRestore(rankedResults[selectedIndex - 2].session.id);
-        }
-      } else {
-        if (rankedResults[selectedIndex]) {
-          handleRestore(rankedResults[selectedIndex].session.id);
-        }
-      }
+      if (rows[selected]) void choose(rows[selected]);
     }
   };
 
-  const timeAgo = (ts: number) => {
-    const diff = Date.now() - ts;
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return `${Math.floor(days / 7)}w ago`;
-  };
+  const byId = new Map(ranked.map((r) => [r.session.id, r]));
+  const actionRows = rows.filter((r) => r.kind === 'action');
+  const wsRows = rows.filter((r) => r.kind === 'workspace');
 
-  const captureLabel = (type?: string) => {
-    if (!type || type === 'manual') return null;
-    if (type === 'auto_window_close') return 'Auto-captured';
-    if (type === 'keyboard_shortcut') return 'Shortcut';
-    if (type === 'crash_recovery') return 'Recovered';
-    return 'Auto';
+  const renderWorkspace = (row: Row, index: number) => {
+    const r = byId.get(row.id)!;
+    const s = r.session;
+    const isSel = index === selected;
+    return (
+      <div
+        key={row.id}
+        id={`pepper-palette-item-${index}`}
+        role="option"
+        aria-selected={isSel}
+        ref={(el) => {
+          if (isSel && el) el.scrollIntoView({ block: 'nearest' });
+        }}
+        onClick={() => void choose(row)}
+        className={`group flex cursor-pointer items-center gap-3 rounded-inner px-3 py-2.5 ${isSel ? 'bg-surface-active' : 'hover:bg-surface-hover'}`}
+      >
+        <FaviconStack items={s.tabs} max={3} size={24} ring={isSel ? 'var(--pp-card-active)' : 'var(--pp-card)'} total={s.tabCount} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">
+            {s.isFavorite && <Star className="inline w-3.5 h-3.5 mr-1 -mt-0.5 fill-current" aria-hidden="true" />}
+            {sanitizeDisplayTitle(s.name, s.tabs)}
+          </p>
+          <p className="text-xs text-text-muted">
+            {s.tabCount} tabs · {timeAgo(s.createdAt)}
+            {s.captureType === 'crash_recovery' ? ' · Recovered' : s.captureType === 'auto_window_close' ? ' · Auto-saved' : ''}
+          </p>
+        </div>
+        {searchQuery && <Chip tone="lilac">{MATCH_LABELS[r.matchReason] || 'Match'}</Chip>}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            aria-label={`${s.isFavorite ? 'Unfavorite' : 'Favorite'} ${s.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              void toggleFavorite(s.id);
+            }}
+            className="w-8 h-8 rounded-full hover:bg-surface-hover flex items-center justify-center"
+          >
+            <Star className={`w-4 h-4 ${s.isFavorite ? 'fill-current' : ''}`} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            aria-label={`Delete ${s.name}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              void deleteSession(s.id);
+            }}
+            className="w-8 h-8 rounded-full hover:bg-surface-hover flex items-center justify-center"
+          >
+            <X className="w-4 h-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] bg-black/70"
+      className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh] bg-black/50 animate-fade-in"
       role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) closePalette();
-      }}
+      onMouseDown={(e) => e.target === e.currentTarget && closePalette()}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Search your work memory"
-        className="w-full max-w-xl bg-surface-card border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[65vh] animate-slide-up"
-      >
-        {/* Search Input */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border bg-surface">
-          <Search className="w-5 h-5 text-pepper-400 shrink-0" />
+      <Card pad="none" role="dialog" aria-modal="true" aria-label="Find anything" className="w-full max-w-[560px] max-h-[70vh] flex flex-col overflow-hidden">
+        <div className="flex items-center gap-3 px-4 h-14 border-b border-border">
+          <Search className="w-5 h-5 text-text-muted shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
             role="combobox"
             aria-expanded="true"
             aria-controls="pepper-palette-list"
-            aria-activedescendant={`pepper-palette-item-${selectedIndex}`}
+            aria-activedescendant={rows.length ? `pepper-palette-item-${selected}` : undefined}
             aria-autocomplete="list"
-            aria-label="Search your work memory"
+            aria-label="Find anything"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleKeyNav}
-            placeholder="Search by what you remember, e.g. 'pricing research last week'"
-            className="w-full bg-transparent text-text-primary placeholder:text-text-muted focus:outline-none text-sm font-medium"
+            onKeyDown={onKeyDown}
+            placeholder="Find a workspace, tab or site"
+            className="flex-1 bg-transparent text-base placeholder:text-text-muted focus:outline-none"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} aria-label="Clear search" className="p-1 text-text-muted hover:text-text-primary rounded">
-              <X className="w-4 h-4" />
+            <button type="button" aria-label="Clear search" onClick={() => setSearchQuery('')} className="w-8 h-8 rounded-full hover:bg-surface-hover flex items-center justify-center">
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
-          <kbd className="px-1.5 py-0.5 text-xs font-extrabold bg-border/40 text-text-secondary rounded font-mono border border-border/20 shrink-0">
-            ESC
-          </kbd>
+          <Kbd>Esc</Kbd>
         </div>
 
-        {/* Results */}
-        <div id="pepper-palette-list" role="listbox" aria-label="Results" className="overflow-y-auto p-2 space-y-0.5">
-          {/* Quick Actions (shown when no query) */}
-          {!searchQuery && (
-            <div className="pb-2 space-y-0.5">
-              <div className="px-3 py-1.5 text-xs font-bold text-text-muted uppercase tracking-widest">
-                Quick Actions
-              </div>
-              <button
-                id="pepper-palette-item-0"
-                role="option"
-                aria-selected={selectedIndex === 0}
-                tabIndex={-1}
-                onClick={handleSave}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-text-primary rounded-xl transition-colors text-left ${
-                  selectedIndex === 0 ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-lg bg-pepper-500/10 border border-pepper-500/20 flex items-center justify-center shrink-0">
-                  <Save className="w-4 h-4 text-pepper-500" />
-                </div>
-                <span className="flex-1 font-semibold text-xs">Save Current Workspace</span>
-                <kbd className="px-1.5 py-0.5 text-xs bg-border/40 text-text-secondary rounded font-mono">⌘⇧S</kbd>
-              </button>
-              <button
-                id="pepper-palette-item-1"
-                role="option"
-                aria-selected={selectedIndex === 1}
-                tabIndex={-1}
-                onClick={handleOpenManager}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm text-text-primary rounded-xl transition-colors text-left ${
-                  selectedIndex === 1 ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                  <LayoutGrid className="w-4 h-4 text-blue-700 dark:text-blue-400" />
-                </div>
-                <span className="flex-1 font-semibold text-xs">Open Memory Dashboard</span>
-                <kbd className="px-1.5 py-0.5 text-xs bg-border/40 text-text-secondary rounded font-mono">⌘⇧O</kbd>
-              </button>
+        <div id="pepper-palette-list" role="listbox" aria-label="Results" className="overflow-y-auto p-2">
+          {!searchQuery && recent.length > 0 && (
+            <div className="px-2 pb-2 flex flex-wrap items-center gap-2">
+              <span className="eyebrow text-text-muted">Recent searches</span>
+              {recent.map((q) => (
+                <button key={q} type="button" onClick={() => setSearchQuery(q)} className="rounded-full border border-border px-3 h-7 text-xs font-semibold hover:bg-surface-hover">
+                  {q}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Workspace Results */}
-          <div className="space-y-0.5">
-            <div className="px-3 py-1.5 text-xs font-bold text-text-muted uppercase tracking-widest flex items-center justify-between">
-              <span>{searchQuery ? `Memory Results — ${rankedResults.length} found` : 'Recent Memory'}</span>
-              {searchQuery && rankedResults.length > 0 && (
-                <span className="text-pepper-400 flex items-center gap-1">
-                  <Zap className="w-3 h-3" />
-                  Ranked by relevance
-                </span>
-              )}
+          {actionRows.length > 0 && (
+            <div role="group" aria-label="Actions" className="pb-2">
+              <p className="eyebrow text-text-muted px-3 py-1">Actions</p>
+              {actionRows.map((row, i) => (
+                <button
+                  key={row.id}
+                  id={`pepper-palette-item-${i}`}
+                  role="option"
+                  aria-selected={selected === i}
+                  tabIndex={-1}
+                  onClick={() => void choose(row)}
+                  className={`flex w-full items-center gap-3 rounded-inner px-3 py-2.5 text-left ${selected === i ? 'bg-surface-active' : 'hover:bg-surface-hover'}`}
+                >
+                  <span aria-hidden="true" className="w-8 h-8 rounded-full bg-surface-active flex items-center justify-center">
+                    {row.id === 'save' ? <Save className="w-4 h-4" /> : <LayoutGrid className="w-4 h-4" />}
+                  </span>
+                  <span className="flex-1 text-sm font-semibold">{row.label}</span>
+                </button>
+              ))}
             </div>
+          )}
 
-            {rankedResults.length === 0 ? (
-              <div className="px-4 py-10 text-center space-y-2">
-                <Brain className="w-8 h-8 text-text-muted mx-auto" />
-                <p className="text-text-muted text-xs font-medium">
-                  {searchQuery ? `No memories matching "${searchQuery}"` : 'No workspaces saved yet'}
-                </p>
-                {searchQuery && (
-                  <p className="text-text-muted text-xs">Try different words — Pepper searches names, summaries, domains, and tab titles</p>
-                )}
-              </div>
+          <div role="group" aria-label="Workspaces">
+            <p className="eyebrow text-text-muted px-3 py-1">{searchQuery ? `Workspaces (${wsRows.length})` : 'Recent workspaces'}</p>
+            {wsRows.length === 0 ? (
+              <p className="px-3 py-8 text-center text-sm text-text-muted">
+                {searchQuery ? `Nothing matches “${searchQuery}”. Try fewer words or check the spelling.` : 'No workspaces yet. Close a window and Pepper saves it for you.'}
+              </p>
             ) : (
-              rankedResults.map((result, idx) => {
-                const session = result.session;
-                const itemIndex = searchQuery ? idx : idx + 2;
-                const isSelected = selectedIndex === itemIndex;
-                const autoLabel = captureLabel(session.captureType);
-
-                return (
-                  <div
-                    key={session.id}
-                    id={`pepper-palette-item-${itemIndex}`}
-                    role="option"
-                    aria-selected={isSelected}
-                    ref={(el) => {
-                      if (isSelected && el) el.scrollIntoView({ block: 'nearest' });
-                    }}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl group transition-all cursor-pointer ${
-                      isSelected ? 'bg-pepper-500/10 border border-pepper-500/20' : 'hover:bg-surface-hover border border-transparent'
-                    }`}
-                    onClick={() => handleRestore(session.id)}
-                  >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0">
-                        <RotateCcw className="w-4 h-4 text-pepper-400 group-hover:rotate-45 transition-transform" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold text-text-primary truncate">
-                            {session.isFavorite && <Star className="w-3 h-3 text-amber-700 dark:text-amber-400 inline mr-1 fill-amber-400" />}
-                            {sanitizeDisplayTitle(session.name, session.tabs)}
-                          </span>
-                          {autoLabel && (
-                            <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-500/20 shrink-0">
-                              {autoLabel}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-text-muted mt-0.5">
-                          <span>{session.tabCount} tabs</span>
-                          <span>·</span>
-                          <span>{timeAgo(session.createdAt)}</span>
-                          {searchQuery && (
-                            <>
-                              <span>·</span>
-                              <span className="flex items-center gap-1 text-pepper-400">
-                                {MATCH_ICONS[result.matchReason] || MATCH_ICONS.all}
-                                {MATCH_LABELS[result.matchReason] || 'Match'}
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFavorite(session.id);
-                        }}
-                        aria-label={`Favorite ${session.name}`}
-                        className="p-1 text-text-muted hover:text-amber-700 dark:text-amber-400 rounded"
-                      >
-                        <Star className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteSession(session.id);
-                        }}
-                        aria-label={`Delete ${session.name}`}
-                        className="p-1 text-text-muted hover:text-red-400 rounded"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })
+              wsRows.map((row, i) => renderWorkspace(row, actionRows.length + i))
             )}
           </div>
         </div>
 
-        {/* Footer Hint */}
-        <div className="px-4 py-2 border-t border-border bg-surface/60 flex items-center justify-between text-xs text-text-muted">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between border-t border-border px-4 h-10 text-xs text-text-muted">
+          <span className="flex items-center gap-3">
             <span>↑↓ Navigate</span>
             <span>↵ Open</span>
-            <span>ESC Close</span>
-          </div>
-          <span className="flex items-center gap-1">
-            <Brain className="w-3 h-3 text-pepper-400" aria-hidden="true" />
-            Works offline — no AI setup needed
           </span>
+          <span>Works offline. No AI needed.</span>
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

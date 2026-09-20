@@ -10,7 +10,7 @@ interface LogoProps {
 }
 
 /**
- * PEPPER Geometric P Logo System
+ * Pepper geometric P mark
  *
  * Layer 1: Letter P
  * Layer 2: Portal (Doorway into unfinished work)
@@ -100,21 +100,7 @@ export const Logo: React.FC<LogoProps> = ({
         </svg>
       </div>
 
-      {showText && (
-        <div className="flex flex-col leading-none">
-          <div className="flex items-center gap-1.5">
-            <span className="font-extrabold text-sm tracking-[0.2em] text-text-primary uppercase font-mono">
-              PEPPER
-            </span>
-            <span className="text-xs font-bold tracking-widest px-1.5 py-0.5 rounded bg-surface-card border border-border text-text-muted">
-              OS
-            </span>
-          </div>
-          <span className="text-xs tracking-wider text-text-muted font-medium uppercase mt-0.5">
-            Work Memory Engine
-          </span>
-        </div>
-      )}
+      {showText && <span className="font-bold text-base tracking-tight text-text-primary">Pepper</span>}
     </div>
   );
 };

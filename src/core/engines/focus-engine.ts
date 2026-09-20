@@ -2,6 +2,7 @@ import { db } from '../../storage/db';
 import { FocusSession, FocusMode, FocusStatus, UserReflection } from '../types/focus-session';
 import { PepperSession } from '../types/session';
 import { FocusSummarySkill } from '../intelligence/skills/focus-summary';
+import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
 
 const focusSummarySkill = new FocusSummarySkill();
@@ -52,6 +53,7 @@ export class FocusEngine {
     };
 
     await db.focusSessions.add(session);
+    void recordActivation('focus');
     eventBus.emit('focus:started', { session });
     return session;
   }
