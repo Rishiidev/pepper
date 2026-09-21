@@ -10,7 +10,7 @@ export interface PepperSettings {
   saveScope: SaveScope;
   closeTabsOnSave: boolean;
   confirmDelete: boolean;
-  /** Restore big workspaces with all but the first tabs unloaded until opened */
+  /** Restore workspaces of 3+ tabs with all but the active tab unloaded until opened */
   lazyRestore: boolean;
   theme: AppTheme;
   aiAutoNaming: boolean;

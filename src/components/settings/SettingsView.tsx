@@ -39,12 +39,12 @@ export const SettingsView: React.FC<Props> = ({ onStartTour }) => {
     <Card as="section" className="flex items-center justify-between gap-4">
       <label className="flex flex-1 items-center justify-between gap-4">
         <span>
-          <span className="block text-base font-bold">Restore big workspaces lazily</span>
+          <span className="block text-base font-bold">Restore workspaces lazily</span>
           <span className="block text-sm text-text-muted">
-            Workspaces with more than 10 tabs open the first tab fully and keep the rest unloaded until you click them. Saves memory.
+            Workspaces with 3 or more tabs open the active tab fully and keep the rest unloaded until you click them. Saves memory.
           </span>
         </span>
-        <Switch checked={settings.lazyRestore} onChange={(v) => void updateSettings({ lazyRestore: v })} label="Restore big workspaces lazily" />
+        <Switch checked={settings.lazyRestore} onChange={(v) => void updateSettings({ lazyRestore: v })} label="Restore workspaces lazily" />
       </label>
     </Card>
 
