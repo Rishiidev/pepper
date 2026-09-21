@@ -31,6 +31,9 @@ interface SessionState {
 }
 
 export const useSessionStore = create<SessionState>((set, get) => {
+  // Every change fires an event and a storage update, so fetches overlap; only the newest may write
+  let fetchSeq = 0;
+
   // Listen for in-process event bus updates
   eventBus.on('session:created', () => get().fetchSessions());
   eventBus.on('session:updated', () => get().fetchSessions());
@@ -57,10 +60,12 @@ export const useSessionStore = create<SessionState>((set, get) => {
     error: null,
 
     fetchSessions: async () => {
+      const seq = ++fetchSeq;
       set({ isLoading: true, error: null });
       try {
         const sessions = await sessionEngine.getAllSessions();
-        const stats = await sessionEngine.getStats();
+        const stats = await sessionEngine.getStats(sessions);
+        if (seq !== fetchSeq) return;
         const filtered = searchEngine.search(sessions, {
           query: get().searchQuery,
           projectFilter: get().selectedProject || undefined,
@@ -75,7 +80,7 @@ export const useSessionStore = create<SessionState>((set, get) => {
           isLoading: false,
         });
       } catch (err) {
-        set({ error: (err as Error).message, isLoading: false });
+        if (seq === fetchSeq) set({ error: (err as Error).message, isLoading: false });
       }
     },
 

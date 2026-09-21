@@ -10,6 +10,10 @@ export interface FocusSession {
   workspaceName: string;
   projectName?: string;
 
+  /** Task this session was started for (optional) */
+  taskId?: string;
+  taskTitle?: string;
+
   mode: FocusMode;
   durationSeconds: number; // Target duration (e.g. 1500 for 25m Pomodoro)
   elapsedSeconds: number;  // Actual seconds worked

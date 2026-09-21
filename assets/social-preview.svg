@@ -12,6 +12,9 @@
   <text x="60" y="96" font-family="system-ui, -apple-system, sans-serif" font-size="20"
         font-weight="700" fill="#FF3B30" letter-spacing="4">Close it. It&#8217;s saved.</text>
 
+  <!-- Logo -->
+  <path transform="translate(1140 72) scale(0.225)" fill="#ffffff" d="M0 0H456V409H194V519H0V262H194V342H262V194H0Z"/>
+
   <!-- Project Name -->
   <text x="60" y="205" font-family="system-ui, -apple-system, sans-serif" font-size="76"
         font-weight="800" fill="#ffffff" letter-spacing="-1">Pepper</text>

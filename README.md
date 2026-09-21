@@ -6,6 +6,8 @@ Pepper saves a browser window the moment you close it, and brings every tab back
 
 Works in Chrome, Edge, Brave and Arc (Manifest V3).
 
+**Website:** https://pepper-black.vercel.app
+
 ## What it does
 
 - **Auto-save.** Close a window with two or more tabs and it appears in your workspaces. If Chrome crashes or quits mid-save, Pepper rebuilds the windows it had not finished and offers them back.
@@ -14,6 +16,7 @@ Works in Chrome, Edge, Brave and Arc (Manifest V3).
 - **Session timeline (optional, off by default).** See when you opened Chrome and which tabs you used, scrub to any moment, and pull tabs into a workspace. Local only, skips incognito, and you can block sites.
 - **Add any tab to a workspace.** A "+" menu everywhere, a right-click menu, and `Alt+Shift+A` for the active workspace. Pepper also suggests tabs that belong together.
 - **Focus timer.** A Pomodoro you start from the popup or side panel. It finishes itself and shows minutes left on the toolbar badge, even with no Pepper page open.
+- **Tasks.** A private to-do list. Add tasks from the popup, side panel, a tab's "+" menu, a workspace card or the right-click menu, attach them to a workspace, and start a focus session on one. Finishing the session offers to mark it done. Nothing is shown on the sites you browse.
 - **Backup.** Export and import JSON. API keys are never included.
 - **Light and dark**, following your system.
 

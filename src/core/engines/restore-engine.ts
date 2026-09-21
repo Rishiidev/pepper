@@ -2,9 +2,57 @@ import { sessionEngine, INBOX_SESSION_ID } from './session-engine';
 import { PepperTab } from '../types/session';
 import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
+import { settingsRepo } from '../../storage/repositories/settings-repo';
+
+/** Workspaces with more tabs than this are restored lazily (when the setting is on). */
+export const LAZY_RESTORE_THRESHOLD = 2;
+
+/** Pure: should this restore leave background tabs unloaded? */
+export function shouldRestoreLazily(tabCount: number, lazySetting: boolean, override?: boolean): boolean {
+  return override ?? (lazySetting && tabCount > LAZY_RESTORE_THRESHOLD);
+}
+
+/** Max background tabs allowed to load at once during a lazy restore. */
+const MAX_CONCURRENT_LOADS = 3;
+const COMMIT_TIMEOUT_MS = 8000;
+
+/**
+ * Resolves once the tab has committed its page (title known), or on timeout/removal.
+ * Discarding before this leaves the tab with an empty URL/title.
+ */
+function waitForCommit(tabId: number): Promise<void> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+      resolve();
+    };
+    const onUpdated = (id: number, info: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+      if (id === tabId && (info.status === 'complete' || (info.title && tab.url && tab.url !== 'about:blank'))) finish();
+    };
+    const onRemoved = (id: number) => {
+      if (id === tabId) finish();
+    };
+    const timer = setTimeout(finish, COMMIT_TIMEOUT_MS);
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onRemoved.addListener(onRemoved);
+    chrome.tabs.get(tabId).then((t) => {
+      if (t.status === 'complete') finish();
+    }, finish);
+  });
+}
+
+export interface RestoreOptions {
+  /** Force lazy (true) or eager (false) restore, ignoring the setting and the size threshold */
+  lazy?: boolean;
+}
 
 export class RestoreEngine {
-  async restoreSession(sessionId: string, selectedTabIndices?: number[]): Promise<void> {
+  async restoreSession(sessionId: string, selectedTabIndices?: number[], options: RestoreOptions = {}): Promise<void> {
     const session = await sessionEngine.getSessionById(sessionId);
     if (!session) throw new Error(`Session with id ${sessionId} not found`);
 
@@ -41,27 +89,44 @@ export class RestoreEngine {
       await chrome.tabs.update(firstTabs[0].id, { pinned: true });
     }
 
+    const { lazyRestore } = await settingsRepo.get();
+    const lazy = shouldRestoreLazily(tabsToRestore.length, lazyRestore, options.lazy);
+
     // Create the others in saved order; tabs before the active one go before it.
     let insertIndex = 0;
+    const inFlight = new Set<Promise<void>>();
     for (let i = 0; i < tabsToRestore.length; i++) {
       if (i === activeIdx) {
         insertIndex++;
         continue;
       }
       try {
-        await chrome.tabs.create({
+        const created = await chrome.tabs.create({
           windowId,
           url: tabsToRestore[i].url,
           index: insertIndex,
           active: false,
           pinned: tabsToRestore[i].pinned || false,
         });
+        if (lazy && created.id !== undefined) {
+          // Let it commit (so URL/title are kept), then unload; cap concurrent loads to avoid lag
+          const id = created.id;
+          const job: Promise<void> = waitForCommit(id)
+            .then(() => chrome.tabs.discard(id))
+            .then(() => undefined, () => undefined)
+            .finally(() => {
+              inFlight.delete(job);
+            });
+          inFlight.add(job);
+          if (inFlight.size >= MAX_CONCURRENT_LOADS) await Promise.race(inFlight);
+        }
         insertIndex++;
       } catch (err) {
         console.warn('PEPPER: Failed to restore tab', tabsToRestore[i].url, err);
       }
     }
 
+    await Promise.all(inFlight);
     void recordActivation('restore');
     await sessionEngine.updateSession(sessionId, { restoredAt: Date.now() }).catch(() => undefined);
     eventBus.emit('session:restored', { sessionId, tabCount: tabsToRestore.length });

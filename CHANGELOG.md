@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased — redesign]
 
+### Added
+- **Tasks**: a local to-do list with no account. Add from the popup or side panel, from any tab's "+" menu ("Add as a task"), from a workspace card, or by right-clicking a page ("Add this tab as a task"). With an active workspace, the popup and side panel show just that workspace's tasks.
+- **Focus on a task**: pick a task before starting a session (or press play on it). When the session ends, Pepper asks whether to mark the task done. Workspace cards show their open task count. Tasks are included in backups. Tasks appear only in Pepper's own pages: nothing is injected into sites you browse and there are no task notifications.
+
 ### Changed
 - **New design system**: a soft light/dark palette that follows your system, mint/lilac/butter zones with one red primary action per view, Plus Jakarta Sans bundled locally (no Google Fonts), rounded bento cards, 12px minimum text.
 - **Popup**: one ink card to save the window in a click (⌘S), Undo, inline rename; reopen-last and focus timer below.
@@ -24,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Tabs that were still loading when a window closed were left out of the auto-save.
+- The focus **Start** button and its length picker no longer crop or crowd the card in the side panel (down to 280px wide), and the dashboard nav, header and segmented controls wrap instead of overflowing on phone widths. New crop and overlap gates in the design e2e cover the popup, side panel and every dashboard view.
+- Sidebar navigation labels line up on desktop; Home's first-run cards no longer wrap headings or misalign buttons.
+- The contribution grid and daily journal grouped activity by UTC day, so outside UTC today's work landed on the wrong cell. They now use your local day.
+- When a focus countdown ended with several Pepper pages open, each one (plus the background alarm) finished the session, repeating the AI summary and events. The first one to finish now claims it.
+- The open-dashboard shortcut opened a second dashboard tab when the first had a `?view=` address, and opening an existing dashboard reloaded it and lost the current view.
+- Dashboard data no longer loads twice per change, and a slow older load can no longer overwrite a newer one.
 
 ## [Unreleased — session timeline]
 

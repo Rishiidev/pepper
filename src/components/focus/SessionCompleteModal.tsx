@@ -3,6 +3,7 @@ import { FocusSession, UserReflection } from '../../core/types/focus-session';
 import { useFocusStore } from '../../stores/focus-store';
 import { restoreEngine } from '../../core/engines/restore-engine';
 import { Logo } from '../brand/Logo';
+import { FocusTaskPrompt } from '../tasks/FocusTaskPrompt';
 import { Sparkles, CheckCircle2, ArrowRight, Brain, Smile, Meh, Frown, Sparkle } from 'lucide-react';
 
 interface Props {
@@ -90,6 +91,9 @@ export const SessionCompleteModal: React.FC<Props> = ({ session, onClose }) => {
             </div>
           )}
         </div>
+
+        {/* Offer to close the task this session was for */}
+        <FocusTaskPrompt session={session} />
 
         {/* Reflection Picker */}
         <div className="space-y-2">

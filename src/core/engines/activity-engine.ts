@@ -1,5 +1,6 @@
 import { PepperSession } from '../types/session';
 import { FocusSession } from '../types/focus-session';
+import { localDateStr } from '../utils/date';
 import {
   ActivityLevel,
   WorkActivityScore,
@@ -96,7 +97,7 @@ export class ActivityEngine {
     // Group sessions & workspaces by date string (YYYY-MM-DD)
     const sessionsByDate = new Map<string, FocusSession[]>();
     for (const s of focusSessions) {
-      const dStr = new Date(s.startedAt).toISOString().split('T')[0];
+      const dStr = localDateStr(s.startedAt);
       const list = sessionsByDate.get(dStr) || [];
       list.push(s);
       sessionsByDate.set(dStr, list);
@@ -104,7 +105,7 @@ export class ActivityEngine {
 
     const workspacesByDate = new Map<string, PepperSession[]>();
     for (const w of workspaces) {
-      const dStr = new Date(w.createdAt).toISOString().split('T')[0];
+      const dStr = localDateStr(w.createdAt);
       const list = workspacesByDate.get(dStr) || [];
       list.push(w);
       workspacesByDate.set(dStr, list);
@@ -112,8 +113,9 @@ export class ActivityEngine {
 
     // Build day array starting from totalDays - 1 ago up to today
     for (let i = totalDays - 1; i >= 0; i--) {
-      const d = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-      const dateStr = d.toISOString().split('T')[0];
+      // Calendar arithmetic, not 24h steps, so a DST change never skips or repeats a day
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i, 23, 59, 59, 999);
+      const dateStr = localDateStr(d);
 
       const daySessions = sessionsByDate.get(dateStr) || [];
       const dayWorkspaces = workspacesByDate.get(dateStr) || [];
@@ -133,7 +135,7 @@ export class ActivityEngine {
         dateStr
       );
 
-      const isTodayStr = dateStr === today.toISOString().split('T')[0];
+      const isTodayStr = dateStr === localDateStr(today);
 
       days.push({
         dateStr,
@@ -160,12 +162,12 @@ export class ActivityEngine {
     workspaces: PepperSession[]
   ): DailyActivityRecord {
     const daySessions = focusSessions.filter((s) => {
-      const d = new Date(s.startedAt).toISOString().split('T')[0];
+      const d = localDateStr(s.startedAt);
       return d === dateStr;
     });
 
     const dayWorkspaces = workspaces.filter((w) => {
-      const d = new Date(w.createdAt).toISOString().split('T')[0];
+      const d = localDateStr(w.createdAt);
       return d === dateStr;
     });
 

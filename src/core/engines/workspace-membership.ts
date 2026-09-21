@@ -33,32 +33,37 @@ export function recentWorkspaces(all: PepperSession[], limit = 6): PepperSession
 
 export class WorkspaceMembership {
   async addTabs(workspaceId: string, tabs: PepperTab[]): Promise<AddResult> {
-    const ws = await sessionEngine.getSessionById(workspaceId);
-    if (!ws) throw new Error('Workspace not found');
-
-    const fresh = newTabsOnly(ws.tabs, tabs);
-    if (fresh.length === 0) return { workspace: ws, added: 0, skipped: tabs.length };
-
-    const merged = [...ws.tabs, ...fresh].map((t, index) => ({
-      url: t.url,
-      title: t.title || 'Untitled Tab',
-      favIconUrl: t.favIconUrl || '',
-      index,
-      pinned: t.pinned || false,
-    }));
-    const updated = await sessionEngine.updateSession(ws.id, { tabs: merged, tabCount: merged.length });
-    return { workspace: updated, added: fresh.length, skipped: tabs.length - fresh.length };
+    let added = 0;
+    const workspace = await sessionEngine.updateSessionAtomic(workspaceId, (ws) => {
+      const fresh = newTabsOnly(ws.tabs, tabs);
+      added = fresh.length;
+      if (fresh.length === 0) return null;
+      const merged = [...ws.tabs, ...fresh].map((t, index) => ({
+        url: t.url,
+        title: t.title || 'Untitled Tab',
+        favIconUrl: t.favIconUrl || '',
+        index,
+        pinned: t.pinned || false,
+      }));
+      return { tabs: merged, tabCount: merged.length };
+    });
+    return { workspace, added, skipped: tabs.length - added };
   }
 
   /** Removes one tab (by page identity) from a workspace. Returns the removed tab so it can be undone. */
   async removeTab(workspaceId: string, url: string): Promise<PepperTab | null> {
-    const ws = await sessionEngine.getSessionById(workspaceId);
-    if (!ws) return null;
     const key = cleanUrlKey(url);
-    const removed = ws.tabs.find((t) => cleanUrlKey(t.url) === key) ?? null;
-    if (!removed) return null;
-    const rest = ws.tabs.filter((t) => t !== removed).map((t, index) => ({ ...t, index }));
-    await sessionEngine.updateSession(ws.id, { tabs: rest, tabCount: rest.length });
+    let removed: PepperTab | null = null;
+    try {
+      await sessionEngine.updateSessionAtomic(workspaceId, (ws) => {
+        removed = ws.tabs.find((t) => cleanUrlKey(t.url) === key) ?? null;
+        if (!removed) return null;
+        const rest = ws.tabs.filter((t) => t !== removed).map((t, index) => ({ ...t, index }));
+        return { tabs: rest, tabCount: rest.length };
+      });
+    } catch {
+      return null; // workspace no longer exists
+    }
     return removed;
   }
 

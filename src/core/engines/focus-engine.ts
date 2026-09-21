@@ -4,6 +4,7 @@ import { PepperSession } from '../types/session';
 import { FocusSummarySkill } from '../intelligence/skills/focus-summary';
 import { recordActivation } from './activation';
 import { eventBus } from '../events/event-bus';
+import { FocusTask } from '../types/task';
 
 const focusSummarySkill = new FocusSummarySkill();
 
@@ -14,7 +15,8 @@ export class FocusEngine {
   async startSession(
     memory: PepperSession,
     mode: FocusMode,
-    targetMinutes: number = 25
+    targetMinutes: number = 25,
+    task?: FocusTask
   ): Promise<FocusSession> {
     const targetSeconds = mode === 'stopwatch' ? 0 : targetMinutes * 60;
 
@@ -41,6 +43,8 @@ export class FocusEngine {
       sessionId: memory.id,
       workspaceName: memory.name,
       projectName: memory.projectName || 'General',
+      taskId: task?.id,
+      taskTitle: task?.title,
       mode,
       durationSeconds: targetSeconds,
       elapsedSeconds: 0,
@@ -67,17 +71,22 @@ export class FocusEngine {
     reflection?: UserReflection,
     notes?: string
   ): Promise<FocusSession> {
-    const session = await db.focusSessions.get(sessionId);
-    if (!session) throw new Error(`Focus session ${sessionId} not found.`);
-    // Both the background timer and an open page may finish the same session
-    if (session.status === 'completed') return session;
-
+    // The timer in every open page and the background alarm can all reach zero together.
+    // Claim the session in one transaction so exactly one of them writes the result and runs the summary.
     const now = Date.now();
-    session.elapsedSeconds = elapsedSeconds;
-    session.status = 'completed';
-    session.endedAt = now;
-    session.userReflection = reflection;
-    session.userNotes = notes;
+    const session = await db.transaction('rw', db.focusSessions, async () => {
+      const current = await db.focusSessions.get(sessionId);
+      if (!current) throw new Error(`Focus session ${sessionId} not found.`);
+      if (current.status === 'completed' || current.status === 'canceled') return null;
+      current.elapsedSeconds = elapsedSeconds;
+      current.status = 'completed';
+      current.endedAt = now;
+      current.userReflection = reflection;
+      current.userNotes = notes;
+      await db.focusSessions.put(current);
+      return current;
+    });
+    if (!session) return (await db.focusSessions.get(sessionId)) as FocusSession;
 
     // Trigger AI Focus Summary Skill
     try {
@@ -115,6 +124,18 @@ export class FocusEngine {
       await db.focusSessions.put(session);
       eventBus.emit('focus:paused', { sessionId });
     }
+  }
+
+  /** Puts a paused session back to active so history and the stored status match the running timer. */
+  async resumeSession(sessionId: string, elapsedSeconds: number): Promise<void> {
+    await db.transaction('rw', db.focusSessions, async () => {
+      const session = await db.focusSessions.get(sessionId);
+      if (!session || session.status !== 'paused') return;
+      session.status = 'active';
+      session.elapsedSeconds = elapsedSeconds;
+      await db.focusSessions.put(session);
+    });
+    eventBus.emit('focus:resumed', { sessionId });
   }
 
   async cancelSession(sessionId: string, elapsedSeconds: number): Promise<void> {

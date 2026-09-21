@@ -58,7 +58,13 @@ pepper-website/
 
 ## Deployment
 
-Deployable to Vercel, Netlify, Cloudflare Pages, or GitHub Pages.
+Live on Vercel: https://pepper-black.vercel.app
+
+```bash
+cd website && vercel deploy --prod
+```
+
+`vite.config.ts` serves the site from `/` on Vercel (it sets `VERCEL=1` during builds) and from `/pepper/` everywhere else, which is what GitHub Pages needs. It is also deployable to Netlify or Cloudflare Pages; set `base` to match where it is hosted.
 
 ```bash
 npm run build

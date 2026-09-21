@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, ChevronUp, MoreHorizontal, RotateCcw, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, ListChecks, MoreHorizontal, RotateCcw, X } from 'lucide-react';
 import { PepperSession } from '../../core/types/session';
 import { sessionEngine } from '../../core/engines/session-engine';
 import { workspaceMembership } from '../../core/engines/workspace-membership';
@@ -12,6 +12,9 @@ import { AutoTitleSkill } from '../../core/intelligence/skills/auto-title';
 import { sanitizeDisplayTitle } from '../../core/utils/text-sanitizer';
 import { Button, Card, Chip, FaviconStack, Menu, toast } from '../ui';
 import { InlineRename } from '../feedback/InlineRename';
+import { useTasks } from '../tasks/useTasks';
+import { TaskAddInput } from '../tasks/TaskAddInput';
+import { TaskList } from '../tasks/TaskList';
 
 const ago = (ts: number) => {
   const m = Math.max(0, Math.floor((Date.now() - ts) / 60000));
@@ -41,6 +44,9 @@ export const WorkspaceCard: React.FC<Props> = ({ session, onRestore }) => {
   const { settings, updateSettings } = useSettingsStore();
   const { fetchSessions, togglePin, toggleFavorite } = useSessionStore();
   const [expanded, setExpanded] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const tasks = useTasks().filter((t) => t.workspaceId === session.id);
+  const openCount = tasks.filter((t) => !t.done).length;
   const [focusSeconds, setFocusSeconds] = useState(0);
   const isActive = settings.activeWorkspaceId === session.id;
 
@@ -96,6 +102,7 @@ export const WorkspaceCard: React.FC<Props> = ({ session, onRestore }) => {
             { label: isActive ? 'Clear active workspace' : 'Make active', checked: isActive, onSelect: () => updateSettings({ activeWorkspaceId: isActive ? null : session.id }) },
             { label: session.isPinned ? 'Unpin' : 'Pin to top', onSelect: () => togglePin(session.id) },
             { label: session.isFavorite ? 'Remove favorite' : 'Favorite', onSelect: () => toggleFavorite(session.id) },
+            { label: 'Add a task', onSelect: () => setTasksOpen(true) },
             { label: 'Start a 25 minute focus', onSelect: () => useFocusStore.getState().startFocus(session, 'pomodoro', 25) },
             { label: 'Suggest a name', onSelect: suggestName },
             { label: 'Delete', danger: true, onSelect: remove },
@@ -121,8 +128,8 @@ export const WorkspaceCard: React.FC<Props> = ({ session, onRestore }) => {
         {session.projectName && session.projectName !== 'General' && <Chip tone="lilac">{session.projectName}</Chip>}
       </div>
 
-      <div className="flex items-center gap-2 mt-auto">
-        <Button size="sm" onClick={() => onRestore(session)} className="flex-1" aria-label={`Restore ${session.name}`}>
+      <div className="flex flex-wrap items-center gap-2 mt-auto">
+        <Button size="sm" onClick={() => onRestore(session)} className="flex-1 min-w-[6.5rem]" aria-label={`Restore ${session.name}`}>
           <RotateCcw className="w-4 h-4" aria-hidden="true" />
           Restore
         </Button>
@@ -130,7 +137,18 @@ export const WorkspaceCard: React.FC<Props> = ({ session, onRestore }) => {
           Tabs
           {expanded ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
         </Button>
+        <Button size="sm" variant="ghost" aria-expanded={tasksOpen} aria-label={`${tasksOpen ? 'Hide' : 'Show'} tasks in ${session.name}${openCount ? `, ${openCount} open` : ''}`} onClick={() => setTasksOpen(!tasksOpen)} data-testid="workspace-tasks-toggle">
+          <ListChecks className="w-4 h-4" aria-hidden="true" />
+          {openCount > 0 ? openCount : 'Tasks'}
+        </Button>
       </div>
+
+      {tasksOpen && (
+        <div className="-mx-1 border-t border-border pt-3 space-y-2 px-1" data-testid="workspace-tasks">
+          <TaskList label={`Tasks in ${session.name}`} tasks={tasks} emptyText="No tasks yet." />
+          <TaskAddInput workspaceId={session.id} label={`Add a task to ${session.name}`} />
+        </div>
+      )}
 
       {expanded && (
         <ul className="-mx-1 border-t border-border pt-2 space-y-0.5 max-h-64 overflow-y-auto">

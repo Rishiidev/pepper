@@ -10,6 +10,8 @@ export interface PepperSettings {
   saveScope: SaveScope;
   closeTabsOnSave: boolean;
   confirmDelete: boolean;
+  /** Restore workspaces of 3+ tabs with all but the active tab unloaded until opened */
+  lazyRestore: boolean;
   theme: AppTheme;
   aiAutoNaming: boolean;
   selectedAiProvider: string;
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: PepperSettings = {
   saveScope: 'window',
   closeTabsOnSave: true,
   confirmDelete: true,
+  lazyRestore: true,
   theme: 'system',
   aiAutoNaming: false,
   selectedAiProvider: 'none',

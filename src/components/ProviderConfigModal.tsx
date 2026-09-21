@@ -54,6 +54,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
   onSaved,
 }) => {
   const [apiKey, setApiKey] = useState('');
+  const [sessionOnly, setSessionOnly] = useState(false);
   const [endpoint, setEndpoint] = useState(isLocal ? 'http://localhost:11434' : '');
   const [model, setModel] = useState('');
   const [isCustomModel, setIsCustomModel] = useState(false);
@@ -68,6 +69,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
       keyVaultRepo.get(providerId).then((existing) => {
         if (existing) {
           if (existing.apiKey) setApiKey(existing.apiKey);
+          setSessionOnly(existing.sessionOnly === true);
           if (existing.endpoint) setEndpoint(existing.endpoint);
           if (existing.model) {
             setModel(existing.model);
@@ -123,6 +125,7 @@ export const ProviderConfigModal: React.FC<Props> = ({
       id: providerId,
       enabled: true,
       apiKey: apiKey || undefined,
+      sessionOnly,
       endpoint: endpoint || undefined,
       model: selectedModel,
       lastHealthCheck: healthStatus
@@ -190,9 +193,10 @@ export const ProviderConfigModal: React.FC<Props> = ({
                 placeholder="sk-or-v1-..."
                 className="w-full bg-surface border border-border rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-pepper-500"
               />
-              <span className="text-xs text-text-muted mt-1 block">
-                Keys are stored strictly in local browser storage.
-              </span>
+              <label className="mt-2 flex items-start gap-2 text-xs text-text-secondary cursor-pointer">
+                <input type="checkbox" checked={sessionOnly} onChange={(e) => setSessionOnly(e.target.checked)} className="mt-0.5" />
+                <span>Forget this key when the browser closes. Otherwise it is saved unencrypted in this browser's extension storage.</span>
+              </label>
             </div>
           )}
 

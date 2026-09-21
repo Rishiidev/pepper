@@ -10,6 +10,7 @@ export const MENU = {
   ADD_PREFIX: 'pepper-add:',
   ADD_ACTIVE: 'pepper-add-active',
   ADD_NEW: 'pepper-add-new',
+  ADD_TASK: 'pepper-add-task',
 } as const;
 
 const CONTEXTS: chrome.contextMenus.ContextType[] = ['action', 'page'];
@@ -32,6 +33,7 @@ export async function rebuildContextMenus(): Promise<void> {
   await create({ id: MENU.OPEN_MANAGER, title: 'Open PEPPER Workspace Manager', contexts: CONTEXTS });
   await create({ id: MENU.OPEN_SIDE_PANEL, title: 'Open PEPPER side panel', contexts: CONTEXTS });
 
+  await create({ id: MENU.ADD_TASK, title: 'Add this tab as a task', contexts: CONTEXTS });
   await create({ id: MENU.ADD_PARENT, title: 'Add this tab to workspace', contexts: CONTEXTS });
 
   const [sessions, settings] = await Promise.all([sessionEngine.getAllSessions(), settingsRepo.get()]);

@@ -46,8 +46,8 @@ export interface PepperSession {
   /** Index of the tab the user was actively viewing when captured */
   activeTabIndex?: number;
 
-  /** Seconds spent on each tab (keyed by tab index) */
-  tabDurations?: Record<number, number>;
+  /** Indexed fingerprint of the tab URLs (see hashUrlSet); maintained by the repository */
+  urlHash?: string;
 
   /** Ordered trail of URLs the user navigated through in this session */
   navigationTrail?: string[];
